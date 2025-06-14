@@ -2,17 +2,92 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title> 5本のきゅうり </title>     <!-- ブラウザのタブに表示されるページ名 -->
-  <link rel="stylesheet" href="style.css">      <!-- CSSの適用 -->
+  <title>5本のきゅうり - ログイン & ゲーム設定</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>5本のきゅうり</h1>      <!-- 開いたページの一番大きな見出し -->
-  <div id="round">Round 1</div>     <!-- 現在のラウンド数を表示 -->
-  <div id="field">場に出たカード：<span id="played-card">-</span></div>    <!-- 場に出された最新のカードの数字を表示 -->
-  <div id="hand"></div>         <!-- 自分のカードが並ぶ場所 -->
-  <div id="message"></div>      <!-- メッセージを表示する場所(あなたの番です 等) -->
-  <div id="cucumber-count">🥒 x 0</div>       <!-- 現在与えられたきゅうりの数を表示する場所(初期値0) -->
 
-  <script src="game.js"></script>     <!-- JavaScriptを読み込む -->
+  <!-- ログイン画面 -->
+  <div id="login-screen">
+    <h1>ログイン</h1>
+    <button id="login-btn">ログイン</button>
+    <button id="create-account-btn">アカウント新規作成</button>
+  </div>
+
+  <div id="start-screen" style="display:none;">
+  <h1>スタート画面</h1>
+  <button id="cpu-btn">CPU対戦</button>
+  <button id="online-btn">オンライン対戦</button>
+  <button id="settings-btn">設定</button>
+</div>
+
+
+  <!-- 設定画面 -->
+  <div id="settings-screen" style="display:none;">
+    <label>言語:
+      <select id="language">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+      </select>
+    </label><br>
+    <label>音量:
+      <input type="range" id="volume" min="0" max="100" value="50">
+    </label><br>
+    <button id="settings-back">戻る</button>
+  </div>
+
+  <!-- ゲームルール設定画面 -->
+  <div id="rule-screen" style="display:none;">
+    <h1>5本のきゅうり カードゲーム</h1>
+
+    <div class="option-group">
+      <label>対戦人数:</label>
+      <div id="player-options" class="options">
+        <button class="option-btn" data-value="2">2人</button>
+        <button class="option-btn" data-value="3">3人</button>
+        <button class="option-btn" data-value="4">4人</button>
+        <button class="option-btn" data-value="5">5人</button>
+        <button class="option-btn" data-value="6">6人</button>
+      </div>
+    </div>
+
+    <div class="option-group">
+      <label>カード枚数:</label>
+      <div id="card-options" class="options">
+        <button class="option-btn" data-value="5">5</button>
+        <button class="option-btn" data-value="7">7</button>
+        <button class="option-btn" data-value="9">9</button>
+        <button class="option-btn" data-value="11">11</button>
+        <button class="option-btn" data-value="13">13</button>
+        <button class="option-btn" data-value="15">15</button>
+      </div>
+    </div>
+
+    <div class="option-group">
+      <label>思考時間:</label>
+      <div id="think-options" class="options">
+        <button class="option-btn" data-value="5">5秒</button>
+        <button class="option-btn" data-value="15">15秒</button>
+        <button class="option-btn" data-value="30">30秒</button>
+        <button class="option-btn" data-value="0">無制限</button>
+        <button class="option-btn" data-value="custom">カスタム</button>
+      </div>
+      <div id="custom-think-container" style="display:none;">
+        <input type="number" id="custom-think-input" min="1" max="999" inputmode="numeric" placeholder="カスタム秒数">
+        <small>※最大思考時間は999秒です</small>
+      </div>
+    </div>
+
+    <button id="start-match" disabled>対戦開始</button>
+  </div>
+
+  <!-- 仮の対戦画面 -->
+  <div id="game-screen" style="display:none;">
+    <h2>対戦画面（仮）</h2>
+  </div>
+
+  <script src="game.js"></script>
 </body>
 </html>
+
+ 

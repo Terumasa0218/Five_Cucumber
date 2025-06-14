@@ -1,0 +1,63 @@
+/* 全体のベース設定 */
+body {
+  font-family: sans-serif;
+  padding: 20px;
+  margin: 0;
+  background-color: #fff;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+}
+
+/* タイトル */
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* オプションブロック */
+.option-group {
+  margin: 15px 0;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+/* オプションボタン */
+.option-btn {
+  padding: 8px 14px;
+  border: 1px solid #333;
+  border-radius: 5px;
+  background-color: #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.option-btn:hover {
+  background-color: #ddd;
+}
+
+.option-btn:focus {
+  outline: 2px solid #3399ff;
+}
+
+.option-btn.active {
+  background-color: #3399ff;
+  color: #fff;
+}
+
+/* カスタム思考時間入力 */
+#custom-think-container {
+  margin-top: 8px;
+}
+
+#custom-think-input {
+  width: 100px;
+  padding: 4px;
+}
