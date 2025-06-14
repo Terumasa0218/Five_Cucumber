@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title> 5本のきゅうり </title>     <!-- ブラウザのタブに表示されるページ名 -->
+  <link rel="stylesheet" href="style.css">      <!-- CSSの適用 -->
+</head>
+<body>
+  <h1>5本のきゅうり</h1>      <!-- 開いたページの一番大きな見出し -->
+  <div id="round">Round 1</div>     <!-- 現在のラウンド数を表示 -->
+  <div id="field">場に出たカード：<span id="played-card">-</span></div>    <!-- 場に出された最新のカードの数字を表示 -->
+  <div id="hand"></div>         <!-- 自分のカードが並ぶ場所 -->
+  <div id="message"></div>      <!-- メッセージを表示する場所(あなたの番です 等) -->
+  <div id="cucumber-count">🥒 x 0</div>       <!-- 現在与えられたきゅうりの数を表示する場所(初期値0) -->
+
+  <script src="game.js"></script>     <!-- JavaScriptを読み込む -->
+</body>
+</html>
