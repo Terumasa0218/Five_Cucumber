@@ -14,13 +14,13 @@
     <button id="create-account-btn">アカウント新規作成</button>
   </div>
 
+  <!-- スタート画面 -->
   <div id="start-screen" style="display:none;">
-  <h1>スタート画面</h1>
-  <button id="cpu-btn">CPU対戦</button>
-  <button id="online-btn">オンライン対戦</button>
-  <button id="settings-btn">設定</button>
-</div>
-
+    <h1>スタート画面</h1>
+    <button id="cpu-btn">CPU対戦</button>
+    <button id="online-btn">オンライン対戦</button>
+    <button id="settings-btn">設定</button>
+  </div>
 
   <!-- 設定画面 -->
   <div id="settings-screen" style="display:none;">
@@ -64,6 +64,19 @@
     </div>
 
     <div class="option-group">
+      <label>お漬物きゅうり数:</label>
+      <div id="pickle-options" class="options">
+        <button class="option-btn" data-value="6">6</button>
+        <button class="option-btn" data-value="8">8</button>
+        <button class="option-btn" data-value="10">10</button>
+        <button class="option-btn" data-value="custom">カスタム</button>
+      </div>
+      <div id="custom-pickle-container" style="display:none;">
+        <input type="number" id="custom-pickle-input" min="1" max="99" placeholder="カスタム数">
+      </div>
+    </div>
+
+    <div class="option-group">
       <label>思考時間:</label>
       <div id="think-options" class="options">
         <button class="option-btn" data-value="5">5秒</button>
@@ -73,21 +86,26 @@
         <button class="option-btn" data-value="custom">カスタム</button>
       </div>
       <div id="custom-think-container" style="display:none;">
-        <input type="number" id="custom-think-input" min="1" max="999" inputmode="numeric" placeholder="カスタム秒数">
-        <small>※最大思考時間は999秒です</small>
+        <input type="number" id="custom-think-input" min="1" max="999" placeholder="カスタム秒数">
       </div>
     </div>
 
     <button id="start-match" disabled>対戦開始</button>
   </div>
 
-  <!-- 仮の対戦画面 -->
+  <!-- 対戦画面 -->
   <div id="game-screen" style="display:none;">
-    <h2>対戦画面（仮）</h2>
+    <h2 id="round-title">第1回戦 ラウンド1</h2>
+    <div id="players-area"></div>
+    <div id="player-hand">
+      <h3>あなたの手札</h3>
+      <div id="hand-cards"></div>
+    </div>
+    <div id="field-card">--</div> <!-- 場の最新カード表示 -->
+    <div id="graveyard">--</div> <!-- 墓地のカード表示 -->
+    <div id="game-log"></div>
   </div>
 
   <script src="game.js"></script>
 </body>
 </html>
-
- 
