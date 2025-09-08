@@ -1,0 +1,42 @@
+{
+  "game.title": "Five Cucumbers",
+  "game.description": "A card game where you try not to collect 5 cucumbers",
+  "game.rules": "Highest card wins the trick. Playing the highest card in the final trick gives you 2 cucumbers!",
+  
+  "ui.round": "Round {round}",
+  "ui.trick": "Trick {trick}",
+  "ui.timeLeft": "Time left: {time}s",
+  "ui.yourTurn": "Your turn",
+  "ui.cpuTurn": "{name}'s turn",
+  "ui.gameOver": "Game Over",
+  "ui.winner": "Winner: {name}",
+  "ui.loser": "Loser: {name}",
+  
+  "card.playable": "Playable card",
+  "card.discard": "Discard",
+  "card.disabled": "Cannot play",
+  "card.field": "Field card",
+  "card.graveyard": "Graveyard",
+  
+  "action.playCard": "Play card",
+  "action.discardCard": "Discard card",
+  "action.pass": "Pass",
+  "action.newGame": "New game",
+  "action.quit": "Quit game",
+  
+  "result.cucumberAward": "{name} gets {cucumbers} cucumber(s)",
+  "result.gameOver": "{name} is pickled!!",
+  "result.finalScores": "Final scores",
+  "result.playAgain": "Play again",
+  
+  "error.invalidMove": "Invalid move",
+  "error.gameNotStarted": "Game not started",
+  "error.networkError": "Network error occurred",
+  
+  "tutorial.welcome": "Welcome to Five Cucumbers!",
+  "tutorial.goal": "Don't collect 5 cucumbers",
+  "tutorial.trick": "Highest card wins the trick",
+  "tutorial.follow": "You must follow the lead suit",
+  "tutorial.lastTrick": "Playing highest in the last trick = 2 cucumbers!",
+  "tutorial.tie": "In ties, the last played card wins"
+}

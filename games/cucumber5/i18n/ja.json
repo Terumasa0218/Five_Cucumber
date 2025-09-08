@@ -1,0 +1,42 @@
+{
+  "game.title": "５本のきゅうり",
+  "game.description": "きゅうりを5本集めないようにするカードゲーム",
+  "game.rules": "数字の大きいカードがトリックを取ります。最終トリックで最大値を出すときゅうり2本！",
+  
+  "ui.round": "第{round}回戦",
+  "ui.trick": "第{trick}ラウンド",
+  "ui.timeLeft": "残り時間: {time}秒",
+  "ui.yourTurn": "あなたの番です",
+  "ui.cpuTurn": "{name}の番",
+  "ui.gameOver": "ゲーム終了",
+  "ui.winner": "勝者: {name}",
+  "ui.loser": "敗者: {name}",
+  
+  "card.playable": "出せるカード",
+  "card.discard": "捨て札",
+  "card.disabled": "出せないカード",
+  "card.field": "場のカード",
+  "card.graveyard": "墓地",
+  
+  "action.playCard": "カードを出す",
+  "action.discardCard": "カードを捨てる",
+  "action.pass": "パス",
+  "action.newGame": "新しいゲーム",
+  "action.quit": "ゲームを終了",
+  
+  "result.cucumberAward": "{name} きゅうり{cucumbers}本獲得",
+  "result.gameOver": "{name} お漬物！！",
+  "result.finalScores": "最終結果",
+  "result.playAgain": "もう一度プレイ",
+  
+  "error.invalidMove": "無効な手です",
+  "error.gameNotStarted": "ゲームが開始されていません",
+  "error.networkError": "ネットワークエラーが発生しました",
+  
+  "tutorial.welcome": "５本のきゅうりへようこそ！",
+  "tutorial.goal": "きゅうりを5本集めないようにしましょう",
+  "tutorial.trick": "数字の大きいカードがトリックを取ります",
+  "tutorial.follow": "最初のスートに従ってください",
+  "tutorial.lastTrick": "最終トリックで最大値を出すときゅうり2本！",
+  "tutorial.tie": "同じ数字なら後出しが勝ちます"
+}

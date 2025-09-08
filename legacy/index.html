@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>５本のきゅうり</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --felt-green: #0b7f71;
+            --card-red: #f7465f;
+            --card-yellow: #ffbe3b;
+            --card-green: #50c878;
+            --card-blue: #3199ff;
+            --text-light: #ffffff;
+            --text-dark: #d0e1de;
+            --shadow-dark: rgba(0, 0, 0, 0.4);
+            --shadow-light: rgba(255, 255, 255, 0.1);
+            --table-shadow: rgba(0, 0, 0, 0.6);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: 
+                radial-gradient(ellipse at center, rgba(58, 134, 125, 0.92) 0%, rgba(45, 105, 98, 0.95) 100%),
+                linear-gradient(135deg, #2a6b5d 0%, #1f4a42 50%, #152e2a 100%);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            padding-bottom: 80px;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(255, 255, 255, 0.03) 2px,
+                    rgba(255, 255, 255, 0.03) 4px
+                ),
+                radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .table-surface {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 85%;
+            height: 70%;
+            background: 
+                radial-gradient(ellipse at center, rgba(58, 134, 125, 0.3) 0%, rgba(45, 105, 98, 0.5) 100%);
+            border-radius: 50%;
+            box-shadow: 
+                inset 0 0 60px rgba(0, 0, 0, 0.25),
+                0 0 80px rgba(0, 0, 0, 0.4);
+            border: 6px solid rgba(255, 255, 255, 0.8);
+            z-index: 1;
+        }
+
+        .game-container {
+            position: relative;
+            height: calc(100vh - 80px);
+            display: grid;
+            grid-template-areas: 
+                "hud-left hud-center hud-right"
+                "top-player top-player top-player"
+                "left-player center-area right-player"
+                "player-hand player-hand player-hand";
+            grid-template-rows: 60px 110px 1fr 130px;
+            grid-template-columns: 220px 1fr 220px;
+            gap: 12px;
+            padding: 12px;
+            z-index: 2;
+        }
+
+        .hud-left {
+            grid-area: hud-left;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .hud-center {
+            grid-area: hud-center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hud-right {
+            grid-area: hud-right;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .round-indicator {
+            background: linear-gradient(135deg, var(--felt-green), #0a6b5d);
+            color: var(--text-light);
+            padding: 10px 18px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 0.9em;
+            border: 3px solid rgba(255, 255, 255, 0.25);
+            box-shadow: 0 6px 20px var(--shadow-dark);
+            text-shadow: 2px 2px 4px var(--shadow-dark);
+            min-width: 120px;
+            text-align: center;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        .timer-display {
+            background: linear-gradient(135deg, var(--card-yellow), #e6a82d);
+            color: #2d2d2d;
+            padding: 12px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 1em;
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 6px 20px var(--shadow-dark);
+            transition: all 0.3s ease;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .timer-display.warning {
+            background: linear-gradient(135deg, var(--card-red), #e03d4f);
+            color: var(--text-light);
+            animation: pulse-warning 0.8s infinite;
+            text-shadow: 2px 2px 4px var(--shadow-dark);
+        }
+
+        @keyframes pulse-warning {
+            0%, 100% { transform: scale(1); box-shadow: 0 6px 20px var(--shadow-dark); }
+            50% { transform: scale(1.08); box-shadow: 0 8px 30px rgba(247, 70, 95, 0.6); }
+        }
+
+        .game-title {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+            color: var(--text-light);
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 1.8em;
+            font-weight: bold;
+            text-shadow: 3px 3px 6px var(--shadow-dark);
+            border: 3px solid rgba(255, 255, 255, 0.25);
+            box-shadow: 0 6px 25px var(--shadow-dark);
+            backdrop-filter: blur(10px);
+        }
+
+        .player-zone {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .top-player {
+            grid-area: top-player;
+        }
+
+        .left-player {
+            grid-area: left-player;
+        }
+
+        .right-player {
+            grid-area: right-player;
+        }
+
+        .player-panel {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 6px 25px var(--shadow-dark);
+            transition: all 0.4s ease;
+            min-width: 200px;
+        }
+
+        .player-panel.current-turn {
+            border: 4px solid var(--card-yellow);
+            box-shadow: 
+                0 0 30px rgba(255, 190, 59, 0.8),
+                0 6px 25px var(--shadow-dark);
+            background: linear-gradient(135deg, rgba(255, 190, 59, 0.25), rgba(255, 190, 59, 0.12));
+            animation: glow-pulse 2s infinite alternate;
+        }
+
+        @keyframes glow-pulse {
+            0% { box-shadow: 0 0 30px rgba(255, 190, 59, 0.8), 0 6px 25px var(--shadow-dark); }
+            100% { box-shadow: 0 0 40px rgba(255, 190, 59, 1), 0 8px 30px var(--shadow-dark); }
+        }
+
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .player-name {
+            color: var(--text-light);
+            font-weight: bold;
+            font-size: 1.1em;
+            text-shadow: 2px 2px 4px var(--shadow-dark);
+        }
+
+        .player-stats {
+            display: flex;
+            gap: 12px;
+            font-size: 0.9em;
+        }
+
+        .cucumber-count {
+            color: var(--card-red);
+            font-weight: bold;
+            text-shadow: 1px 1px 2px var(--shadow-dark);
+        }
+
+        .cards-count {
+            color: var(--card-blue);
+            font-weight: bold;
+            text-shadow: 1px 1px 2px var(--shadow-dark);
+        }
+
+        .player-hand-visual {
+            display: flex;
+            gap: 3px;
+            max-width: 90px;
+            flex-wrap: wrap;
+        }
+
+        .mini-card {
+            width: 14px;
+            height: 20px;
+            background: linear-gradient(135deg, var(--card-blue), #2a7dd1);
+            border-radius: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 2px 6px var(--shadow-dark);
+        }
+
+        .player-graveyard {
+            display: flex;
+            gap: 2px;
+            flex-wrap: wrap;
+            max-width: 70px;
+        }
+
+        .graveyard-mini-card {
+            width: 12px;
+            height: 18px;
+            background: linear-gradient(135deg, #666, #555);
+            color: var(--text-light);
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.5em;
+            font-weight: bold;
+            box-shadow: 0 2px 4px var(--shadow-dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .center-area {
+            grid-area: center-area;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 60px;
+            position: relative;
+        }
+
+        .field-area {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.2));
+            border: 4px solid rgba(255, 255, 255, 0.6);
+            border-radius: 25px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 35px var(--shadow-dark);
+            position: relative;
+        }
+
+        .field-area::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.3));
+            border-radius: 25px;
+            z-index: -1;
+            opacity: 0.5;
+        }
+
+        .field-title {
+            color: var(--text-light);
+            font-weight: bold;
+            font-size: 1.3em;
+            text-shadow: 2px 2px 4px var(--shadow-dark);
+            margin-bottom: 5px;
+        }
+
+        .graveyard-area {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 6px 25px var(--shadow-dark);
+        }
+
+        .graveyard-title {
+            color: var(--text-light);
+            font-weight: bold;
+            font-size: 1.1em;
+            text-shadow: 2px 2px 4px var(--shadow-dark);
+        }
+
+        .graveyard-cards {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            max-width: 180px;
+            max-height: 120px;
+            overflow-y: auto;
+            justify-content: center;
+        }
+
+        .graveyard-card {
+            width: 28px;
+            height: 40px;
+            background: linear-gradient(135deg, #666, #555);
+            color: var(--text-light);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: bold;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 3px 8px var(--shadow-dark);
+            text-shadow: 1px 1px 2px var(--shadow-dark);
+        }
+
+        .card {
+            width: 65px;
+            height: 90px;
+            border-radius: 8px;
+            display: flex !important;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 3px 12px var(--shadow-dark);
+            backdrop-filter: blur(5px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(240, 240, 240, 0.8));
+            color: #333;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        .player-hand .card {
+            width: 65px;
+            height: 90px;
+        }
+
+        .card-number {
+            font-size: 1.6em;
+            margin-bottom: 2px;
+            text-shadow: 1px 1px 2px var(--shadow-dark);
+        }
+
+        .cucumber-icons {
+            font-size: 0.6em;
+            line-height: 1.1;
+            text-align: center;
+        }
+
+        .card.playable {
+            background: linear-gradient(135deg, var(--card-green), #45b36b);
+            color: var(--text-light);
+            transform: translateY(-8px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(80, 200, 120, 0.5);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .card.discard {
+            background: linear-gradient(135deg, var(--card-red), #e03d4f);
+            color: var(--text-light);
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 30px rgba(247, 70, 95, 0.5);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .card.disabled {
+            background: linear-gradient(135deg, #999, #777);
+            color: #555;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .card.current-card {
+            background: linear-gradient(135deg, var(--card-blue), #2a7dd1);
+            color: var(--text-light);
+            border: 4px solid var(--card-yellow);
+            box-shadow: 0 0 30px rgba(49, 153, 255, 0.8);
+            animation: card-glow 2s infinite alternate;
+        }
+
+        @keyframes card-glow {
+            0% { box-shadow: 0 0 30px rgba(49, 153, 255, 0.8); }
+            100% { box-shadow: 0 0 40px rgba(49, 153, 255, 1), 0 0 60px rgba(255, 190, 59, 0.6); }
+        }
+
+        .card:hover:not(.disabled) {
+            transform: translateY(-12px) scale(1.08);
+            box-shadow: 0 15px 40px var(--shadow-dark);
+            z-index: 10;
+        }
+
+        .player-hand {
+            grid-area: player-hand;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 15px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            border-radius: 15px 15px 0 0;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 -6px 25px var(--shadow-dark);
+            overflow-x: auto;
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            min-height: 110px;
+            max-height: 130px;
+            margin-bottom: 20px;
+        }
+
+        .player-hand .card {
+            width: 65px;
+            height: 90px;
+            flex-shrink: 0;
+        }
+
+        .player-hand .card:hover:not(.disabled) {
+            transform: translateY(-8px) scale(1.05);
+            z-index: 15;
+        }
+
+        .game-over {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(8px);
+        }
+
+        .game-over-content {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+            padding: 50px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 15px 50px var(--shadow-dark);
+            border: 4px solid rgba(255, 255, 255, 0.4);
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .game-over-title {
+            font-size: 2.5em;
+            color: var(--card-red);
+            margin-bottom: 30px;
+            font-weight: bold;
+            text-shadow: 3px 3px 6px var(--shadow-dark);
+        }
+
+        .restart-btn {
+            background: linear-gradient(135deg, var(--card-green), #45b36b);
+            color: var(--text-light);
+            border: none;
+            padding: 18px 40px;
+            border-radius: 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 25px;
+            box-shadow: 0 6px 20px var(--shadow-dark);
+            transition: all 0.3s ease;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px var(--shadow-dark);
+        }
+
+        .trick-result {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+            border-radius: 30px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 15px 50px var(--shadow-dark);
+            border: 4px solid var(--card-green);
+            z-index: 500;
+            min-width: 350px;
+            backdrop-filter: blur(15px);
+        }
+
+        .trick-result-title {
+            font-size: 1.8em;
+            color: var(--felt-green);
+            margin-bottom: 25px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px var(--shadow-dark);
+        }
+
+        .card-animation {
+            /* 統一されたアニメーション用クラス */
+        }
+
+        @keyframes cardDeal {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .card-deal-animation {
+            animation: cardDeal 0.3s ease-out;
+        }
+
+        @media (max-width: 1200px) {
+            .game-container {
+                grid-template-columns: 180px 1fr 180px;
+                grid-template-rows: 50px 90px 1fr 110px;
+                height: calc(100vh - 70px);
+            }
+            
+            .card {
+                width: 55px;
+                height: 75px;
+            }
+            
+            .player-hand .card {
+                width: 55px;
+                height: 75px;
+            }
+            
+            .player-hand {
+                min-height: 90px;
+                max-height: 110px;
+                padding: 12px;
+                gap: 6px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-bottom: 100px;
+            }
+            
+            .game-container {
+                grid-template-columns: 130px 1fr 130px;
+                grid-template-rows: 40px 70px 1fr 90px;
+                height: calc(100vh - 100px);
+                gap: 8px;
+                padding: 8px;
+            }
+            
+            .center-area {
+                gap: 15px;
+            }
+            
+            .card {
+                width: 45px;
+                height: 60px;
+            }
+            
+            .player-hand .card {
+                width: 45px;
+                height: 60px;
+            }
+            
+            .player-hand {
+                min-height: 70px;
+                max-height: 90px;
+                padding: 8px;
+                gap: 4px;
+            }
+            
+            .card-number {
+                font-size: 1.2em;
+            }
+            
+            .cucumber-icons {
+                font-size: 0.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="table-surface"></div>
+
+    <div class="game-container">
+        <div class="hud-left">
+            <div class="round-indicator" id="roundInfo">ROUND 1/1</div>
+            <div class="timer-display" id="timerDisplay">TIME <span id="timeLeft">15</span></div>
+        </div>
+        
+        <div class="hud-center">
+            <div class="game-title">🥒 ５本のきゅうり 🥒</div>
+        </div>
+        
+        <div class="hud-right">
+        </div>
+
+        <div class="player-zone top-player">
+            <div class="player-panel" id="player2">
+                <div class="player-info">
+                    <div class="player-name">CPU-B</div>
+                    <div class="player-stats">
+                        <div class="cucumber-count">🥒 <span id="cucumber2">0</span></div>
+                        <div class="cards-count">🃏 <span id="cards2">7</span></div>
+                    </div>
+                </div>
+                <div class="player-hand-visual" id="playerHand2"></div>
+                <div class="player-graveyard" id="graveyard2"></div>
+            </div>
+        </div>
+
+        <div class="player-zone left-player">
+            <div class="player-panel" id="player3">
+                <div class="player-info">
+                    <div class="player-name">CPU-C</div>
+                    <div class="player-stats">
+                        <div class="cucumber-count">🥒 <span id="cucumber3">0</span></div>
+                        <div class="cards-count">🃏 <span id="cards3">7</span></div>
+                    </div>
+                </div>
+                <div class="player-hand-visual" id="playerHand3"></div>
+                <div class="player-graveyard" id="graveyard3"></div>
+            </div>
+        </div>
+
+        <div class="center-area">
+            <div class="field-area">
+                <div class="field-title">場のカード</div>
+                <div class="field-cards" id="fieldCards">
+                    <div class="card disabled">
+                        <div class="card-number">?</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="graveyard-area">
+                <div class="graveyard-title">墓地</div>
+                <div class="graveyard-cards" id="graveyardCards"></div>
+            </div>
+        </div>
+
+        <div class="player-zone right-player">
+            <div class="player-panel" id="player1">
+                <div class="player-info">
+                    <div class="player-name">CPU-A</div>
+                    <div class="player-stats">
+                        <div class="cucumber-count">🥒 <span id="cucumber1">0</span></div>
+                        <div class="cards-count">🃏 <span id="cards1">7</span></div>
+                    </div>
+                </div>
+                <div class="player-hand-visual" id="playerHand1"></div>
+                <div class="player-graveyard" id="graveyard1"></div>
+            </div>
+        </div>
+
+        <div class="player-hand" id="playerHand">
+        </div>
+    </div>
+
+    <div class="game-over" id="gameOver" style="display: none;">
+        <div class="game-over-content">
+            <div class="game-over-title" id="gameOverTitle">ゲーム終了！</div>
+            <div id="gameOverMessage"></div>
+            <button class="restart-btn" onclick="restartGame()">もう一度プレイ</button>
+        </div>
+    </div>
+
+    <script>
+        class CucumberGame {
+            constructor() {
+                this.players = 4;
+                this.maxPickles = 6;
+                this.initialCards = 7;
+                this.currentRound = 1;
+                this.currentTrick = 1;
+                this.currentPlayer = 0;
+                this.timeLeft = 15;
+                this.timer = null;
+                this.timerStopped = false;
+                
+                this.playerHands = [[], [], [], []];
+                this.playerCucumbers = [0, 0, 0, 0];
+                this.playerGraveyards = [[], [], [], []];
+                this.fieldCard = null;
+                this.sharedGraveyard = [];
+                this.trickCards = [];
+                this.firstPlayer = 0;
+                
+                this.initGame();
+            }
+
+            initGame() {
+                console.log('ゲーム初期化開始');
+                try {
+                    this.dealCards();
+                    this.firstPlayer = Math.floor(Math.random() * 4);
+                    this.currentPlayer = this.firstPlayer;
+                    console.log('最初のプレイヤー:', this.currentPlayer);
+                    this.updateDisplay();
+                    this.startTimer();
+                    console.log('ゲーム初期化完了');
+                } catch (error) {
+                    console.error('ゲーム初期化エラー:', error);
+                }
+            }
+
+            dealCards() {
+                console.log('カード配布開始');
+                const deck = [];
+                for (let num = 1; num <= 15; num++) {
+                    for (let i = 0; i < 7; i++) {
+                        deck.push(num);
+                    }
+                }
+                
+                for (let i = deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [deck[i], deck[j]] = [deck[j], deck[i]];
+                }
+                
+                for (let player = 0; player < 4; player++) {
+                    this.playerHands[player] = [];
+                    for (let card = 0; card < this.initialCards; card++) {
+                        this.playerHands[player].push(deck.pop());
+                    }
+                    this.playerHands[player].sort((a, b) => a - b);
+                }
+                
+                console.log('プレイヤー手札:', this.playerHands);
+            }
+
+            getCucumberCount(cardNumber) {
+                if (cardNumber >= 2 && cardNumber <= 5) return 1;
+                if (cardNumber >= 6 && cardNumber <= 9) return 2;
+                if (cardNumber >= 10 && cardNumber <= 11) return 3;
+                if (cardNumber >= 12 && cardNumber <= 14) return 4;
+                if (cardNumber === 15) return 5;
+                return 0;
+            }
+
+            getCucumberIcons(cardNumber) {
+                const count = this.getCucumberCount(cardNumber);
+                return '🥒'.repeat(count);
+            }
+
+            updateDisplay() {
+                console.log('画面更新開始');
+                try {
+                    document.getElementById('roundInfo').innerHTML = `第${this.currentRound}回戦<br><nobr>第${this.currentTrick}ラウンド</nobr>`;
+                    
+                    for (let i = 0; i < 4; i++) {
+                        const cucumberElement = document.getElementById(`cucumber${i}`);
+                        const cardsElement = document.getElementById(`cards${i}`);
+                        
+                        if (cucumberElement) cucumberElement.textContent = this.playerCucumbers[i];
+                        if (cardsElement) cardsElement.textContent = this.playerHands[i].length;
+                        
+                        const playerElement = document.getElementById(`player${i}`);
+                        if (playerElement) {
+                            if (i === this.currentPlayer) {
+                                playerElement.classList.add('current-turn');
+                            } else {
+                                playerElement.classList.remove('current-turn');
+                            }
+                        }
+
+                        const graveyardElement = document.getElementById(`graveyard${i}`);
+                        if (graveyardElement) {
+                            graveyardElement.innerHTML = '';
+                            this.playerGraveyards[i].forEach(card => {
+                                const cardElement = document.createElement('div');
+                                cardElement.className = 'graveyard-mini-card';
+                                cardElement.textContent = card;
+                                graveyardElement.appendChild(cardElement);
+                            });
+                        }
+
+                        if (i !== 0) {
+                            const playerHandElement = document.getElementById(`playerHand${i}`);
+                            if (playerHandElement) {
+                                playerHandElement.innerHTML = '';
+                                for (let j = 0; j < this.playerHands[i].length; j++) {
+                                    const cardElement = document.createElement('div');
+                                    cardElement.className = 'mini-card';
+                                    playerHandElement.appendChild(cardElement);
+                                }
+                            }
+                        }
+                    }
+
+                    this.updateFieldCard();
+                    this.updateGraveyard();
+                    this.updatePlayerHand();
+                    console.log('画面更新完了');
+                } catch (error) {
+                    console.error('画面更新エラー:', error);
+                }
+            }
+
+            updateFieldCard() {
+                const fieldCards = document.getElementById('fieldCards');
+                if (fieldCards) {
+                    if (this.fieldCard !== null) {
+                        fieldCards.innerHTML = `
+                            <div class="card current-card">
+                                <div class="card-number">${this.fieldCard}</div>
+                                <div class="cucumber-icons">${this.getCucumberIcons(this.fieldCard)}</div>
+                            </div>
+                        `;
+                    } else {
+                        fieldCards.innerHTML = `
+                            <div class="card disabled">
+                                <div class="card-number">?</div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+
+            updateGraveyard() {
+                const graveyardCards = document.getElementById('graveyardCards');
+                if (graveyardCards) {
+                    graveyardCards.innerHTML = '';
+                    this.sharedGraveyard.forEach(card => {
+                        const cardElement = document.createElement('div');
+                        cardElement.className = 'graveyard-card';
+                        cardElement.textContent = card;
+                        graveyardCards.appendChild(cardElement);
+                    });
+                }
+            }
+
+            updatePlayerHand() {
+                console.log('プレイヤー手札更新開始');
+                const playerHand = document.getElementById('playerHand');
+                if (!playerHand) {
+                    console.error('playerHand要素が見つかりません');
+                    return;
+                }
+                
+                playerHand.innerHTML = '';
+                
+                const hand = this.playerHands[0];
+                console.log('プレイヤー0の手札:', hand);
+                
+                if (hand.length === 0) {
+                    console.log('手札が空です');
+                    return;
+                }
+                
+                const minCard = Math.min(...hand);
+                console.log('最小カード:', minCard);
+                
+                const fragment = document.createDocumentFragment();
+                
+                hand.forEach((card, index) => {
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'card';
+                    cardElement.innerHTML = `
+                        <div class="card-number">${card}</div>
+                        <div class="cucumber-icons">${this.getCucumberIcons(card)}</div>
+                    `;
+                    
+                    if (this.currentPlayer === 0) {
+                        if (this.fieldCard === null || card >= this.fieldCard) {
+                            cardElement.classList.add('playable');
+                        } else if (card === minCard) {
+                            cardElement.classList.add('discard');
+                        } else {
+                            cardElement.classList.add('disabled');
+                        }
+                        
+                        cardElement.addEventListener('click', () => {
+                            console.log('カードクリック:', card);
+                            this.playCard(0, card);
+                        });
+                    } else {
+                        cardElement.classList.add('disabled');
+                    }
+
+                    fragment.appendChild(cardElement);
+                });
+                
+                playerHand.appendChild(fragment);
+                console.log('プレイヤー手札更新完了。カード数:', hand.length);
+            }
+
+            canPlayCard(player, card) {
+                const hand = this.playerHands[player];
+                const minCard = Math.min(...hand);
+
+                if (this.fieldCard === null || card >= this.fieldCard) {
+                    return true;
+                }
+                
+                return card === minCard;
+            }
+
+            playCard(player, card) {
+                if (player !== this.currentPlayer) return;
+                if (this.currentPlayer === 0 && !this.canPlayCard(player, card)) return;
+
+                const hand = this.playerHands[player];
+                const cardIndex = hand.indexOf(card);
+                if (cardIndex === -1) return;
+
+                hand.splice(cardIndex, 1);
+                this.trickCards.push({player, card});
+
+                if (this.fieldCard === null || card >= this.fieldCard) {
+                    this.animateCardToField(player, card, () => {
+                        this.fieldCard = card;
+                        this.updateDisplay();
+                        setTimeout(() => {
+                            this.nextPlayer();
+                        }, 2000);
+                    });
+                } else {
+                    this.animateCardToGraveyard(player, card, () => {
+                        this.playerGraveyards[player].push(card);
+                        this.sharedGraveyard.push(card);
+                        this.updateDisplay();
+                        setTimeout(() => {
+                            this.nextPlayer();
+                        }, 2000);
+                    });
+                }
+            }
+
+            nextPlayer() {
+                this.currentPlayer = (this.currentPlayer + 1) % 4;
+                
+                if (this.currentPlayer === this.firstPlayer) {
+                    this.endTrick();
+                } else {
+                    this.updateDisplay();
+                    this.resetTimer();
+                    
+                    if (this.currentPlayer !== 0) {
+                        setTimeout(() => this.cpuPlay(), 1000);
+                    }
+                }
+            }
+
+            cpuPlay() {
+                if (this.currentPlayer === 0) return;
+
+                const hand = this.playerHands[this.currentPlayer];
+                if (hand.length === 0) return;
+
+                let playableCards = [];
+                const minCard = Math.min(...hand);
+
+                if (this.fieldCard === null) {
+                    playableCards = [...hand];
+                } else {
+                    playableCards = hand.filter(card => card >= this.fieldCard);
+                }
+
+                let selectedCard;
+                if (playableCards.length > 0) {
+                    selectedCard = playableCards[Math.floor(Math.random() * playableCards.length)];
+                } else {
+                    selectedCard = minCard;
+                }
+
+                this.playCard(this.currentPlayer, selectedCard);
+            }
+
+            endTrick() {
+                if (this.playerHands[0].length === 0) {
+                    setTimeout(() => {
+                        this.finalRound();
+                    }, 1500);
+                } else {
+                    let maxCard = Math.max(...this.trickCards.map(tc => tc.card));
+                    
+                    let maxCardPlayers = this.trickCards.filter(tc => tc.card === maxCard);
+                    
+                    let winner;
+                    if (maxCardPlayers.length > 1) {
+                        winner = maxCardPlayers[maxCardPlayers.length - 1].player;
+                        console.log(`複数人が最大カード${maxCard}を出しました。最後に出したプレイヤー${winner}が勝利`);
+                    } else {
+                        winner = maxCardPlayers[0].player;
+                        console.log(`プレイヤー${winner}が最大カード${maxCard}で勝利`);
+                    }
+                    
+                    this.firstPlayer = winner;
+                    this.currentPlayer = winner;
+                    this.currentTrick++;
+                    this.fieldCard = null;
+                    this.trickCards = [];
+                    
+                    setTimeout(() => {
+                        this.updateDisplay();
+                        this.resetTimer();
+                        
+                        if (this.currentPlayer !== 0) {
+                            setTimeout(() => this.cpuPlay(), 1000);
+                        }
+                    }, 1500);
+                }
+            }
+
+            showCucumberResult(messages, callback) {
+                this.stopTimer();
+                
+                const cucumberResult = document.createElement('div');
+                cucumberResult.className = 'trick-result';
+                cucumberResult.innerHTML = `
+                    <div class="trick-result-title">🥒 きゅうり獲得 🥒</div>
+                    <div style="font-size: 1.2em; margin: 20px 0;">
+                        ${messages.map(msg => `<div style="margin: 10px 0; color: var(--card-red); font-weight: bold;">${msg}</div>`).join('')}
+                    </div>
+                `;
+                
+                document.body.appendChild(cucumberResult);
+                
+                setTimeout(() => {
+                    document.body.removeChild(cucumberResult);
+                    callback();
+                }, 3000);
+            }
+
+            finalRound() {
+                const finalCards = this.trickCards.map(tc => tc.card);
+                const maxCard = Math.max(...finalCards);
+                const hasOne = finalCards.includes(1);
+                
+                if (finalCards.every(card => card === 1)) {
+                    this.nextRound();
+                    return;
+                }
+
+                const losers = this.trickCards.filter(tc => tc.card === maxCard);
+                
+                const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C'];
+                let cucumberMessages = [];
+                
+                losers.forEach(loser => {
+                    let cucumbers = this.getCucumberCount(maxCard);
+                    if (hasOne) cucumbers *= 2;
+                    this.playerCucumbers[loser.player] += cucumbers;
+                    
+                    cucumberMessages.push(`${playerNames[loser.player]} きゅうり${cucumbers}本獲得`);
+                });
+
+                this.showCucumberResult(cucumberMessages, () => {
+                    const gameOverPlayers = this.playerCucumbers
+                        .map((count, index) => ({ player: index, count }))
+                        .filter(p => p.count >= this.maxPickles);
+
+                    if (gameOverPlayers.length > 0) {
+                        this.gameOver(gameOverPlayers);
+                    } else {
+                        this.nextRound();
+                    }
+                });
+            }
+
+            nextRound() {
+                this.currentRound++;
+                this.currentTrick = 1;
+                this.fieldCard = null;
+                this.sharedGraveyard = [];
+                this.playerGraveyards = [[], [], [], []];
+                this.trickCards = [];
+                
+                this.dealCards();
+                this.firstPlayer = Math.floor(Math.random() * 4);
+                this.currentPlayer = this.firstPlayer;
+                
+                this.updateDisplay();
+                this.resetTimer();
+                
+                if (this.currentPlayer !== 0) {
+                    setTimeout(() => this.cpuPlay(), 1500);
+                }
+            }
+
+            gameOver(losers) {
+                this.stopTimer();
+                const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C'];
+                const loserNames = losers.map(l => playerNames[l.player]).join('、');
+                
+                document.getElementById('gameOverTitle').textContent = `${loserNames} お漬物！！`;
+                document.getElementById('gameOverMessage').innerHTML = `
+                    <p>ゲーム終了です</p>
+                    <p>最終結果:</p>
+                    ${this.playerCucumbers.map((count, i) => 
+                        `<p>${playerNames[i]}: ${count}本</p>`
+                    ).join('')}
+                `;
+                document.getElementById('gameOver').style.display = 'flex';
+            }
+
+            startTimer() {
+                this.timeLeft = 15;
+                this.timerStopped = false;
+                this.updateTimer();
+                this.timer = setInterval(() => {
+                    if (this.timerStopped) return;
+                    
+                    this.timeLeft--;
+                    this.updateTimer();
+                    
+                    if (this.timeLeft <= 0) {
+                        this.stopTimer();
+                        if (this.currentPlayer === 0) {
+                            this.autoPlayCard();
+                        } else {
+                            this.cpuPlay();
+                        }
+                    }
+                }, 1000);
+            }
+
+            resetTimer() {
+                this.stopTimer();
+                this.startTimer();
+            }
+
+            stopTimer() {
+                this.timerStopped = true;
+                if (this.timer) {
+                    clearInterval(this.timer);
+                    this.timer = null;
+                }
+            }
+
+            updateTimer() {
+                const timerElement = document.getElementById('timeLeft');
+                const timerDisplay = document.getElementById('timerDisplay');
+                
+                if (this.timeLeft <= 0) {
+                    timerElement.textContent = '0';
+                    timerDisplay.classList.add('warning');
+                } else {
+                    timerElement.textContent = this.timeLeft;
+                    if (this.timeLeft <= 5) {
+                        timerDisplay.classList.add('warning');
+                    } else {
+                        timerDisplay.classList.remove('warning');
+                    }
+                }
+            }
+
+            autoPlayCard() {
+                if (this.currentPlayer !== 0) return;
+                
+                const hand = this.playerHands[0];
+                if (hand.length === 0) return;
+
+                let playableCards = [];
+                const minCard = Math.min(...hand);
+
+                if (this.fieldCard === null) {
+                    playableCards = [...hand];
+                } else {
+                    playableCards = hand.filter(card => card >= this.fieldCard);
+                }
+
+                let selectedCard;
+                if (playableCards.length > 0) {
+                    selectedCard = playableCards[0];
+                } else {
+                    selectedCard = minCard;
+                }
+
+                this.playCard(0, selectedCard);
+            }
+
+            animateCardToGraveyard(player, card, callback) {
+                const graveyardArea = document.querySelector('.graveyard-area');
+                
+                if (!graveyardArea) {
+                    console.error('Graveyard area not found');
+                    callback();
+                    return;
+                }
+
+                const graveyardRect = graveyardArea.getBoundingClientRect();
+                let startX, startY;
+
+                if (player === 0) {
+                    const handCards = document.querySelectorAll('#playerHand .card');
+                    let cardElement = null;
+                    
+                    handCards.forEach(cardEl => {
+                        const cardNumber = parseInt(cardEl.querySelector('.card-number').textContent);
+                        if (cardNumber === card) {
+                            cardElement = cardEl;
+                        }
+                    });
+
+                    if (cardElement) {
+                        const cardRect = cardElement.getBoundingClientRect();
+                        startX = cardRect.left;
+                        startY = cardRect.top;
+                    } else {
+                        const playerHandArea = document.getElementById('playerHand');
+                        const handRect = playerHandArea.getBoundingClientRect();
+                        startX = handRect.left + handRect.width / 2 - 32.5;
+                        startY = handRect.top + handRect.height / 2 - 45;
+                    }
+                } else {
+                    const playerElement = document.getElementById(`player${player}`);
+                    if (playerElement) {
+                        const playerRect = playerElement.getBoundingClientRect();
+                        startX = playerRect.left + playerRect.width / 2 - 32.5;
+                        startY = playerRect.top + playerRect.height / 2 - 45;
+                    } else {
+                        startX = graveyardRect.left + graveyardRect.width / 2 - 32.5;
+                        startY = graveyardRect.top + graveyardRect.height / 2 - 45;
+                    }
+                }
+
+                const endX = graveyardRect.left + graveyardRect.width / 2 - 32.5;
+                const endY = graveyardRect.top + graveyardRect.height / 2 - 45;
+
+                const animCard = document.createElement('div');
+                animCard.className = 'card card-animation';
+                animCard.innerHTML = `
+                    <div class="card-number">${card}</div>
+                    <div class="cucumber-icons">${this.getCucumberIcons(card)}</div>
+                `;
+
+                animCard.style.position = 'fixed';
+                animCard.style.left = startX + 'px';
+                animCard.style.top = startY + 'px';
+                animCard.style.width = '65px';
+                animCard.style.height = '90px';
+                animCard.style.zIndex = '1000';
+                animCard.style.pointerEvents = 'none';
+                animCard.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+
+                animCard.style.background = 'linear-gradient(135deg, var(--card-red), #e03d4f)';
+                animCard.style.color = 'var(--text-light)';
+                animCard.style.border = '2px solid rgba(255, 255, 255, 0.4)';
+
+                document.body.appendChild(animCard);
+
+                requestAnimationFrame(() => {
+                    animCard.style.left = endX + 'px';
+                    animCard.style.top = endY + 'px';
+                    animCard.style.transform = 'scale(0.8)';
+                    animCard.style.boxShadow = '0 15px 40px rgba(247, 70, 95, 0.6)';
+                });
+
+                setTimeout(() => {
+                    if (document.body.contains(animCard)) {
+                        document.body.removeChild(animCard);
+                    }
+                    callback();
+                }, 800);
+            }
+
+            animateCardToField(player, card, callback) {
+                const fieldArea = document.querySelector('.field-area');
+                
+                if (!fieldArea) {
+                    console.error('Field area not found');
+                    callback();
+                    return;
+                }
+
+                const fieldRect = fieldArea.getBoundingClientRect();
+                let startX, startY;
+
+                if (player === 0) {
+                    const handCards = document.querySelectorAll('#playerHand .card');
+                    let cardElement = null;
+                    
+                    handCards.forEach(cardEl => {
+                        const cardNumber = parseInt(cardEl.querySelector('.card-number').textContent);
+                        if (cardNumber === card) {
+                            cardElement = cardEl;
+                        }
+                    });
+
+                    if (cardElement) {
+                        const cardRect = cardElement.getBoundingClientRect();
+                        startX = cardRect.left;
+                        startY = cardRect.top;
+                    } else {
+                        const playerHandArea = document.getElementById('playerHand');
+                        const handRect = playerHandArea.getBoundingClientRect();
+                        startX = handRect.left + handRect.width / 2 - 32.5;
+                        startY = handRect.top + handRect.height / 2 - 45;
+                    }
+                } else {
+                    const playerElement = document.getElementById(`player${player}`);
+                    if (playerElement) {
+                        const playerRect = playerElement.getBoundingClientRect();
+                        startX = playerRect.left + playerRect.width / 2 - 32.5;
+                        startY = playerRect.top + playerRect.height / 2 - 45;
+                    } else {
+                        startX = fieldRect.left + fieldRect.width / 2 - 32.5;
+                        startY = fieldRect.top + fieldRect.height / 2 - 45;
+                    }
+                }
+
+                const endX = fieldRect.left + fieldRect.width / 2 - 32.5;
+                const endY = fieldRect.top + fieldRect.height / 2 - 45;
+
+                const animCard = document.createElement('div');
+                animCard.className = 'card card-animation';
+                animCard.innerHTML = `
+                    <div class="card-number">${card}</div>
+                    <div class="cucumber-icons">${this.getCucumberIcons(card)}</div>
+                `;
+
+                animCard.style.position = 'fixed';
+                animCard.style.left = startX + 'px';
+                animCard.style.top = startY + 'px';
+                animCard.style.width = '65px';
+                animCard.style.height = '90px';
+                animCard.style.zIndex = '1000';
+                animCard.style.pointerEvents = 'none';
+                animCard.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+
+                if (this.fieldCard === null || card >= this.fieldCard) {
+                    animCard.style.background = 'linear-gradient(135deg, var(--card-blue), #2a7dd1)';
+                    animCard.style.color = 'var(--text-light)';
+                    animCard.style.border = '3px solid var(--card-yellow)';
+                } else {
+                    animCard.style.background = 'linear-gradient(135deg, var(--card-red), #e03d4f)';
+                    animCard.style.color = 'var(--text-light)';
+                    animCard.style.border = '2px solid rgba(255, 255, 255, 0.4)';
+                }
+
+                document.body.appendChild(animCard);
+
+                requestAnimationFrame(() => {
+                    animCard.style.left = endX + 'px';
+                    animCard.style.top = endY + 'px';
+                    animCard.style.transform = 'scale(1.1)';
+                    animCard.style.boxShadow = '0 15px 40px rgba(0, 0, 0, 0.4)';
+                });
+
+                setTimeout(() => {
+                    if (document.body.contains(animCard)) {
+                        document.body.removeChild(animCard);
+                    }
+                    callback();
+                }, 800);
+            }
+        }
+
+        let game;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM読み込み完了');
+            startGame();
+        });
+
+        function startGame() {
+            console.log('ゲーム開始');
+            try {
+                game = new CucumberGame();
+                console.log('ゲームインスタンス作成完了');
+            } catch (error) {
+                console.error('ゲーム開始エラー:', error);
+            }
+        }
+
+        function restartGame() {
+            console.log('ゲーム再開始');
+            document.getElementById('gameOver').style.display = 'none';
+            startGame();
+        }
+    </script>
+</body>
+</html>

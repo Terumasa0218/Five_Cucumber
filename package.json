@@ -1,0 +1,44 @@
+{
+  "name": "five-cucumber",
+  "version": "1.0.0",
+  "description": "Multi-game web app with Five Cucumbers card game",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "games/*",
+    "functions"
+  ],
+  "scripts": {
+    "prepare": "corepack enable || true",
+    "postinstall": "pnpm -w run copy:assets",
+    "copy:assets": "shx rm -rf apps/hub/public/assets && shx mkdir -p apps/hub/public && shx cp -r assets apps/hub/public/",
+    "dev": "npx turbo run dev --parallel",
+    "build": "npx turbo run build",
+    "test": "npx turbo run test",
+    "lint": "npx turbo run lint",
+    "type-check": "npx turbo run type-check",
+    "clean": "npx turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "eslint-config-next": "^14.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-react": "^7.33.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.1.0",
+    "shx": "^0.3.4",
+    "turbo": "^1.11.0",
+    "typescript": "^5.3.0"
+  },
+  "packageManager": "pnpm@8.12.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
