@@ -14,9 +14,11 @@ const nextConfig = {
     domains: ['localhost'],
   },
   webpack: (config) => {
+    config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
-      games: path.resolve(__dirname, '../../games'), // monorepoのgames直下を別名で参照
+      'games': path.resolve(__dirname, '../../games'),
+      '@five-cucumber/sdk': path.resolve(__dirname, '../../packages/sdk/src'),
     };
     return config;
   },

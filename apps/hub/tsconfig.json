@@ -12,7 +12,10 @@
       "@/components/*": ["./components/*"],
       "@/lib/*": ["./lib/*"],
       "@/providers/*": ["./providers/*"],
-      "@/app/*": ["./app/*"]
+      "@/app/*": ["./app/*"],
+      "@five-cucumber/sdk": ["../../packages/sdk/src/index.ts"],
+      "@five-cucumber/sdk/*": ["../../packages/sdk/src/*"],
+      "games/*": ["../../games/*"]
     }
   },
   "include": [
