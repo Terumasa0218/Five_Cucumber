@@ -17,8 +17,8 @@ const nextConfig = {
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...(config.resolve.alias || {}),
-      'games': path.resolve(__dirname, '../../games'),
       '@five-cucumber/sdk': path.resolve(__dirname, '../../packages/sdk/src'),
+      'games': path.resolve(__dirname, '../../games')
     };
     return config;
   },

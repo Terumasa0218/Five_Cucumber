@@ -13,7 +13,7 @@
       "@/lib/*": ["./lib/*"],
       "@/providers/*": ["./providers/*"],
       "@/app/*": ["./app/*"],
-      "@five-cucumber/sdk": ["../../packages/sdk/src/index.ts"],
+      "@five-cucumber/sdk": ["../../packages/sdk/src"],
       "@five-cucumber/sdk/*": ["../../packages/sdk/src/*"],
       "games/*": ["../../games/*"]
     }
@@ -25,6 +25,7 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next"
   ]
 }
