@@ -237,18 +237,21 @@
   outline-offset: 2px;
 }
 
-/* ===== Home 背景（常に"画面いっぱい"へ） =====
-   - main.bg-home の擬似要素で全面化（ヘッダーの有無に関係なくフィット）
-   - 画像拡張子は実ファイルに合わせて要更新（初期は .png 仮置き）
+/* ===== Home 背景（viewport 固定で常に全画面） =====
+   ※ 画像拡張子は実ファイルに合わせて変更（初期は .png）
 */
 .bg-home{ position: relative; }
 .bg-home::before{
-  content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  content:"";
+  position: fixed;      /* ← 要点: 画面に固定して main の高さに依存させない */
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-color: var(--paper);
-  background-image: url("/assets/背景３.png"); /* TODO: jpg/webpならここを合わせる */
+  background-image: url("/assets/背景３.png"); /* TODO: jpg/webp ならここを合わせる */
   background-repeat: no-repeat;
   background-position: center center;
-  background-size: cover; /* ← 端末比率に合わせて全面化（多少のトリミング許容） */
+  background-size: cover;   /* 画面いっぱい。必要に応じてトリミング */
 }
 
 /* ===== Link 下線の一括無効化（カードやナビ用） ===== */

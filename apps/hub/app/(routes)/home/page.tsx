@@ -15,7 +15,7 @@ export default function Home() {
   // During SSR or before mounting, assume user is not available
   const canFriends = mounted && !!user && !user.isAnonymous;
   return (
-    <main className="bg-home min-h-[calc(100svh-64px)] flex items-center justify-center px-4 py-12">
+    <main className="bg-home min-h-[100svh] flex items-center justify-center px-4 py-12">
       {/* 背景フレームの中心に3CTAを置く */}
       <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
         <Link
