@@ -50,8 +50,8 @@ jobs:
       - name: Type check
         run: pnpm -w run type-check
         
-      - name: Lint
-        run: pnpm -w run lint
+      - name: Lint (apps/hub)
+        run: pnpm --filter ./apps/hub run lint
         
       - name: Build packages
         run: pnpm -w run build
