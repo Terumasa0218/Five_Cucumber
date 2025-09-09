@@ -13,14 +13,15 @@
     "prepare": "corepack enable || true",
     "postinstall": "pnpm -w run copy:assets",
     "copy:assets": "shx rm -rf apps/hub/public/assets && shx mkdir -p apps/hub/public && shx cp -r assets apps/hub/public/",
-    "dev": "npx turbo run dev --parallel",
-    "build": "npx turbo run build",
-    "test": "npx turbo run test",
-    "lint": "npx turbo run lint",
-    "type-check": "npx turbo run type-check",
-    "clean": "npx turbo run clean && rm -rf node_modules",
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "vercel:check": "node tooling/check-next-output.cjs"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

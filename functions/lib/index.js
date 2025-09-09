@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getStats = exports.updateUserStats = exports.cleanupOldMatches = exports.aggregateHourlyStats = void 0;
-const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const functions = require("firebase-functions");
 // Initialize Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();

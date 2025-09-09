@@ -56,6 +56,9 @@ jobs:
       - name: Build packages
         run: pnpm -w run build
         
+      - name: Verify Next.js build output
+        run: pnpm vercel:check
+        
       - name: Run tests
         run: pnpm -w run test
 
@@ -85,6 +88,9 @@ jobs:
         
       - name: Build application
         run: pnpm -w run build
+        
+      - name: Verify Next.js build output
+        run: pnpm vercel:check
         
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps
@@ -129,6 +135,9 @@ jobs:
         
       - name: Build application
         run: pnpm -w run build
+        
+      - name: Verify Next.js build output
+        run: pnpm vercel:check
         
       - name: Deploy to Firebase
         uses: FirebaseExtended/action-hosting-deploy@v0

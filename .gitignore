@@ -114,3 +114,7 @@ playwright/.cache/
 
 # Turbo
 .turbo/
+
+# Vercel
+vercel.json
+.vercel/
