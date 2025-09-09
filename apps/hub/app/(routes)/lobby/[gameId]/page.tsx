@@ -10,14 +10,14 @@ export default function LobbyPage({ params }: { params: { gameId:string } }){
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const mode = searchParams.get('mode');
+  const urlMode = searchParams.get('mode');
 
   useEffect(() => {
-    if (mode === 'friends' && (!user || user.isAnonymous)) {
+    if (urlMode === 'friends' && (!user || user.isAnonymous)) {
       const currentUrl = window.location.href;
       router.replace(`/auth/login?next=${encodeURIComponent(currentUrl)}`);
     }
-  }, [user, mode, router]);
+  }, [user, urlMode, router]);
 
   const [mode,setMode] = useState<'idle'|'create'|'join'>('idle');
   const [seats,setSeats] = useState(4);

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { useAuth } from "@/providers/AuthProvider";
+import Link from "next/link";
 
 export default function Home() {
   const { user } = useAuth();
