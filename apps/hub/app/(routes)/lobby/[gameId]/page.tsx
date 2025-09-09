@@ -1,198 +1,117 @@
 'use client';
-
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/providers/AuthProvider';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PresenceBadge } from '@/components/PresenceBadge';
 
-export default function LobbyPage() {
-  const params = useParams();
+function genCode() {
+  // 0埋めで5桁固定
+  return String(Math.floor(Math.random() * 100000)).padStart(5, '0');
+}
+
+export default function LobbyPage({ params }: { params: { gameId: string } }) {
   const router = useRouter();
-  const { user } = useAuth();
   const { t } = useTranslation();
-  
-  const gameId = params.gameId as string;
-  const [roomCode, setRoomCode] = useState('');
-  const [playerCount, setPlayerCount] = useState(4);
-  const [difficulty, setDifficulty] = useState<'easy' | 'normal' | 'hard'>('normal');
-  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
-  const [isJoiningRoom, setIsJoiningRoom] = useState(false);
-
-  const generateRoomCode = () => {
-    return Math.random().toString(36).substring(2, 7).toUpperCase();
-  };
-
-  const handleCreateRoom = async () => {
-    setIsCreatingRoom(true);
-    
-    try {
-      const code = generateRoomCode();
-      setRoomCode(code);
-      
-      // TODO: Create room in Firebase
-      console.log('Creating room:', code);
-      
-      // For now, start CPU game directly
-      setTimeout(() => {
-        router.push(`/play/${gameId}?mode=cpu&players=${playerCount}&difficulty=${difficulty}`);
-      }, 1000);
-    } catch (error) {
-      console.error('Failed to create room:', error);
-    } finally {
-      setIsCreatingRoom(false);
-    }
-  };
-
-  const handleJoinRoom = async () => {
-    if (!roomCode.trim()) return;
-    
-    setIsJoiningRoom(true);
-    
-    try {
-      // TODO: Join room in Firebase
-      console.log('Joining room:', roomCode);
-      
-      // For now, redirect to play page
-      router.push(`/play/${gameId}?mode=online&room=${roomCode}`);
-    } catch (error) {
-      console.error('Failed to join room:', error);
-    } finally {
-      setIsJoiningRoom(false);
-    }
-  };
-
-  const handlePlayCPU = () => {
-    router.push(`/play/${gameId}?mode=cpu&players=${playerCount}&difficulty=${difficulty}`);
-  };
-
-  const copyRoomCode = () => {
-    navigator.clipboard.writeText(roomCode);
-    // TODO: Show toast notification
-  };
+  const [mode, setMode] = useState<'idle'|'create'|'join'>('idle');
+  const [code, setCode] = useState('');
+  const [createdCode, setCreatedCode] = useState<string | null>(null);
+  const [seats, setSeats] = useState(4);
+  const [players, setPlayers] = useState<string[]>([]); // TODO: Firebase接続で埋める
+  const full = players.length >= seats;
+  const canJoin = /^\d{5}$/.test(code);
 
   return (
-    <div className="lobby-page">
-      <div className="container">
-        <div className="lobby-header">
-          <h1>{t('title.lobby')}</h1>
-          <PresenceBadge />
-        </div>
+    <main className="min-h-[calc(100svh-64px)] px-6 py-8">
+      <h1 className="text-2xl mb-6" style={{color:'var(--ink)'}}>{t('title.lobby')}</h1>
 
-        <div className="lobby-content">
-          <div className="lobby-options">
-            <div className="option-group">
-              <label htmlFor="playerCount" className="option-label">
-                {t('label.playerCount')}
-              </label>
-              <select
-                id="playerCount"
-                className="input"
-                value={playerCount}
-                onChange={(e) => setPlayerCount(parseInt(e.target.value))}
-              >
-                <option value={2}>2 {t('label.players')}</option>
-                <option value={3}>3 {t('label.players')}</option>
-                <option value={4}>4 {t('label.players')}</option>
-                <option value={5}>5 {t('label.players')}</option>
-                <option value={6}>6 {t('label.players')}</option>
-              </select>
-            </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* ルーム作成 */}
+        <section className="rounded-2xl p-6 bg-[var(--paper)] shadow">
+          <h2 className="text-xl mb-2" style={{color:'var(--cuke)'}}>{t('lobby.create.title')}</h2>
+          <p className="text-sm mb-4" style={{color:'var(--ink)'}}>{t('lobby.create.desc')}</p>
 
-            <div className="option-group">
-              <label htmlFor="difficulty" className="option-label">
-                CPU Difficulty
-              </label>
-              <select
-                id="difficulty"
-                className="input"
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value as any)}
-              >
-                <option value="easy">Easy</option>
-                <option value="normal">Normal</option>
-                <option value="hard">Hard</option>
-              </select>
-            </div>
-          </div>
+          <label className="block text-sm mb-2">{t('label.playerCount')}（2–6）</label>
+          <input
+            type="number" min={2} max={6} value={seats}
+            onChange={(e)=>setSeats(Number(e.target.value))}
+            className="border rounded px-3 py-2 mb-3 w-32"
+          />
 
-          <div className="lobby-actions">
-            <div className="action-section">
-              <h3>Play vs CPU</h3>
-              <p>Play against computer opponents</p>
-              <button
-                className="btn btn--primary btn--large"
-                onClick={handlePlayCPU}
-              >
-                {t('btn.playCpu')}
-              </button>
-            </div>
+          <button
+            className="rounded-xl px-4 py-2 shadow"
+            style={{background:'var(--brass)', color:'white'}}
+            onClick={() => { setCreatedCode(genCode()); setMode('create'); }}
+          >
+            {t('lobby.create.generate')}
+          </button>
 
-            <div className="action-section">
-              <h3>Create Room</h3>
-              <p>Create a room for online multiplayer</p>
-              <button
-                className="btn btn--large"
-                onClick={handleCreateRoom}
-                disabled={isCreatingRoom}
-              >
-                {isCreatingRoom ? (
-                  <div className="loading-spinner" />
-                ) : (
-                  t('btn.createRoom')
-                )}
-              </button>
-              
-              {roomCode && (
-                <div className="room-code">
-                  <p>{t('msg.roomCode', { code: roomCode })}</p>
-                  <button
-                    className="btn btn--small"
-                    onClick={copyRoomCode}
-                  >
-                    Copy Code
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="action-section">
-              <h3>Join Room</h3>
-              <p>Join an existing room with a code</p>
-              <div className="join-form">
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Enter room code"
-                  value={roomCode}
-                  onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                  maxLength={5}
-                />
+          {mode==='create' && createdCode && (
+            <div className="mt-4 p-4 rounded-xl border"
+                 style={{borderColor:'var(--paper-edge)'}}>
+              <div className="text-sm opacity-70 mb-1">{t('lobby.create.code')}</div>
+              <div className="text-3xl tracking-widest font-mono">{createdCode}</div>
+              <div className="mt-3 flex gap-2">
                 <button
-                  className="btn btn--large"
-                  onClick={handleJoinRoom}
-                  disabled={isJoiningRoom || !roomCode.trim()}
-                >
-                  {isJoiningRoom ? (
-                    <div className="loading-spinner" />
-                  ) : (
-                    t('btn.joinRoom')
-                  )}
-                </button>
+                  className="rounded-lg px-3 py-2 border"
+                  onClick={async ()=>{ await navigator.clipboard.writeText(createdCode); }}
+                >{t('lobby.create.copy')}</button>
+                <button
+                  className="rounded-lg px-3 py-2 border"
+                  // TODO: Firebaseに部屋作成し、待機画面へ遷移
+                  onClick={()=>alert('TODO: 部屋作成→待機画面へ')}
+                >{t('lobby.create.wait')}</button>
+              </div>
+
+              {/* 参加者の枠（UIのみ） */}
+              <div className="mt-4">
+                <div className="text-sm mb-2 opacity-70">{t('lobby.participants')}（{players.length}/{seats}）</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {Array.from({length:seats}).map((_,i)=>(
+                    <div key={i} className="rounded-lg p-3 border h-12 flex items-center"
+                         style={{borderColor:'var(--paper-edge)'}}>
+                      {players[i] ?? '空席'}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  className="mt-4 rounded-xl px-4 py-2 shadow disabled:opacity-50"
+                  style={{background:'var(--cuke)', color:'white'}}
+                  disabled={!full}
+                  onClick={()=>alert('TODO: 対戦開始→/play/'+params.gameId)}
+                >{t('lobby.start')}</button>
               </div>
             </div>
-          </div>
+          )}
+        </section>
 
-          <div className="lobby-footer">
-            <button
-              className="btn"
-              onClick={() => router.push('/home')}
-            >
-              {t('btn.backToLobby')}
-            </button>
+        {/* ルーム参加 */}
+        <section className="rounded-2xl p-6 bg-[var(--paper)] shadow">
+          <h2 className="text-xl mb-2" style={{color:'var(--cuke)'}}>{t('lobby.join.title')}</h2>
+          <p className="text-sm mb-4" style={{color:'var(--ink)'}}>{t('lobby.join.desc')}</p>
+
+          <input
+            inputMode="numeric" pattern="\d{5}"
+            placeholder={t('lobby.join.placeholder')}
+            value={code}
+            onChange={(e)=>setCode(e.target.value.replace(/\D/g,''))}
+            className="border rounded px-4 py-3 text-2xl font-mono tracking-widest"
+            maxLength={5}
+          />
+          <div className="mt-3 text-sm" style={{color:'var(--ink)'}}>
+            {!canJoin && code.length>0 && <span>{t('validation.code')}</span>}
           </div>
-        </div>
+          <div className="mt-4 flex gap-2">
+            <button
+              className="rounded-xl px-4 py-2 shadow disabled:opacity-50"
+              style={{background:'var(--brass)', color:'white'}}
+              disabled={!canJoin}
+              // TODO: Firebaseで部屋存在チェック→待機画面へ
+              onClick={()=>alert(`TODO: ルーム ${code} に参加`)}
+            >{t('lobby.join.submit')}</button>
+            <Link href="/home" className="rounded-xl px-4 py-2 border">{t('common.back')}</Link>
+          </div>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

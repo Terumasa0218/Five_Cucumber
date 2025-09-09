@@ -2,7 +2,7 @@
   "title.app": "遊び大全",
   "title.cucumber5": "5本のきゅうり",
   "title.home": "ホーム",
-  "title.lobby": "ロビー",
+  "title.lobby": "オンラインロビー",
   "title.stats": "統計",
   "title.settings": "設定",
   
@@ -97,5 +97,20 @@
   "time.second": "{n}秒",
   "time.minute": "{n}分",
   "time.hour": "{n}時間",
-  "time.justNow": "たった今"
+  "time.justNow": "たった今",
+  
+  "lobby.create.title": "ルーム作成",
+  "lobby.create.desc": "5桁コードを発行してフレンドを招待",
+  "lobby.create.generate": "5桁コードを発行",
+  "lobby.create.code": "あなたのルームコード",
+  "lobby.create.copy": "コピー",
+  "lobby.create.wait": "待機へ",
+  "lobby.participants": "参加者",
+  "lobby.start": "対戦開始",
+  "lobby.join.title": "ルーム参加",
+  "lobby.join.desc": "受け取った5桁コードを入力",
+  "lobby.join.placeholder": "例: 12345",
+  "lobby.join.submit": "参加する",
+  "common.back": "戻る",
+  "validation.code": "5桁の数字を入力してください"
 }

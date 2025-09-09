@@ -2,7 +2,7 @@
   "title.app": "Table of Classics",
   "title.cucumber5": "Five Cucumbers",
   "title.home": "Home",
-  "title.lobby": "Lobby",
+  "title.lobby": "Online Lobby",
   "title.stats": "Statistics",
   "title.settings": "Settings",
   
@@ -97,5 +97,20 @@
   "time.second": "{n}s",
   "time.minute": "{n}m",
   "time.hour": "{n}h",
-  "time.justNow": "Just now"
+  "time.justNow": "Just now",
+  
+  "lobby.create.title": "Create Room",
+  "lobby.create.desc": "Generate a 5-digit code to invite friends",
+  "lobby.create.generate": "Generate 5-digit Code",
+  "lobby.create.code": "Your Room Code",
+  "lobby.create.copy": "Copy",
+  "lobby.create.wait": "Go to Waiting",
+  "lobby.participants": "Participants",
+  "lobby.start": "Start Game",
+  "lobby.join.title": "Join Room",
+  "lobby.join.desc": "Enter the 5-digit code you received",
+  "lobby.join.placeholder": "e.g. 12345",
+  "lobby.join.submit": "Join",
+  "common.back": "Back",
+  "validation.code": "Please enter 5 digits"
 }
