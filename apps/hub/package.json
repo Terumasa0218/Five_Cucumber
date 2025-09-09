@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Five Cucumber Hub - Multi-game web application",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

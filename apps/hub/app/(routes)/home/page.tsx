@@ -1,9 +1,19 @@
+'use client';
+
 import { useAuth } from "@/providers/AuthProvider";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  const { user } = useAuth();
-  const canFriends = !!user && !user.isAnonymous;
+  const { user, loading } = useAuth();
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // During SSR or before mounting, assume user is not available
+  const canFriends = mounted && !!user && !user.isAnonymous;
   return (
     <main className="min-h-[calc(100svh-64px)] grid place-items-center p-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">

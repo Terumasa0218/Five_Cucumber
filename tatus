@@ -3,3 +3,6 @@
 [33m37f71ad[m fix: resolve Firebase build errors by making auth pages dynamic
 [33md9c2cd1[m fix: correct import paths for auth modules
 [33mcdf64ec[m docs: add comprehensive deployment and testing guides
+[33m78c9452[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m fix: 変数名の重複エラーを修正
+[33m3a81ed9[m feat: 認証システムを完全実装
+[33mf111a71[m fix: インポート順序を修正してESLintエラーを解消
