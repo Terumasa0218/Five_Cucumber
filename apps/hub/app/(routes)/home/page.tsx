@@ -20,7 +20,7 @@ export default function Home() {
       <div className="w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
         <Link
           href="/play/cucumber5?mode=cpu&players=4&hand=7&think=15&cuke=6"
-          className="no-underline rounded-2xl border border-[color:var(--paper-edge)] bg-[color:var(--paper)]/92 p-8 shadow hover:shadow-lg transition-transform hover:-translate-y-0.5"
+          className="link-reset rounded-2xl border border-[color:var(--paper-edge)] bg-[color:var(--paper)]/92 p-8 shadow hover:shadow-lg transition-transform hover:-translate-y-0.5"
         >
           <h2 className="text-xl md:text-2xl mb-1" style={{color:"var(--cuke)"}}>CPU対戦</h2>
           <p className="text-sm opacity-80" style={{color:"var(--ink)"}}>既定値ですぐに開始</p>
@@ -28,7 +28,7 @@ export default function Home() {
 
         <Link
           href="/lobby/cucumber5?mode=public"
-          className="no-underline rounded-2xl border border-[color:var(--paper-edge)] bg-[color:var(--paper)]/92 p-8 shadow hover:shadow-lg transition-transform hover:-translate-y-0.5"
+          className="link-reset rounded-2xl border border-[color:var(--paper-edge)] bg-[color:var(--paper)]/92 p-8 shadow hover:shadow-lg transition-transform hover:-translate-y-0.5"
         >
           <h2 className="text-xl md:text-2xl mb-1" style={{color:"var(--cuke)"}}>オンライン対戦</h2>
           <p className="text-sm opacity-80" style={{color:"var(--ink)"}}>ランダムマッチ（準備中）</p>
@@ -36,7 +36,7 @@ export default function Home() {
 
         <Link
           href="/lobby/cucumber5?mode=friends"
-          className={`no-underline rounded-2xl border border-[color:var(--paper-edge)] bg-[color:var(--paper)]/92 p-8 shadow transition-transform hover:-translate-y-0.5 aria-disabled:opacity-50 ${
+          className={`link-reset rounded-2xl border border-[color:var(--paper-edge)] bg-[color:var(--paper)]/92 p-8 shadow transition-transform hover:-translate-y-0.5 aria-disabled:opacity-50 ${
             canFriends ? 'hover:shadow-lg' : 'pointer-events-none cursor-not-allowed opacity-50'
           }`}
           aria-disabled={!canFriends}

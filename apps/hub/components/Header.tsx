@@ -11,10 +11,10 @@ export default function Header(){
     >
       <div className="mx-auto h-full w-full max-w-6xl px-6 md:px-10 flex items-center justify-between">
         <nav className="flex items-center gap-8">
-          <Link href="/home" className="no-underline hover:opacity-80">ホーム</Link>
+          <Link href="/home" className="no-underline hover:opacity-80 link-reset">ホーム</Link>
         </nav>
         <nav className="flex items-center gap-8 md:gap-10">
-          <Link href="/auth/login" className="no-underline hover:opacity-80">ゲスト</Link>
+          <Link href="/auth/login" className="no-underline hover:opacity-80 link-reset">ゲスト</Link>
           <button
             onClick={()=>signOut(auth)}
             className="px-3 py-1.5 rounded-lg border hover:opacity-90"
