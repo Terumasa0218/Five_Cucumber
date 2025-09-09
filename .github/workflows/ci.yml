@@ -8,31 +8,42 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
+      # ★ 先に pnpm を入れて PATH に通す（pnpm が無いエラーを回避）
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      - name: Use Node.js 20.x
+      - name: Setup Node.js 20.x
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          # cache: 'pnpm'  # ← 不要。pnpm の有無に依存して失敗するため未使用
+          check-latest: true
 
-      - name: Install dependencies
+      - name: Print tool versions
+        run: |
+          node -v
+          pnpm -v
+
+      - name: Install dependencies (no frozen lockfile)
         run: pnpm install --no-frozen-lockfile
 
       - name: Lint (apps/hub; do not fail CI)
         run: pnpm --filter ./apps/hub run lint || true
 
-      - name: Type check
+      - name: Type check (soft)
         run: pnpm --filter ./apps/hub exec tsc -v || true
 
       - name: Build apps/hub
         run: pnpm --filter ./apps/hub run build
 
-      - name: Verify Next.js build output exists
+      - name: Verify Next.js build output
         run: test -f apps/hub/.next/BUILD_ID
