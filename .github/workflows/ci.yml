@@ -6,30 +6,42 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      CI: true
     steps:
-      - uses: actions/checkout@v4
-
-      # ★ pnpm を最初に。version は指定しない（package.json の packageManager を読む）
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          package_json_path: ./package.json
-          run_install: false
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js 20.x
         uses: actions/setup-node@v4
         with:
           node-version: 20
           check-latest: true
-          # cache: 'pnpm' # ← 使用しない（順序依存で失敗するため）
 
-      - name: Print tool versions
+      # ★ Corepackでpnpmを有効化（単一の指定源に統一）
+      - name: Enable Corepack & pnpm
         run: |
-          node -v
+          set -euxo pipefail
+          corepack enable
+          corepack prepare pnpm@9.0.0 --activate
+          which pnpm
           pnpm -v
+          node -v
 
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      # キャッシュ（任意・安定性優先。無くてもOK）
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+
+      - name: Install dependencies (no frozen lockfile)
+        run: |
+          set -euxo pipefail
+          pnpm install --no-frozen-lockfile
+          pnpm list --depth=0 || true
 
       - name: Lint (apps/hub; do not fail CI)
         run: pnpm --filter ./apps/hub run lint || true
@@ -37,8 +49,22 @@ jobs:
       - name: Type check (soft)
         run: pnpm --filter ./apps/hub exec tsc -v || true
 
-      - name: Build apps/hub
-        run: pnpm --filter ./apps/hub run build
+      - name: Build apps/hub with debug
+        run: |
+          set -euxo pipefail
+          pnpm --filter ./apps/hub run build
+          ls -la apps/hub/.next || true
 
       - name: Verify Next.js build output
-        run: test -f apps/hub/.next/BUILD_ID
+        run: |
+          test -f apps/hub/.next/BUILD_ID
+          echo "BUILD_ID: $(cat apps/hub/.next/BUILD_ID)"
+
+      # 失敗時の追加ログ（どの段で落ちても最後に実行）
+      - name: Print workspace info (always)
+        if: always()
+        run: |
+          echo "---- workspace ----"
+          cat pnpm-workspace.yaml || true
+          echo "---- lock head ----"
+          head -n 40 pnpm-lock.yaml || true
