@@ -1,39 +1,34 @@
 name: CI
-
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
+  push: { branches: [ "main" ] }
+  pull_request: {}
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # ★ 先に pnpm を入れて PATH に通す（pnpm が無いエラーを回避）
+      # ★ pnpm を最初に。version は指定しない（package.json の packageManager を読む）
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          package_json_path: ./package.json
+          run_install: false
 
       - name: Setup Node.js 20.x
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # cache: 'pnpm'  # ← 不要。pnpm の有無に依存して失敗するため未使用
           check-latest: true
+          # cache: 'pnpm' # ← 使用しない（順序依存で失敗するため）
 
       - name: Print tool versions
         run: |
           node -v
           pnpm -v
 
-      - name: Install dependencies (no frozen lockfile)
+      - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Lint (apps/hub; do not fail CI)
