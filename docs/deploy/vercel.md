@@ -1,55 +1,20 @@
 # Vercel Deployment Guide
 
-This guide provides step-by-step instructions for deploying the Five Cucumbers multi-game web application to Vercel, with specific focus on avoiding the common `/apps/hub/apps/hub/.next/routes-manifest.json` error.
+## Vercel 設定（決定版）
 
-## Prerequisites
+### 推奨設定
+- **Root Directory**: リポジトリ直下 (`.`)
+- **Framework**: Other（任意）
+- **Build Command**: 空欄
+- **Output Directory**: 空欄  
+- **Install Command**: 空欄
+- **Include source files outside of the Root Directory**: ✅ ON
+- **再デプロイ時**: Clear Build Cache を ON
 
-- GitHub repository with the Five Cucumbers project
-- Vercel account linked to your GitHub
-- Node.js 18+ and pnpm installed locally
-
-## Recommended Vercel Configuration
-
-### Method 1: Root Directory = `apps/hub` (Recommended)
-
-This is the **preferred method** for monorepo deployments:
-
-1. **Import Project**:
-   - Go to [vercel.com](https://vercel.com) and click "Add New..." → "Project"
-   - Select your GitHub repository
-   - Click "Import"
-
-2. **Configure Settings**:
-   - **Framework Preset**: `Next.js` (auto-detected)
-   - **Root Directory**: `apps/hub`
-   - **Build Command**: *(leave empty - uses default `next build`)*
-   - **Output Directory**: *(leave empty - uses default `.next`)*
-   - **Install Command**: *(leave empty - uses default `npm install`)*
-
-3. **Environment Variables**:
-   - Add all `NEXT_PUBLIC_*` variables from `env.example`
-   - Set Firebase configuration variables
-
-4. **Advanced Settings**:
-   - ✅ **Include source files outside of the Root Directory**: ON
-   - ✅ **Build Cache**: Clear cache before deploying
-
-5. **Deploy**: Click "Deploy"
-
-### Method 2: Root Directory = `.` (Alternative)
-
-If Method 1 doesn't work, try this alternative:
-
-1. **Configure Settings**:
-   - **Framework Preset**: `Next.js`
-   - **Root Directory**: `.` (repository root)
-   - **Build Command**: `pnpm dlx turbo run build --filter=./apps/hub`
-   - **Output Directory**: `apps/hub/.next`
-   - **Install Command**: `pnpm install --frozen-lockfile`
-
-2. **Environment Variables**: Same as Method 1
-
-3. **Deploy**: Click "Deploy"
+### 代替設定
+Root を `apps/hub` にする場合は：
+- `vercel.json` を撤去
+- Build/Output は空欄に戻す
 
 ## Local Verification
 
