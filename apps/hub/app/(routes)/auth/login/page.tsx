@@ -36,7 +36,7 @@ export default function AuthLogin() {
 
   return (
     <main className="min-h-[calc(100svh-64px)] flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+      <div className="w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
         {/* 左：ログイン */}
         <section className="rounded-2xl bg-[var(--paper)] shadow p-8 flex flex-col">
           <h2 className="text-xl mb-3" style={{color:'var(--cuke)'}}>ログイン</h2>
