@@ -6,8 +6,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      CI: true
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,52 +14,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          check-latest: true
 
-      # ★ Corepackでpnpmを有効化（単一の指定源に統一）
-      - name: Enable Corepack & pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@9.0.0 --activate
-          which pnpm
-          pnpm -v
-          node -v
-
-      # キャッシュ（任意・安定性優先。無くてもOK）
-      - name: Cache pnpm store
-        uses: actions/cache@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
-          path: ~/.local/share/pnpm/store
-          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            pnpm-store-${{ runner.os }}-
+          version: 9
 
-      - name: Install dependencies (no frozen lockfile)
-        run: |
-          pnpm install --no-frozen-lockfile
-          pnpm list --depth=0 || true
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
 
-      - name: Lint (apps/hub; do not fail CI)
-        run: pnpm --filter ./apps/hub run lint || true
+      - name: Build apps/hub
+        run: pnpm --filter ./apps/hub run build
 
-      - name: Type check (soft)
-        run: pnpm --filter ./apps/hub run type-check || true
-
-      - name: Build apps/hub with debug
-        run: |
-          pnpm --filter ./apps/hub run build
-          ls -la apps/hub/.next || true
-
-      - name: Verify Next.js build output
-        run: |
-          test -f apps/hub/.next/BUILD_ID
-          echo "BUILD_ID: $(cat apps/hub/.next/BUILD_ID)"
-
-      # 失敗時の追加ログ（どの段で落ちても最後に実行）
-      - name: Print workspace info (always)
-        if: always()
-        run: |
-          echo "---- workspace ----"
-          cat pnpm-workspace.yaml || true
-          echo "---- lock head ----"
-          head -n 40 pnpm-lock.yaml || true
+      - name: Verify build
+        run: test -f apps/hub/.next/BUILD_ID
