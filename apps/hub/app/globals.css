@@ -237,13 +237,16 @@
   outline-offset: 2px;
 }
 
-/* Home 背景（assets/背景３.* をそのまま使う） */
+/* ===== Home 背景（assets/背景３.* をそのまま使用） ===== */
 .bg-home{
   background-color: var(--paper);
-  background-image: url("/assets/背景３.png"); /* 拡張子が jpg/webp の場合は自動置換 TODO */
+  /* ▼拡張子は実ファイルに合わせて変更。png 以外なら要調整（TODO） */
+  background-image: url("/assets/背景３.png");
   background-repeat: no-repeat;
-  background-position: center center;
-  background-size: contain; /* 四隅の装飾が見切れないように */
+  /* ヘッダー分だけ少し下げて中央に */
+  background-position: center 64px;
+  /* 小さすぎ＆大きすぎ防止。vminベースで可変 */
+  background-size: clamp(1100px, 92vmin, 1680px) auto;
 }
 
 /* Print styles */

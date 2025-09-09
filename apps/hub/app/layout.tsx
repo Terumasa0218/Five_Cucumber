@@ -1,7 +1,6 @@
-import "./globals.css";
-import Link from "next/link";
 import { AuthProvider } from "@/providers/AuthProvider";
-import { Header } from "@/components/Header";
+import Header from "../components/Header";
+import "./globals.css";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
