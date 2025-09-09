@@ -16,6 +16,19 @@
 - lock ファイルが古い場合でもビルドが継続可能
 - 本番環境では依存関係の整合性を保ちつつ、ビルド失敗を回避
 
+### 依存関係管理の運用ルール
+1. **依存を変更した場合**:
+   - ローカルで `pnpm install` を実行
+   - `pnpm-lock.yaml` をコミットしてリポジトリに反映
+   
+2. **どうしてもズレる場合**:
+   - Vercel の **Install Command** を `pnpm install --no-frozen-lockfile` に設定
+   - **Clear Build Cache** の上で Redeploy
+   
+3. **ビルド時のESLint**:
+   - Next.js ビルドでは ESLint エラーを無視（`eslint: { ignoreDuringBuilds: true }`）
+   - 品質チェックは CI で警告扱いとして実行
+
 ### 代替設定
 Root を `apps/hub` にする場合は：
 - `vercel.json` を撤去

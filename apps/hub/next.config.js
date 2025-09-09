@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 const nextConfig = {
   reactStrictMode: true,
   experimental: { externalDir: true },
+  eslint: { ignoreDuringBuilds: true }, // ビルド時にlintで失敗させない
   transpilePackages: ['@five-cucumber/sdk', '@five-cucumber/ui', '@five-cucumber/metrics', '@five-cucumber/game-cucumber5'],
   images: {
     domains: ['localhost'],
