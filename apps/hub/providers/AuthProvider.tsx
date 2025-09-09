@@ -1,96 +1,47 @@
 'use client';
-
-import { User } from 'firebase/auth';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { User, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signIn: () => Promise<void>;
-  signOut: () => Promise<void>;
-  signInAnonymously: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  isGuest: boolean;
+  signinGuest: () => Promise<void>;
+  signout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const signIn = async () => {
-    // TODO: Implement Firebase Auth sign in
-    console.log('Sign in clicked');
-  };
-
-  const signOut = async () => {
-    // TODO: Implement Firebase Auth sign out
-    console.log('Sign out clicked');
-    setUser(null);
-  };
-
-  const signInAnonymously = async () => {
-    // TODO: Implement Firebase Auth anonymous sign in
-    console.log('Anonymous sign in clicked');
-    // Mock user for now
-    setUser({
-      uid: 'anonymous-user',
-      displayName: 'Guest',
-      email: null,
-      photoURL: null,
-      emailVerified: false,
-      isAnonymous: true,
-      phoneNumber: null,
-      providerId: 'firebase',
-      metadata: {} as any,
-      providerData: [],
-      refreshToken: '',
-      tenantId: null,
-      delete: async () => {},
-      getIdToken: async () => '',
-      getIdTokenResult: async () => ({} as any),
-      reload: async () => {},
-      toJSON: () => ({}),
-    } as User);
-  };
-
-  const signInWithGoogle = async () => {
-    // TODO: Implement Firebase Auth Google sign in
-    console.log('Google sign in clicked');
-    // Mock user for now
-    setUser({
-      uid: 'google-user',
-      displayName: 'Google User',
-      email: 'user@example.com',
-      photoURL: 'https://via.placeholder.com/40',
-      emailVerified: true,
-      isAnonymous: false,
-      phoneNumber: null,
-      providerId: 'google.com',
-      metadata: {} as any,
-      providerData: [],
-      refreshToken: '',
-      tenantId: null,
-      delete: async () => {},
-      getIdToken: async () => '',
-      getIdTokenResult: async () => ({} as any),
-      reload: async () => {},
-      toJSON: () => ({}),
-    } as User);
-  };
-
   useEffect(() => {
-    // TODO: Initialize Firebase Auth listener
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
+
+  const signinGuest = async () => {
+    if (typeof window === 'undefined' || !auth) return;
+    await signInAnonymously(auth);
+  };
+
+  const signout = async () => {
+    if (typeof window === 'undefined' || !auth) return;
+    await signOut(auth);
+  };
 
   const value = {
     user,
     loading,
-    signIn,
-    signOut,
-    signInAnonymously,
-    signInWithGoogle,
+    isGuest: user?.isAnonymous === true,
+    signinGuest,
+    signout,
   };
 
   return (

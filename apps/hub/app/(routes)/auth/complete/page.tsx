@@ -18,7 +18,8 @@ export default function AuthComplete() {
         }
         await completeMagicLink(window.location.href);
         setMsg('サインインが完了しました。ホームに戻ります…');
-        setTimeout(()=>router.replace('/home'), 1200);
+        const next = new URL(window.location.href).searchParams.get('next');
+        setTimeout(()=>router.replace(next ?? '/home'), 1200);
       } catch (e:any) {
         setMsg(e.message ?? String(e));
       }

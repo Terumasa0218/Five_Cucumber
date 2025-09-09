@@ -1,6 +1,7 @@
 'use client';
 import { sendMagicLink } from '@/lib/auth';
 import Link from 'next/link';
+import { useAuth } from '@/providers/AuthProvider';
 import { FormEvent, useState } from 'react';
 
 // 動的レンダリングを強制
@@ -12,6 +13,7 @@ export default function AuthLogin() {
   const [nameSignup, setNameSignup] = useState('');
   const [sentTo, setSentTo] = useState<string|null>(null);
   const [err, setErr] = useState<string|null>(null);
+  const { signinGuest } = useAuth();
 
   const submit = (mode:'login'|'signup') => async (e: FormEvent) => {
     e.preventDefault();
@@ -25,6 +27,11 @@ export default function AuthLogin() {
         setSentTo(emailSignup.trim());
       }
     } catch (e:any) { setErr(e.message ?? String(e)); }
+  };
+
+  const handleGuestLogin = async () => {
+    await signinGuest();
+    window.location.href = '/home';
   };
 
   return (
@@ -72,6 +79,15 @@ export default function AuthLogin() {
             </form>
           )}
         </section>
+      </div>
+      
+      <div className="mt-8 text-center">
+        <button
+          onClick={handleGuestLogin}
+          className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
+        >
+          ゲストとして利用
+        </button>
       </div>
     </main>
   );

@@ -1,10 +1,24 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/providers/AuthProvider';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 function genCode(){ return String(Math.floor(Math.random()*100000)).padStart(5,'0'); }
 
 export default function LobbyPage({ params }: { params: { gameId:string } }){
+  const { user } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode');
+
+  useEffect(() => {
+    if (mode === 'friends' && (!user || user.isAnonymous)) {
+      const currentUrl = window.location.href;
+      router.replace(`/auth/login?next=${encodeURIComponent(currentUrl)}`);
+    }
+  }, [user, mode, router]);
+
   const [mode,setMode] = useState<'idle'|'create'|'join'>('idle');
   const [seats,setSeats] = useState(4);
   const [code,setCode] = useState('');
