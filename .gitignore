@@ -1,11 +1,12 @@
 # Dependencies
 node_modules/
-.pnpm-store/
+*/node_modules/
+**/node_modules/
 
 # Build outputs
-.next/
 dist/
 build/
+.next/
 out/
 
 # Environment variables
@@ -16,6 +17,7 @@ out/
 .env.production.local
 
 # Logs
+logs
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -75,7 +77,10 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
+
+# Gatsby files
+.cache/
+public
 
 # Storybook build outputs
 .out
@@ -107,14 +112,14 @@ Thumbs.db
 firebase-debug.log
 firebase-debug.*.log
 
+# Vercel
+vercel.json
+.vercel/
+
 # Playwright
 test-results/
 playwright-report/
 playwright/.cache/
 
 # Turbo
-.turbo/
-
-# Vercel
-vercel.json
-.vercel/
+.turbo
