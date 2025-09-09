@@ -1,6 +1,6 @@
 // apps/hub/lib/auth.ts
 'use client';
-import { auth, actionCodeSettings, db } from '../lib/firebase';
+import { auth, actionCodeSettings, db } from './firebase';
 import { isSignInWithEmailLink, sendSignInLinkToEmail, signInWithEmailLink } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
