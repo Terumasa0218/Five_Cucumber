@@ -24,22 +24,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
+    try {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setUser(user);
+        setLoading(false);
+      });
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (error) {
+      console.warn('Firebase auth initialization failed:', error);
+      setLoading(false);
+    }
   }, []);
 
   const signinGuest = async () => {
-    if (typeof window === 'undefined' || !auth) return;
-    await signInAnonymously(auth);
+    if (typeof window === 'undefined' || !auth) {
+      console.warn('Firebase auth is not available');
+      return;
+    }
+    try {
+      await signInAnonymously(auth);
+    } catch (error) {
+      console.error('Guest sign-in failed:', error);
+    }
   };
 
   const signout = async () => {
-    if (typeof window === 'undefined' || !auth) return;
-    await signOut(auth);
+    if (typeof window === 'undefined' || !auth) {
+      console.warn('Firebase auth is not available');
+      return;
+    }
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Sign-out failed:', error);
+    }
   };
 
   const value = {
