@@ -250,8 +250,17 @@
   background-color: var(--paper);
   background-image: url("/assets/背景３.png"); /* TODO: jpg/webp ならここを合わせる */
   background-repeat: no-repeat;
-  background-position: center center;
+  /* 中心より "やや上寄せ" で表示（= 画像を少し下げて上端を見せる） */
+  background-position: center calc(50% - 6vh);
   background-size: cover;   /* 画面いっぱい。必要に応じてトリミング */
+}
+
+/* 画面が低めのときはずらし量を弱める／高めのときは強める */
+@media (max-height: 740px){
+  .bg-home::before{ background-position: center calc(50% - 4vh); }
+}
+@media (min-height: 900px){
+  .bg-home::before{ background-position: center calc(50% - 8vh); }
 }
 
 /* ===== Link 下線の一括無効化（カードやナビ用） ===== */
