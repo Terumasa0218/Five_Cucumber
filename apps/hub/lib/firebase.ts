@@ -16,15 +16,25 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+// クライアントサイドでのみFirebaseを初期化
+let app: any = null;
+let auth: any = null;
+let database: any = null;
+let db: any = null;
+let firestore: any = null;
+let analytics: any = null;
 
-// Initialize Firebase services
-export const auth = getAuth(app);
-export const database = getDatabase(app);
-export const db = getFirestore(app);
-export const firestore = getFirestore(app);
-export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+if (typeof window !== 'undefined') {
+  // クライアントサイドでのみ実行
+  app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  database = getDatabase(app);
+  db = getFirestore(app);
+  firestore = getFirestore(app);
+  analytics = getAnalytics(app);
+}
+
+export { auth, database, db, firestore, analytics };
 
 // メールリンク設定（本番ドメイン/ローカル双方対応）
 export const actionCodeSettings = {

@@ -3,6 +3,9 @@ import { FormEvent, useState } from 'react';
 import { sendMagicLink } from '@/lib/auth';
 import Link from 'next/link';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+
 export default function AuthLogin() {
   const [tab, setTab] = useState<'login'|'signup'>('login');
   const [email, setEmail] = useState('');

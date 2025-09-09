@@ -8,12 +8,18 @@ const PENDING_EMAIL_KEY = 'pendingEmail';
 const PENDING_NAME_KEY  = 'pendingName';
 
 export async function sendMagicLink(email: string, displayName?: string) {
+  if (typeof window === 'undefined' || !auth) {
+    throw new Error('認証機能はクライアントサイドでのみ利用可能です');
+  }
   await sendSignInLinkToEmail(auth, email, actionCodeSettings);
   if (displayName) localStorage.setItem(PENDING_NAME_KEY, displayName);
   localStorage.setItem(PENDING_EMAIL_KEY, email);
 }
 
 export async function completeMagicLink(currentUrl: string) {
+  if (typeof window === 'undefined' || !auth) {
+    throw new Error('認証機能はクライアントサイドでのみ利用可能です');
+  }
   const email = localStorage.getItem(PENDING_EMAIL_KEY) || prompt('メールアドレスを入力してください');
   if (!email) throw new Error('メールアドレスが必要です');
   const cred = await signInWithEmailLink(auth, email, currentUrl);
@@ -35,5 +41,8 @@ export async function completeMagicLink(currentUrl: string) {
 }
 
 export function isEmailLink(url: string) {
+  if (typeof window === 'undefined' || !auth) {
+    return false;
+  }
   return isSignInWithEmailLink(auth, url);
 }

@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import { completeMagicLink, isEmailLink } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
+
 export default function AuthComplete() {
   const [msg, setMsg] = useState('確認中…');
   const router = useRouter();
