@@ -1,6 +1,6 @@
 'use client';
 import { FormEvent, useState } from 'react';
-import { sendMagicLink } from '../../../lib/auth';
+import { sendMagicLink } from '@/lib/auth';
 import Link from 'next/link';
 
 export default function AuthLogin() {

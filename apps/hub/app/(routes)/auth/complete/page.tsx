@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { completeMagicLink, isEmailLink } from '../../../lib/auth';
+import { completeMagicLink, isEmailLink } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 
 export default function AuthComplete() {
