@@ -237,6 +237,15 @@
   outline-offset: 2px;
 }
 
+/* Home 背景（assets/背景３.* をそのまま使う） */
+.bg-home{
+  background-color: var(--paper);
+  background-image: url("/assets/背景３.png"); /* 拡張子が jpg/webp の場合は自動置換 TODO */
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: contain; /* 四隅の装飾が見切れないように */
+}
+
 /* Print styles */
 @media print {
   .no-print {
