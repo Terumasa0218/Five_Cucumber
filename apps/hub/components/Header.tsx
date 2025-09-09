@@ -5,7 +5,6 @@ import { useI18n } from '@/providers/I18nProvider';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { PresenceBadge } from './PresenceBadge';
 
 export function Header() {
   const { user } = useAuth();
@@ -14,9 +13,8 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
-    { href: '/home', label: t('title.home'), icon: '🏠' },
-    { href: '/stats', label: t('title.stats'), icon: '📊' },
-    { href: '/settings', label: t('title.settings'), icon: '⚙️' }
+    { href: '/home', label: t('title.home') },
+    { href: '/settings', label: t('title.settings') }
   ];
 
   const isActive = (href: string) => pathname === href;
@@ -27,8 +25,7 @@ export function Header() {
         <div className="header-content">
           <div className="header-brand">
             <Link href="/home" className="brand-link">
-              <span className="brand-icon">🥒</span>
-              <span className="brand-text">{t('title.app')}</span>
+              <span className="brand-text">Game Hub</span>
             </Link>
           </div>
 
@@ -40,7 +37,6 @@ export function Header() {
                     href={item.href}
                     className={`nav-link ${isActive(item.href) ? 'nav-link--active' : ''}`}
                   >
-                    <span className="nav-icon">{item.icon}</span>
                     <span className="nav-label">{item.label}</span>
                   </Link>
                 </li>
@@ -49,8 +45,6 @@ export function Header() {
           </nav>
 
           <div className="header-actions">
-            <PresenceBadge />
-            
             {user && (
               <div className="user-info">
                 <span className="user-name">
@@ -64,7 +58,7 @@ export function Header() {
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-label="Toggle menu"
             >
-              <span className="menu-icon">☰</span>
+              <span className="menu-icon">≡</span>
             </button>
           </div>
         </div>
@@ -80,7 +74,6 @@ export function Header() {
                   className={`mobile-nav-link ${isActive(item.href) ? 'mobile-nav-link--active' : ''}`}
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <span className="mobile-nav-icon">{item.icon}</span>
                   <span className="mobile-nav-label">{item.label}</span>
                 </Link>
               ))}

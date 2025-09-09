@@ -1,5 +1,5 @@
 {
-  "game.title": "５本のきゅうり",
+  "game.title": "Five Cucumbers",
   "game.description": "きゅうりを5本集めないようにするカードゲーム",
   "game.rules": "数字の大きいカードがトリックを取ります。最終トリックで最大値を出すときゅうり2本！",
   
@@ -33,7 +33,7 @@
   "error.gameNotStarted": "ゲームが開始されていません",
   "error.networkError": "ネットワークエラーが発生しました",
   
-  "tutorial.welcome": "５本のきゅうりへようこそ！",
+  "tutorial.welcome": "Five Cucumbersへようこそ！",
   "tutorial.goal": "きゅうりを5本集めないようにしましょう",
   "tutorial.trick": "数字の大きいカードがトリックを取ります",
   "tutorial.follow": "最初のスートに従ってください",

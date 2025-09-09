@@ -13,11 +13,11 @@ const I18nContext = createContext<I18nContextType | undefined>(undefined);
 // Simple translation function
 const translations: Record<string, Record<string, string>> = {
   ja: {
-    'title.app': '５本のきゅうり',
+    'title.app': 'Game Hub',
     'title.home': 'ホーム',
     'title.stats': '統計',
     'title.settings': '設定',
-    'title.cucumber5': '５本のきゅうり',
+    'title.cucumber5': 'Five Cucumbers',
     'label.online': 'オンライン',
     'label.playerCount': 'プレイヤー数',
     'label.players': 'プレイヤー',
