@@ -45,12 +45,16 @@ export function Header() {
           </nav>
 
           <div className="header-actions">
-            {user && (
+            {user ? (
               <div className="user-info">
                 <span className="user-name">
                   {user.displayName || 'Guest'}
                 </span>
               </div>
+            ) : (
+              <Link href="/auth/login" className="login-link">
+                ログイン
+              </Link>
             )}
 
             <button
