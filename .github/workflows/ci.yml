@@ -20,36 +20,14 @@ jobs:
         with:
           version: 9
 
-      - name: Print environment info
-        run: |
-          echo "Node version: $(node -v)"
-          echo "pnpm version: $(pnpm -v)"
-          echo "Current directory: $(pwd)"
-          echo "Directory contents:"
-          ls -la
-          echo "apps/hub directory contents:"
-          ls -la apps/hub/
-
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Check apps/hub package.json
-        run: |
-          echo "apps/hub package.json:"
-          cat apps/hub/package.json
-          echo "apps/hub next.config.js:"
-          head -20 apps/hub/next.config.js
+      - name: Build packages first
+        run: pnpm -w run build
 
-      - name: Build apps/hub with verbose output
-        run: |
-          cd apps/hub
-          echo "Building from directory: $(pwd)"
-          pnpm build 2>&1 | tee build.log
-          echo "Build log:"
-          cat build.log
+      - name: Build apps/hub
+        run: pnpm --filter ./apps/hub run build
 
       - name: Verify build
-        run: |
-          echo "Checking build output:"
-          ls -la apps/hub/.next/ || echo "No .next directory found"
-          test -f apps/hub/.next/BUILD_ID && echo "BUILD_ID found" || echo "BUILD_ID not found"
+        run: test -f apps/hub/.next/BUILD_ID

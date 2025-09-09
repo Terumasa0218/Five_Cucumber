@@ -1,4 +1,24 @@
-import { GameModule } from '@five-cucumber/sdk';
+// Temporary type definition to avoid SDK dependency
+interface GameModule {
+  meta: {
+    id: string;
+    name: string;
+    description: string;
+    minPlayers: number;
+    maxPlayers: number;
+    supportsCPU: boolean;
+    supportsOnline: boolean;
+    icon: string;
+  };
+  mount: (element: HTMLElement, options: any, onEvent: any) => {
+    start: () => void;
+    pause: () => void;
+    resume: () => void;
+    dispose: () => void;
+    getState: () => any;
+    sendAction: (action: any) => void;
+  };
+}
 
 class GameLoader {
   private loadedGames = new Map<string, GameModule>();
