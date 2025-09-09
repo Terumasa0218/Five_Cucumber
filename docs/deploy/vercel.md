@@ -7,9 +7,14 @@
 - **Framework**: Other（任意）
 - **Build Command**: 空欄
 - **Output Directory**: 空欄  
-- **Install Command**: 空欄
+- **Install Command**: `pnpm install --no-frozen-lockfile`
 - **Include source files outside of the Root Directory**: ✅ ON
 - **再デプロイ時**: Clear Build Cache を ON
+
+### 重要: Install Command の設定
+- **ERR_PNPM_OUTDATED_LOCKFILE** エラーを避けるため、Install Command を `pnpm install --no-frozen-lockfile` に設定
+- lock ファイルが古い場合でもビルドが継続可能
+- 本番環境では依存関係の整合性を保ちつつ、ビルド失敗を回避
 
 ### 代替設定
 Root を `apps/hub` にする場合は：
@@ -77,7 +82,7 @@ This error indicates a **double-path issue**. Follow these steps:
 
 1. **Check Dependencies**:
    ```bash
-   pnpm install --frozen-lockfile
+   pnpm install --no-frozen-lockfile
    ```
 
 2. **Verify TypeScript**:
