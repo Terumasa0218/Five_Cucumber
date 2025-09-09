@@ -1,7 +1,10 @@
 'use client';
-import { FormEvent, useState } from 'react';
 import { sendMagicLink } from '@/lib/auth';
 import Link from 'next/link';
+import { FormEvent, useState } from 'react';
+
+// 動的レンダリングを強制
+export const dynamic = 'force-dynamic';
 
 export default function AuthLogin() {
   const [emailLogin, setEmailLogin] = useState('');

@@ -1,0 +1,5 @@
+[33m92baf4f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m fix: correct import paths to use @/lib/auth alias
+[33m199c313[m feat: implement clean UI with 3-option home and side-by-side auth
+[33m37f71ad[m fix: resolve Firebase build errors by making auth pages dynamic
+[33md9c2cd1[m fix: correct import paths for auth modules
+[33mcdf64ec[m docs: add comprehensive deployment and testing guides
