@@ -6,18 +6,20 @@ export default function Home() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
         <Link href="/play/cucumber5?mode=cpu&players=4&hand=7&think=15&cuke=6"
           className="rounded-2xl p-8 bg-[var(--paper)] shadow hover:shadow-lg transition">
-          <h2 className="text-2xl mb-2" style={{color:'var(--cuke)'}}>CPU対戦</h2>
-          <p className="text-sm" style={{color:'var(--ink)'}}>既定値ですぐに開始</p>
+          <h2 className="text-2xl mb-2" style={{color:"var(--cuke)"}}>CPU対戦</h2>
+          <p className="text-sm" style={{color:"var(--ink)"}}>既定値ですぐに開始</p>
         </Link>
+
         <Link href="/lobby/cucumber5?mode=public"
           className="rounded-2xl p-8 bg-[var(--paper)] shadow hover:shadow-lg transition">
-          <h2 className="text-2xl mb-2" style={{color:'var(--cuke)'}}>オンライン対戦</h2>
-          <p className="text-sm" style={{color:'var(--ink)'}}>ランダムマッチ（準備中）</p>
+          <h2 className="text-2xl mb-2" style={{color:"var(--cuke)"}}>オンライン対戦</h2>
+          <p className="text-sm" style={{color:"var(--ink)"}}>ランダムマッチ（準備中）</p>
         </Link>
+
         <Link href="/lobby/cucumber5?mode=friends"
           className="rounded-2xl p-8 bg-[var(--paper)] shadow hover:shadow-lg transition">
-          <h2 className="text-2xl mb-2" style={{color:'var(--brass)'}}>フレンド対戦</h2>
-          <p className="text-sm" style={{color:'var(--ink)'}}>コードを作成/入力して遊ぶ</p>
+          <h2 className="text-2xl mb-2" style={{color:"var(--brass)"}}>フレンド対戦</h2>
+          <p className="text-sm" style={{color:"var(--ink)"}}>コードを作成/入力して遊ぶ</p>
         </Link>
       </div>
     </main>
