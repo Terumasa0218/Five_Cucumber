@@ -13,6 +13,8 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     setSessionMode(getSessionMode());
+    // ページタイトルを設定
+    document.title = 'ホーム | Five Cucumber';
   }, []);
   
   // Show loading state while auth is initializing

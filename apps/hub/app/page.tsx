@@ -1,5 +1,10 @@
+import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+
+export const metadata: Metadata = {
+  title: 'Five Cucumber – 5本のきゅうり'
+};
 
 export default function RootPage() {
   const cookieStore = cookies();

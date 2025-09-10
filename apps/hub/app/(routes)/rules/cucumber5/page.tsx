@@ -1,3 +1,9 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'ルール'
+};
+
 export default function RulesCucumber5(){
   return (
     <main className="min-h-[100svh] w-full pt-20">

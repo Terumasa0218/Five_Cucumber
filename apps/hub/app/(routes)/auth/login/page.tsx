@@ -1,8 +1,8 @@
 /* ログイン画面：半透明カードで視線を集中 */
 'use client';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { getFirebaseClient } from '../../../../lib/firebase';
 
 function setCookie(k: string, v: string, days = 30) {
@@ -26,6 +26,11 @@ function LoginContent() {
   });
   
   const errorRef = useRef<HTMLDivElement>(null);
+
+  // ページタイトルを設定
+  useEffect(() => {
+    document.title = 'ログイン | Five Cucumber';
+  }, []);
 
   const go = () => {
     try { router.replace(returnTo); }
@@ -61,7 +66,7 @@ function LoginContent() {
         // 新規作成
         const userCredential = await createUserWithEmailAndPassword(fb.auth, formData.email, formData.password);
         if (formData.displayName) {
-          await userCredential.user.updateProfile({ displayName: formData.displayName });
+          await updateProfile(userCredential.user, { displayName: formData.displayName });
         }
       } else {
         // ログイン
