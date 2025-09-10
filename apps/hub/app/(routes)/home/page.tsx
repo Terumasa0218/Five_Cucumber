@@ -1,8 +1,8 @@
 'use client';
 
+import { getRedirectUrl, getSessionMode } from '@/app/lib/session';
 import FriendsList from '@/components/FriendsList';
 import { useAuth } from "@/providers/AuthProvider";
-import { getSessionMode, getRedirectUrl } from '@/app/lib/session';
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
