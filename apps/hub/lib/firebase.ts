@@ -1,11 +1,6 @@
 import { getApps, initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-
-// クライアントサイドでのみFirebaseを初期化
-let app: any = null;
-let auth: any = null;
-let db: any = null;
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 // Firebase設定の検証
 const firebaseConfig = {
@@ -21,23 +16,30 @@ const isFirebaseConfigured = firebaseConfig.apiKey &&
   firebaseConfig.projectId && 
   firebaseConfig.appId;
 
-if (typeof window !== 'undefined' && isFirebaseConfigured) {
+// Firebase初期化関数
+function initializeFirebase() {
+  if (typeof window === 'undefined') {
+    return { auth: null, db: null };
+  }
+
+  if (!isFirebaseConfigured) {
+    console.warn('Firebase configuration is incomplete. Please check your environment variables.');
+    return { auth: null, db: null };
+  }
+
   try {
-    app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    return { auth, db };
   } catch (error) {
     console.warn('Firebase initialization failed:', error);
-    // エラー時はnullのままにする
-    auth = null;
-    db = null;
+    return { auth: null, db: null };
   }
-} else if (typeof window !== 'undefined') {
-  console.warn('Firebase configuration is incomplete. Please check your environment variables.');
-  // 設定が不完全な場合はnullのままにする
-  auth = null;
-  db = null;
 }
+
+// Firebaseインスタンスを取得
+const { auth, db } = initializeFirebase();
 
 export { auth, db };
 

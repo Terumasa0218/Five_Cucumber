@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check if auth is available
     if (!auth) {
       console.warn('Firebase auth is not available - check your environment variables');
+      setUser(null);
       setLoading(false);
       return;
     }
@@ -37,9 +38,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       });
 
-      return () => unsubscribe();
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
     } catch (error) {
       console.warn('Firebase auth initialization failed:', error);
+      setUser(null);
       setLoading(false);
     }
   }, []);

@@ -15,6 +15,18 @@ export default function Home() {
   
   // During SSR or before mounting, assume user is not available
   const canFriends = mounted && !!user && !user.isAnonymous;
+  
+  // Show loading state while auth is initializing
+  if (!mounted || loading) {
+    return (
+      <main className="bg-home min-h-[100svh] flex items-center justify-center px-4 py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">読み込み中...</p>
+        </div>
+      </main>
+    );
+  }
   return (
     <main className="bg-home min-h-[100svh] flex items-center justify-center px-4 py-12">
       {/* 背景フレームの中心に3CTAを置く */}
