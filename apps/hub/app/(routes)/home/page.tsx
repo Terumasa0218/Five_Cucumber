@@ -2,19 +2,19 @@
 
 import FriendsList from '@/components/FriendsList';
 import { useAuth } from "@/providers/AuthProvider";
+import { getSessionMode, getRedirectUrl } from '@/app/lib/session';
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Home() {
   const { user, loading } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [sessionMode, setSessionMode] = useState<'user' | 'guest' | null>(null);
   
   useEffect(() => {
     setMounted(true);
+    setSessionMode(getSessionMode());
   }, []);
-  
-  // During SSR or before mounting, assume user is not available
-  const canFriends = mounted && !!user && !user.isAnonymous;
   
   // Show loading state while auth is initializing
   if (!mounted || loading) {
@@ -27,6 +27,10 @@ export default function Home() {
       </main>
     );
   }
+  
+  const canFriends = sessionMode === 'user';
+  const friendsUrl = '/lobby/cucumber5?mode=friends';
+  const friendsRedirectUrl = getRedirectUrl(friendsUrl);
   return (
     <main className="bg-home min-h-[100svh] flex items-center justify-center px-4 py-12">
       {/* 背景フレームの中心に3CTAを置く */}
@@ -53,13 +57,23 @@ export default function Home() {
             </Link>
           </li>
           <li>
-            <Link href="/lobby/cucumber5?mode=friends" className="link-reset group flex items-start gap-3">
-              <span className="mt-1 text-lg select-none">▶</span>
-              <div className="rounded-2xl border border-[color:var(--paper-edge)] bg-[color:var(--paper)]/92 p-6 shadow group-hover:shadow-lg transition">
-                <h2 className="text-xl md:text-2xl" style={{color:"var(--brass)"}}>フレンド対戦</h2>
-                <p className="text-sm opacity-80" style={{color:"var(--ink)"}}>※ ログインすると利用できます</p>
-              </div>
-            </Link>
+            {canFriends ? (
+              <Link href={friendsUrl} className="link-reset group flex items-start gap-3">
+                <span className="mt-1 text-lg select-none">▶</span>
+                <div className="rounded-2xl border border-[color:var(--paper-edge)] bg-[color:var(--paper)]/92 p-6 shadow group-hover:shadow-lg transition">
+                  <h2 className="text-xl md:text-2xl" style={{color:"var(--brass)"}}>フレンド対戦</h2>
+                  <p className="text-sm opacity-80" style={{color:"var(--ink)"}}>フレンドと対戦</p>
+                </div>
+              </Link>
+            ) : (
+              <Link href={friendsRedirectUrl} className="link-reset group flex items-start gap-3">
+                <span className="mt-1 text-lg select-none">▶</span>
+                <div className="rounded-2xl border border-[color:var(--paper-edge)] bg-[color:var(--paper)]/50 p-6 shadow opacity-60">
+                  <h2 className="text-xl md:text-2xl" style={{color:"var(--brass)"}}>フレンド対戦</h2>
+                  <p className="text-sm opacity-80" style={{color:"var(--ink)"}}>※ ログインすると利用できます</p>
+                </div>
+              </Link>
+            )}
           </li>
         </ul>
         {/* 右：フレンド一覧（ユーザー名下に表示） */}
