@@ -1,7 +1,7 @@
 'use client';
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { User, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
+import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthContextType {
   user: User | null;
@@ -19,7 +19,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Only initialize auth on client side
-    if (typeof window === 'undefined' || !auth) {
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
+    // Check if auth is available
+    if (!auth) {
+      console.warn('Firebase auth is not available - check your environment variables');
       setLoading(false);
       return;
     }

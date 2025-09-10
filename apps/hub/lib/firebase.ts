@@ -28,9 +28,15 @@ if (typeof window !== 'undefined' && isFirebaseConfigured) {
     db = getFirestore(app);
   } catch (error) {
     console.warn('Firebase initialization failed:', error);
+    // エラー時はnullのままにする
+    auth = null;
+    db = null;
   }
 } else if (typeof window !== 'undefined') {
   console.warn('Firebase configuration is incomplete. Please check your environment variables.');
+  // 設定が不完全な場合はnullのままにする
+  auth = null;
+  db = null;
 }
 
 export { auth, db };
