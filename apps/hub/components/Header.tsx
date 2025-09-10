@@ -1,88 +1,36 @@
 'use client';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import { getProfile } from '@/lib/profile';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getSessionMode } from '../app/lib/session';
-import { getFirebaseClient } from '../lib/firebase';
 
 /** 最小限のヘッダー（固定・最小限） */
 export default function Header(){
   const pathname = usePathname();
-  
-  const [user, setUser] = useState<User | null>(null);
-  const [sessionMode, setSessionMode] = useState<'user' | 'guest' | null>(null);
+  const [profile, setProfile] = useState(getProfile());
   
   useEffect(() => {
-    const fb = getFirebaseClient();
-    if (!fb) return;
-    return onAuthStateChanged(fb.auth, setUser);
+    // プロフィール変更を監視
+    const handleStorageChange = () => {
+      setProfile(getProfile());
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
-  
-  useEffect(() => {
-    setSessionMode(getSessionMode());
-  }, [user]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
-      <div className="safe-zone flex items-center justify-between py-4">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
+      <div className="container mx-auto px-4 flex items-center justify-between py-4">
         {/* 左：タイトル */}
-        <Link href="/home" className="font-heading text-xl text-[var(--antique-ink)] hover:opacity-80">
+        <Link href="/home" className="text-xl font-bold text-gray-800 hover:text-blue-600">
           5本のきゅうり
         </Link>
 
-        {/* 右：ナビゲーション */}
-        <nav className="flex items-center gap-6">
-          <Link href="/rules/cucumber5" className="font-body text-[var(--antique-ink)] hover:text-[var(--antique-forest)] transition-colors">
-            ルール
-          </Link>
-          
-          {sessionMode === 'user' && user ? (
-            <>
-              <span className="font-body text-[var(--antique-muted)]">
-                {user.displayName ?? 'ユーザー'}
-              </span>
-              <button
-                onClick={async ()=>{
-                  const fb = getFirebaseClient();
-                  if (fb) {
-                    await signOut(fb.auth);
-                  }
-                  // fc_session を削除
-                  if (typeof document !== 'undefined') {
-                    document.cookie = 'fc_session=; Max-Age=0; Path=/; SameSite=Lax';
-                  }
-                  window.location.reload();
-                }}
-                className="btn-link"
-              >
-                ログアウト
-              </button>
-            </>
-          ) : sessionMode === 'guest' ? (
-            <>
-              <span className="font-body text-[var(--antique-muted)]">
-                ゲスト
-              </span>
-              <button
-                onClick={async ()=>{
-                  // fc_session を削除
-                  if (typeof document !== 'undefined') {
-                    document.cookie = 'fc_session=; Max-Age=0; Path=/; SameSite=Lax';
-                  }
-                  window.location.reload();
-                }}
-                className="btn-link"
-              >
-                ログアウト
-              </button>
-            </>
-          ) : (
-            <Link href="/auth/login" className="btn-link">
-              ログイン
-            </Link>
-          )}
-        </nav>
+        {/* 右：ユーザー名表示 */}
+        <div className="text-sm text-gray-600">
+          {profile?.nickname || 'ゲスト'}
+        </div>
       </div>
     </header>
   );
