@@ -269,6 +269,12 @@
 /* 万一、古い <header> 帯が残っていても強制で透明化（保険） */
 header{ background: transparent !important; box-shadow: none !important; backdrop-filter: none !important; }
 
+/* 行頭三角（必要ならクラス化して使う想定） */
+.tri::before{
+  content:'▶';
+  margin-right:.5rem;
+}
+
 /* Print styles */
 @media print {
   .no-print {

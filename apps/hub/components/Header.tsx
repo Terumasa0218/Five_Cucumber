@@ -3,6 +3,8 @@ import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { auth } from '../lib/firebase';
+import LanguageSwitcher from './LanguageSwitcher';
+import ThemeSwitcher from './ThemeSwitcher';
 
 /** 背景の"絵がないエリア"に固定配置する左右ナビ */
 export default function Header(){
@@ -20,13 +22,16 @@ export default function Header(){
         style={{ top, textShadow }}
       >
         <Link href="/home" className="hover:opacity-80">ホーム</Link>
+        <Link href="/rules/cucumber5" className="hover:opacity-80">ルール</Link>
       </nav>
 
       {/* 右：ログイン系（背景の右余白に置く） */}
       <nav
-        className="fixed z-30 right-[max(12px,2vw)] flex items-center gap-8 link-reset"
+        className="fixed z-30 right-[max(12px,2vw)] flex items-center gap-4 md:gap-6 link-reset"
         style={{ top, textShadow }}
       >
+        <LanguageSwitcher />
+        <ThemeSwitcher />
         {user ? (
           <>
             <Link href="/profile" className="hover:opacity-80">
