@@ -7,6 +7,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ja" data-theme="light">
       <AuthProvider>
         <body>
+          <div className="bg-frame" aria-hidden="true" />
           {/* 浮遊ナビ（背景の空白域に左右配置） */}
         <Header />
           {children}

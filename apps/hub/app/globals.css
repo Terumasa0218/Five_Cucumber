@@ -237,31 +237,6 @@
   outline-offset: 2px;
 }
 
-/* ===== Home 背景（viewport 固定で常に全画面） =====
-   ※ 画像拡張子は実ファイルに合わせて変更（初期は .png）
-*/
-.bg-home{ position: relative; }
-.bg-home::before{
-  content:"";
-  position: fixed;      /* ← 要点: 画面に固定して main の高さに依存させない */
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-color: var(--paper);
-  background-image: url("/assets/背景３.png"); /* TODO: jpg/webp ならここを合わせる */
-  background-repeat: no-repeat;
-  /* 中心より "やや上寄せ" で表示（= 画像を少し下げて上端を見せる） */
-  background-position: center calc(50% - 6vh);
-  background-size: cover;   /* 画面いっぱい。必要に応じてトリミング */
-}
-
-/* 画面が低めのときはずらし量を弱める／高めのときは強める */
-@media (max-height: 740px){
-  .bg-home::before{ background-position: center calc(50% - 4vh); }
-}
-@media (min-height: 900px){
-  .bg-home::before{ background-position: center calc(50% - 8vh); }
-}
 
 /* ===== Link 下線の一括無効化（カードやナビ用） ===== */
 .link-reset, .link-reset * { text-decoration: none !important; }
@@ -281,3 +256,21 @@ header{ background: transparent !important; box-shadow: none !important; backdro
     display: none !important;
   }
 }
+
+/* === Full-viewport botanical frame (no crop, keep aspect) === */
+html, body { height: 100%; }
+body { background-color: var(--paper); }
+.bg-frame {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background:
+    url('/assets/背景４.png')
+    center center / contain
+    no-repeat fixed var(--paper);
+  pointer-events: none;   /* クリックは通す */
+  z-index: -1;            /* すべてのUIの背面 */
+}
+/* 端末向け微調整：超縦長画面で上下に余白が出るのは仕様（歪み回避）。
+   必要なら @media で background-position を少し上げる。 */

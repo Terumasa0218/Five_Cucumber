@@ -19,7 +19,7 @@ export default function Home() {
   // Show loading state while auth is initializing
   if (!mounted || loading) {
     return (
-      <main className="bg-home min-h-[100svh] flex items-center justify-center px-4 py-12">
+      <main className="min-h-[100svh] w-full flex items-center justify-center px-4 py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
           <p className="text-gray-600">読み込み中...</p>
@@ -32,7 +32,7 @@ export default function Home() {
   const friendsUrl = '/lobby/cucumber5?mode=friends';
   const friendsRedirectUrl = getRedirectUrl(friendsUrl);
   return (
-    <main className="bg-home min-h-[100svh] flex items-center justify-center px-4 py-12">
+    <main className="min-h-[100svh] w-full flex items-center justify-center px-4 py-12">
       {/* 背景フレームの中心に3CTAを置く */}
       <div className="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_0.8fr] gap-8">
         {/* 左：メニュー（縦並び＋三角マーク） */}

@@ -41,7 +41,7 @@ function LoginContent() {
   };
 
   return (
-    <main className="bg-home min-h-[100svh]">
+    <main className="min-h-[100svh] w-full flex items-center justify-center">
       {/* 左上：言語切替のみ */}
       <div className="fixed left-3 top-3 z-50">
         <LanguageSwitcher />

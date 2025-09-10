@@ -1,0 +1,20 @@
+/* app/globals.css に追加 */
+:root {
+  --paper: #f4f1e8;
+  --paper-edge: #e6dcc9;
+  --ink: #3f3a33;
+  --cuke: #3f4d3e;
+  --brass: #8a6f43;
+  --gold: #bfa670;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #2b2926;
+    --paper-edge: #1f1d1a;
+    --ink: #e8e3d6;
+    --cuke: #c9d2c4;
+    --brass: #c3a46f;
+    --gold: #d9c38a;
+  }
+}
