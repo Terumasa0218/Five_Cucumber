@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { getFirebaseClient } from '../lib/firebase';
 import { getSessionMode, clearSession } from '../app/lib/session';
@@ -9,6 +10,11 @@ import ThemeSwitcher from './ThemeSwitcher';
 
 /** 背景の"絵がないエリア"に固定配置する左右ナビ */
 export default function Header(){
+  // 🔒 認証画面ではヘッダーを出さない（半透明帯を消す & ログイン画面は最小構成）
+  const pathname = usePathname();
+  if (pathname?.startsWith('/auth')) {
+    return null;
+  }
   const [user, setUser] = useState<User | null>(null);
   const [sessionMode, setSessionMode] = useState<'user' | 'guest' | null>(null);
   

@@ -1,216 +1,90 @@
+/* ログイン画面：言語切替のみ表示、CTAは縦並び、ゲストはcookie設定して遷移 */
 'use client';
-import { sendMagicLink } from '@/lib/auth';
-import { setGuestSession, getRedirectUrl } from '@/app/lib/session';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { FormEvent, useState, useEffect, Suspense } from 'react';
+import { Suspense } from 'react';
+import LanguageSwitcher from '../../../../components/LanguageSwitcher';
+import { getFirebaseClient } from '../../../../lib/firebase';
+import { signInAnonymously } from 'firebase/auth';
 
-// 動的レンダリングを強制
-export const dynamic = 'force-dynamic';
+function setCookie(k: string, v: string, days = 30) {
+  if (typeof document === 'undefined') return;
+  const max = days * 24 * 60 * 60;
+  document.cookie = `${k}=${v}; Max-Age=${max}; Path=/; SameSite=Lax`;
+}
 
-function AuthLoginContent() {
+function LoginContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextUrl = searchParams.get('next') || '/home';
-  
-  const [mode, setMode] = useState<'select' | 'login' | 'signup'>('select');
-  const [emailLogin, setEmailLogin] = useState('');
-  const [emailSignup, setEmailSignup] = useState('');
-  const [nameSignup, setNameSignup] = useState('');
-  const [sentTo, setSentTo] = useState<string|null>(null);
-  const [err, setErr] = useState<string|null>(null);
+  const params = useSearchParams();
+  const next = params.get('next') ?? '/home';
 
-  const submit = (mode:'login'|'signup') => async (e: FormEvent) => {
-    e.preventDefault();
-    setErr(null);
-    try {
-      if (mode === 'login') {
-        await sendMagicLink(emailLogin.trim());
-        setSentTo(emailLogin.trim());
-      } else {
-        await sendMagicLink(emailSignup.trim(), nameSignup.trim());
-        setSentTo(emailSignup.trim());
-      }
-    } catch (e:any) { setErr(e.message ?? String(e)); }
+  const go = () => {
+    try { router.replace(next); }
+    catch { window.location.assign(next); }
   };
 
-  const handleAnonLogin = async () => {
-    try {
-      const { getFirebaseClient } = require('../../../lib/firebase');
-      const { signInAnonymously } = require('firebase/auth');
-      const fb = getFirebaseClient();
-      if (fb) {
-        await signInAnonymously(fb.auth);
-      }
-    } catch (e) {
-      // Firebase未設定の場合は無視
-    }
-    // fc_session cookieを設定
-    if (typeof document !== 'undefined') {
-      document.cookie = 'fc_session=user; Max-Age=2592000; Path=/; SameSite=Lax';
-    }
-    router.replace(nextUrl);
+  const handleGuest = () => {
+    setCookie('fc_session','guest');
+    go();
   };
 
-  const handleGuestLogin = () => {
-    // fc_session cookieを設定
-    if (typeof document !== 'undefined') {
-      document.cookie = 'fc_session=guest; Max-Age=2592000; Path=/; SameSite=Lax';
+  const handleLogin = async () => {
+    // ひとまず匿名ログイン（環境が未設定でもゲスト相当で継続）
+    const fb = getFirebaseClient();
+    if (fb) {
+      try { await signInAnonymously(fb.auth); } catch {}
+      setCookie('fc_session','user');
+    } else {
+      // Firebaseが無くてもUI遷移は可能
+      setCookie('fc_session','user');
     }
-    router.replace(nextUrl);
+    go();
   };
-
-  if (mode === 'select') {
-    return (
-      <main className="bg-home min-h-[100svh] flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md mx-auto">
-          <div className="rounded-2xl border border-[color:var(--paper-edge)] bg-[color:var(--paper)]/92 p-8 shadow">
-            <h1 className="text-2xl text-center mb-8" style={{color:'var(--cuke)'}}>ログイン</h1>
-            
-            <div className="space-y-4">
-              <button
-                onClick={handleAnonLogin}
-                className="w-full rounded-xl px-6 py-3 shadow transition-colors"
-                style={{background:'var(--brass)',color:'#fff'}}
-              >
-                ログイン
-              </button>
-              
-              <button
-                onClick={() => setMode('signup')}
-                className="w-full rounded-xl px-6 py-3 border transition-colors"
-                style={{borderColor:'var(--paper-edge)',color:'var(--ink)'}}
-              >
-                アカウント新規作成
-              </button>
-              
-              <button
-                onClick={handleGuestLogin}
-                className="w-full rounded-xl px-6 py-3 border transition-colors"
-                style={{borderColor:'var(--paper-edge)',color:'var(--ink)'}}
-              >
-                ゲストとして利用
-              </button>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (sentTo) {
-    return (
-      <main className="bg-home min-h-[100svh] flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md mx-auto">
-          <CompleteCard email={sentTo} onBack={() => setMode('select')} />
-        </div>
-      </main>
-    );
-  }
 
   return (
-    <main className="bg-home min-h-[100svh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md mx-auto">
-        <div className="rounded-2xl border border-[color:var(--paper-edge)] bg-[color:var(--paper)]/92 p-8 shadow">
-          <div className="flex items-center gap-3 mb-6">
+    <main className="bg-home min-h-[100svh]">
+      {/* 左上：言語切替のみ */}
+      <div className="fixed left-3 top-3 z-50">
+        <LanguageSwitcher />
+      </div>
+
+      {/* 中央カード */}
+      <div className="mx-auto flex min-h-[100svh] max-w-md items-center justify-center px-4">
+        <div
+          className="w-full rounded-2xl border p-6 shadow-lg"
+          style={{ backgroundColor: 'color-mix(in srgb, var(--paper) 92%, transparent)',
+                   borderColor: 'var(--paper-edge)'}}
+        >
+          <h1 className="mb-4 text-center text-3xl font-semibold" style={{color:'var(--cuke)'}}>ログイン</h1>
+          <div className="flex flex-col gap-3">
             <button
-              onClick={() => setMode('select')}
-              className="text-lg hover:opacity-70"
-              style={{color:'var(--ink)'}}
+              onClick={handleLogin}
+              className="w-full rounded-lg border px-4 py-2 hover:opacity-90"
+              style={{borderColor:'var(--paper-edge)'}}
             >
-              ←
+              ログイン
             </button>
-            <h2 className="text-xl" style={{color:'var(--cuke)'}}>
-              {mode === 'login' ? 'ログイン' : 'アカウント新規作成'}
-            </h2>
+            <a
+              href="/auth/signup"
+              className="w-full rounded-lg border px-4 py-2 text-center hover:opacity-90"
+              style={{borderColor:'var(--paper-edge)'}}
+            >
+              アカウント新規作成
+            </a>
+            <button
+              onClick={handleGuest}
+              className="w-full rounded-lg border px-4 py-2 hover:opacity-90"
+              style={{borderColor:'var(--paper-edge)'}}
+            >
+              ゲストとして利用
+            </button>
           </div>
-          
-          {mode === 'login' ? (
-            <form onSubmit={submit('login')} className="grid gap-4">
-              <label className="grid gap-1">
-                <span className="text-sm" style={{color:'var(--ink)'}}>メールアドレス</span>
-                <input 
-                  type="email" 
-                  required 
-                  value={emailLogin} 
-                  onChange={e=>setEmailLogin(e.target.value)}
-                  className="border rounded px-3 py-2" 
-                  placeholder="you@example.com" 
-                />
-              </label>
-              {err && <p className="text-sm" style={{color:'#b00020'}}>{err}</p>}
-              <button 
-                className="rounded-xl px-4 py-2 shadow mt-1" 
-                style={{background:'var(--brass)',color:'#fff'}}
-              >
-                リンクを送信
-              </button>
-              <p className="text-xs opacity-70" style={{color:'var(--ink)'}}>
-                受信メールのリンクをこの端末で開いてください。
-              </p>
-            </form>
-          ) : (
-            <form onSubmit={submit('signup')} className="grid gap-4">
-              <label className="grid gap-1">
-                <span className="text-sm" style={{color:'var(--ink)'}}>ユーザー名</span>
-                <input 
-                  required 
-                  value={nameSignup} 
-                  onChange={e=>setNameSignup(e.target.value)}
-                  className="border rounded px-3 py-2" 
-                  placeholder="例: matsuoka" 
-                />
-              </label>
-              <label className="grid gap-1">
-                <span className="text-sm" style={{color:'var(--ink)'}}>メールアドレス</span>
-                <input 
-                  type="email" 
-                  required 
-                  value={emailSignup} 
-                  onChange={e=>setEmailSignup(e.target.value)}
-                  className="border rounded px-3 py-2" 
-                  placeholder="you@example.com" 
-                />
-              </label>
-              {err && <p className="text-sm" style={{color:'#b00020'}}>{err}</p>}
-              <button 
-                className="rounded-xl px-4 py-2 shadow mt-1" 
-                style={{background:'var(--brass)',color:'#fff'}}
-              >
-                リンクを送信
-              </button>
-              <p className="text-xs opacity-70" style={{color:'var(--ink)'}}>
-                受信メールのリンクをこの端末で開いてください。
-              </p>
-            </form>
-          )}
         </div>
       </div>
     </main>
   );
 }
 
-function CompleteCard({email, onBack}:{email:string, onBack?: () => void}) {
-  return (
-    <div className="rounded-xl border p-6 space-y-2" style={{borderColor:'var(--paper-edge)'}}>
-      <p style={{color:'var(--ink)'}}>宛先：<code>{email}</code></p>
-      <p style={{color:'var(--ink)'}}>メールのリンクを開くと手続きが完了します。</p>
-      <div className="pt-2">
-        {onBack ? (
-          <button onClick={onBack} className="underline" style={{color:'var(--ink)'}}>
-            戻る
-          </button>
-        ) : (
-          <Link className="underline" href="/home" style={{color:'var(--ink)'}}>
-            ホームへ戻る
-          </Link>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function AuthLogin() {
+export default function LoginPage() {
   return (
     <Suspense fallback={
       <main className="bg-home min-h-[100svh] flex items-center justify-center px-4 py-12">
@@ -220,7 +94,7 @@ export default function AuthLogin() {
         </div>
       </main>
     }>
-      <AuthLoginContent />
+      <LoginContent />
     </Suspense>
   );
 }
