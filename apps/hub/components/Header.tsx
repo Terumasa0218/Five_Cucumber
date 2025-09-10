@@ -1,29 +1,58 @@
 'use client';
-import { signOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { auth } from '../lib/firebase';
 
+/** 背景の"絵がないエリア"に固定配置する左右ナビ */
 export default function Header(){
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => onAuthStateChanged(auth, setUser), []);
+
+  const top = 'clamp(10px, 5vh, 64px)';           // 上からのオフセット（端末高さで可変）
+  const textShadow = '0 1px 0 #ffff, 0 0 6px #0000001f'; // 紙面に馴染む薄い縁取り
+
   return (
-    <header
-      className="sticky top-0 z-10 h-16 border-b"
-      /* 透けをやめて、下の背景絵の影響を受けない帯にする */
-      style={{ borderColor:'var(--paper-edge)', background:'var(--paper)' }}
-    >
-      {/* 中央に1本のナビだけ置く */}
-      <div className="mx-auto h-full w-full max-w-6xl px-6 md:px-10 flex items-center justify-center">
-        <nav className="flex items-center gap-8 md:gap-10">
-          <Link href="/home" className="link-reset hover:opacity-80">ホーム</Link>
-          <Link href="/auth/login" className="link-reset hover:opacity-80">ゲスト</Link>
-          <button
-            onClick={()=>signOut(auth)}
-            className="px-3 py-1.5 rounded-lg border hover:opacity-90"
-            style={{borderColor:'var(--paper-edge)'}}
-          >
-            サインアウト
-          </button>
-        </nav>
-      </div>
-    </header>
+    <>
+      {/* 左：ホーム（背景の左余白に置く） */}
+      <nav
+        className="fixed z-30 left-[max(12px,2vw)] flex items-center gap-6 link-reset"
+        style={{ top, textShadow }}
+      >
+        <Link href="/home" className="hover:opacity-80">ホーム</Link>
+      </nav>
+
+      {/* 右：ログイン系（背景の右余白に置く） */}
+      <nav
+        className="fixed z-30 right-[max(12px,2vw)] flex items-center gap-8 link-reset"
+        style={{ top, textShadow }}
+      >
+        {user ? (
+          <>
+            <Link href="/profile" className="hover:opacity-80">
+              {user.displayName ?? 'ユーザー'}
+            </Link>
+            <button
+              onClick={()=>signOut(auth)}
+              className="px-3 py-1.5 rounded-lg border hover:opacity-90"
+              style={{borderColor:'var(--paper-edge)'}}
+            >
+              サインアウト
+            </button>
+          </>
+        ) : (
+          <>
+            <Link href="/auth/login" className="hover:opacity-80">ゲスト</Link>
+            <Link
+              href="/auth/login"
+              className="px-3 py-1.5 rounded-lg border hover:opacity-90"
+              style={{borderColor:'var(--paper-edge)'}}
+            >
+              ログイン
+            </Link>
+          </>
+        )}
+      </nav>
+    </>
   );
 }

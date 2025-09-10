@@ -266,6 +266,9 @@
 /* ===== Link 下線の一括無効化（カードやナビ用） ===== */
 .link-reset, .link-reset * { text-decoration: none !important; }
 
+/* 万一、古い <header> 帯が残っていても強制で透明化（保険） */
+header{ background: transparent !important; box-shadow: none !important; backdrop-filter: none !important; }
+
 /* Print styles */
 @media print {
   .no-print {
