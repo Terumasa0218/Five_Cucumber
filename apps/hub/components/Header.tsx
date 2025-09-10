@@ -1,15 +1,19 @@
 'use client';
-import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { auth } from '../lib/firebase';
+import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
+import { getFirebaseClient } from '../lib/firebase';
 import LanguageSwitcher from './LanguageSwitcher';
 import ThemeSwitcher from './ThemeSwitcher';
 
 /** 背景の"絵がないエリア"に固定配置する左右ナビ */
 export default function Header(){
   const [user, setUser] = useState<User | null>(null);
-  useEffect(() => onAuthStateChanged(auth, setUser), []);
+  useEffect(() => {
+    const fb = getFirebaseClient();
+    if (!fb) return;
+    return onAuthStateChanged(fb.auth, setUser);
+  }, []);
 
   const top = 'clamp(10px, 5vh, 64px)';           // 上からのオフセット（端末高さで可変）
   const textShadow = '0 1px 0 #ffff, 0 0 6px #0000001f'; // 紙面に馴染む薄い縁取り
@@ -38,7 +42,11 @@ export default function Header(){
               {user.displayName ?? 'ユーザー'}
             </Link>
             <button
-              onClick={()=>signOut(auth)}
+              onClick={async ()=>{
+                const fb = getFirebaseClient();
+                if (!fb) return;
+                await signOut(fb.auth);
+              }}
               className="px-3 py-1.5 rounded-lg border hover:opacity-90"
               style={{borderColor:'var(--paper-edge)'}}
             >

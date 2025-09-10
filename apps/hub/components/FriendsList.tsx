@@ -1,8 +1,6 @@
 'use client';
-import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-// Firestore 読み取り（存在しない場合は TODO コメント）
+import { getFirebaseClient } from '../lib/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
 type Friend = { uid:string; name:string };
@@ -12,33 +10,20 @@ export default function FriendsList(){
   const [list, setList] = useState<Friend[]>([]);
   
   useEffect(() => {
-    if (!auth) {
-      console.warn('Firebase auth is not available in FriendsList');
-      setUid(null);
-      return;
-    }
-    
-    const unsubscribe = onAuthStateChanged(auth, u => setUid(u?.uid ?? null));
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
+    const fb = getFirebaseClient();
+    if (!fb) return;
+    return fb.auth.onAuthStateChanged(u => setUid(u?.uid ?? null));
   }, []);
 
   useEffect(() => {
-    if (!uid) { 
+    const fb = getFirebaseClient();
+    if (!fb || !uid) { 
       setList([]); 
       return; 
     }
     
     try {
-      if (!db) {
-        console.warn('Firestore is not available');
-        setList([]);
-        return;
-      }
-      
+      const db = fb.db;
       const ref = collection(db, 'users', uid, 'friends');
       return onSnapshot(ref, snap => {
         const arr: Friend[] = [];
@@ -51,7 +36,7 @@ export default function FriendsList(){
     }
   }, [uid]);
 
-  if(!uid){
+  if(!(getFirebaseClient()?.auth.currentUser)){
     return <p className="opacity-80" style={{color:'var(--ink)'}}>ログインするとフレンド一覧が表示されます。</p>;
   }
   if(list.length===0){

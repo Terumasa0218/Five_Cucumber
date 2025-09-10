@@ -1,7 +1,7 @@
 'use client';
-import { auth } from '@/lib/firebase';
 import { User, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
 import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
+import { getFirebaseClient } from '../lib/firebase';
 
 interface AuthContextType {
   user: User | null;
@@ -24,8 +24,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Check if auth is available
-    if (!auth) {
+    const fb = getFirebaseClient();
+    if (!fb) {
       console.warn('Firebase auth is not available - check your environment variables');
       setUser(null);
       setLoading(false);
@@ -33,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const unsubscribe = onAuthStateChanged(fb.auth, (user) => {
         setUser(user);
         setLoading(false);
       });
@@ -51,24 +51,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signinGuest = async () => {
-    if (typeof window === 'undefined' || !auth) {
+    if (typeof window === 'undefined') {
+      console.warn('Firebase auth is not available');
+      return;
+    }
+    const fb = getFirebaseClient();
+    if (!fb) {
       console.warn('Firebase auth is not available');
       return;
     }
     try {
-      await signInAnonymously(auth);
+      await signInAnonymously(fb.auth);
     } catch (error) {
       console.error('Guest sign-in failed:', error);
     }
   };
 
   const signout = async () => {
-    if (typeof window === 'undefined' || !auth) {
+    if (typeof window === 'undefined') {
+      console.warn('Firebase auth is not available');
+      return;
+    }
+    const fb = getFirebaseClient();
+    if (!fb) {
       console.warn('Firebase auth is not available');
       return;
     }
     try {
-      await signOut(auth);
+      await signOut(fb.auth);
     } catch (error) {
       console.error('Sign-out failed:', error);
     }

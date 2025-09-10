@@ -1,47 +1,48 @@
-import { getApps, initializeApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { getApp, getApps, initializeApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth } from 'firebase/auth';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 
-// Firebase設定の検証
-const firebaseConfig = {
+// NEXT_PUBLIC_* のみ使用（Vercelのクライアントから参照可能）
+const cfg = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+} as const;
 
-// 環境変数が設定されているかチェック
-const isFirebaseConfigured = firebaseConfig.apiKey && 
-  firebaseConfig.authDomain && 
-  firebaseConfig.projectId && 
-  firebaseConfig.appId;
+const required: (keyof typeof process.env)[] = [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  'NEXT_PUBLIC_FIREBASE_APP_ID',
+];
 
-// Firebase初期化関数
-function initializeFirebase() {
-  if (typeof window === 'undefined') {
-    return { auth: null, db: null };
+// 不足しているキー（未設定でもビルドは通す）
+const missing = required.filter(k => !process.env[k]);
+export const firebaseEnvOk = missing.length === 0;
+
+export function getFirebaseClient():
+  | { app: FirebaseApp; auth: Auth; db: Firestore }
+  | null {
+  // SSRでは初期化しない
+  if (typeof window === 'undefined') return null;
+  if (!firebaseEnvOk) {
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.warn('Firebase configuration is incomplete. Missing:', missing.join(', '));
+    }
+    return null;
   }
-
-  if (!isFirebaseConfigured) {
-    console.warn('Firebase configuration is incomplete. Please check your environment variables.');
-    return { auth: null, db: null };
-  }
-
-  try {
-    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    return { auth, db };
-  } catch (error) {
-    console.warn('Firebase initialization failed:', error);
-    return { auth: null, db: null };
-  }
+  const app = getApps().length ? getApp() : initializeApp(cfg);
+  return { app, auth: getAuth(app), db: getFirestore(app) };
 }
 
-// Firebaseインスタンスを取得
-const { auth, db } = initializeFirebase();
-
-export { auth, db };
+// 型を再エクスポート（便利用）
+export type { FirebaseApp, Auth, Firestore };
 
 export const actionCodeSettings = {
   url: `${process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'http://localhost:3000'}/auth/complete`,
