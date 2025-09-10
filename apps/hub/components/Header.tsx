@@ -50,7 +50,14 @@ export default function Header(){
             </Link>
             <button
               onClick={async ()=>{
-                clearSession();
+                const fb = getFirebaseClient();
+                if (fb) {
+                  await signOut(fb.auth);
+                }
+                // fc_session を削除
+                if (typeof document !== 'undefined') {
+                  document.cookie = 'fc_session=; Max-Age=0; Path=/; SameSite=Lax';
+                }
                 window.location.reload();
               }}
               className="px-3 py-1.5 rounded-lg border hover:opacity-90"

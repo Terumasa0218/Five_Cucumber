@@ -34,8 +34,29 @@ function AuthLoginContent() {
     } catch (e:any) { setErr(e.message ?? String(e)); }
   };
 
+  const handleAnonLogin = async () => {
+    try {
+      const { getFirebaseClient } = require('../../../lib/firebase');
+      const { signInAnonymously } = require('firebase/auth');
+      const fb = getFirebaseClient();
+      if (fb) {
+        await signInAnonymously(fb.auth);
+      }
+    } catch (e) {
+      // Firebase未設定の場合は無視
+    }
+    // fc_session cookieを設定
+    if (typeof document !== 'undefined') {
+      document.cookie = 'fc_session=user; Max-Age=2592000; Path=/; SameSite=Lax';
+    }
+    router.replace(nextUrl);
+  };
+
   const handleGuestLogin = () => {
-    setGuestSession();
+    // fc_session cookieを設定
+    if (typeof document !== 'undefined') {
+      document.cookie = 'fc_session=guest; Max-Age=2592000; Path=/; SameSite=Lax';
+    }
     router.replace(nextUrl);
   };
 
@@ -48,7 +69,7 @@ function AuthLoginContent() {
             
             <div className="space-y-4">
               <button
-                onClick={() => setMode('login')}
+                onClick={handleAnonLogin}
                 className="w-full rounded-xl px-6 py-3 shadow transition-colors"
                 style={{background:'var(--brass)',color:'#fff'}}
               >

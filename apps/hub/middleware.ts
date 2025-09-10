@@ -1,46 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
-  
-  // 認証関連ページは通す
-  if (pathname.startsWith('/auth/')) {
+export function middleware(req: NextRequest) {
+  const { pathname, searchParams } = req.nextUrl;
+  // 静的/認証系は素通り
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/assets') ||
+    pathname.startsWith('/favicon') ||
+    pathname.startsWith('/auth')
+  ) {
     return NextResponse.next();
   }
-  
-  // 静的ファイルは通す
-  if (pathname.startsWith('/_next/') || 
-      pathname.startsWith('/api/') ||
-      pathname.includes('.')) {
-    return NextResponse.next();
+
+  const session = req.cookies.get('fc_session')?.value ?? null; // 'user' | 'guest' | null
+
+  // friends ロビーは user 必須
+  if (pathname.startsWith('/lobby') && searchParams.get('mode') === 'friends' && session !== 'user') {
+    const url = req.nextUrl.clone();
+    url.pathname = '/auth/login';
+    url.searchParams.set('next', req.nextUrl.pathname + req.nextUrl.search);
+    return NextResponse.redirect(url);
   }
-  
-  // セッション情報を取得（クライアントサイドで判定するため、ここでは基本的なリダイレクトのみ）
-  const sessionCookie = request.cookies.get('five-cucumber-session');
-  const guestCookie = request.cookies.get('five-cucumber-guest');
-  
-  // フレンド対戦ページへのアクセス制御
-  if (pathname.includes('/lobby/') && search.includes('mode=friends')) {
-    // セッション情報がない場合はログインページへリダイレクト
-    if (!sessionCookie && !guestCookie) {
-      const redirectUrl = `/auth/login?next=${encodeURIComponent(pathname + search)}`;
-      return NextResponse.redirect(new URL(redirectUrl, request.url), { status: 307 });
-    }
+
+  // それ以外も、セッション未設定ならログインへ
+  if (!session) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/auth/login';
+    url.searchParams.set('next', req.nextUrl.pathname + req.nextUrl.search);
+    return NextResponse.redirect(url);
   }
-  
-  // その他のページは通す（クライアントサイドでセッション判定）
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|assets/).*)'],
 };
