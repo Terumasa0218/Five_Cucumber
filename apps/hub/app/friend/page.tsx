@@ -54,6 +54,7 @@ export default function FriendPage() {
         </div>
       </div>
 
+      {/* ニックネーム未設定時はこのページ上でモーダル表示 */}
       <PlayerSetupModal
         isOpen={showModal}
         onClose={() => {}}

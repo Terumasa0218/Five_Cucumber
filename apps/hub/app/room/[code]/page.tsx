@@ -1,5 +1,7 @@
 'use client';
 
+import PlayerSetupModal from "@/components/PlayerSetupModal";
+import { useRequireNickname } from "@/hooks/useRequireNickname";
 import { getProfile } from "@/lib/profile";
 import { addParticipant, getRoom, removeParticipant, type Room } from "@/lib/roomMock";
 import Link from "next/link";
@@ -9,6 +11,7 @@ import { useEffect, useState } from "react";
 export default function RoomPage() {
   const params = useParams();
   const router = useRouter();
+  const { showModal, handleProfileSaved } = useRequireNickname();
   const roomCode = params.code as string;
   const [room, setRoom] = useState<Room | null>(null);
   const [isParticipating, setIsParticipating] = useState(false);
@@ -171,6 +174,13 @@ export default function RoomPage() {
           </div>
         </div>
       </div>
+
+      {/* ニックネーム未設定時はこのページ上でモーダル表示 */}
+      <PlayerSetupModal
+        isOpen={showModal}
+        onClose={() => {}}
+        onProfileSaved={handleProfileSaved}
+      />
     </main>
   );
 }
