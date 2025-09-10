@@ -6,15 +6,15 @@ import { auth } from '../lib/firebase';
 export default function Header(){
   return (
     <header
-      className="sticky top-0 z-10 h-16 border-b backdrop-blur-sm"
-      style={{borderColor:'var(--paper-edge)', background:'color-mix(in oklab, var(--paper) 86%, transparent)'}}
+      className="sticky top-0 z-10 h-16 border-b"
+      /* 透けをやめて、下の背景絵の影響を受けない帯にする */
+      style={{ borderColor:'var(--paper-edge)', background:'var(--paper)' }}
     >
-      <div className="mx-auto h-full w-full max-w-6xl px-6 md:px-10 flex items-center justify-between">
-        <nav className="flex items-center gap-8">
-          <Link href="/home" className="no-underline hover:opacity-80 link-reset">ホーム</Link>
-        </nav>
+      {/* 中央に1本のナビだけ置く */}
+      <div className="mx-auto h-full w-full max-w-6xl px-6 md:px-10 flex items-center justify-center">
         <nav className="flex items-center gap-8 md:gap-10">
-          <Link href="/auth/login" className="no-underline hover:opacity-80 link-reset">ゲスト</Link>
+          <Link href="/home" className="link-reset hover:opacity-80">ホーム</Link>
+          <Link href="/auth/login" className="link-reset hover:opacity-80">ゲスト</Link>
           <button
             onClick={()=>signOut(auth)}
             className="px-3 py-1.5 rounded-lg border hover:opacity-90"
