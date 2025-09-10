@@ -108,9 +108,11 @@ export default function Home() {
           <Link href="/rules/cucumber5" className="btn-link">
             ルール
           </Link>
-          <Link href="/auth/login" className="btn-link">
-            ログイン
-          </Link>
+          {sessionMode !== 'user' && (
+            <Link href="/auth/login" className="btn-link">
+              ログイン
+            </Link>
+          )}
         </div>
       </div>
     </main>

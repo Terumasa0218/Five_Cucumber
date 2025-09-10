@@ -91,5 +91,5 @@ export function requiresLogin(pathname: string): boolean {
  */
 export function getRedirectUrl(pathname: string, search?: string): string {
   const currentUrl = pathname + (search || '');
-  return `/auth/login?next=${encodeURIComponent(currentUrl)}`;
+  return `/auth/login?returnTo=${encodeURIComponent(currentUrl)}`;
 }

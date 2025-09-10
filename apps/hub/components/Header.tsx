@@ -1,18 +1,14 @@
 'use client';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { getFirebaseClient } from '../lib/firebase';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { getSessionMode } from '../app/lib/session';
+import { getFirebaseClient } from '../lib/firebase';
 
 /** 最小限のヘッダー（固定・最小限） */
 export default function Header(){
-  // 🔒 認証画面ではヘッダーを出さない
   const pathname = usePathname();
-  if (pathname?.startsWith('/auth')) {
-    return null;
-  }
   
   const [user, setUser] = useState<User | null>(null);
   const [sessionMode, setSessionMode] = useState<'user' | 'guest' | null>(null);
@@ -52,6 +48,24 @@ export default function Header(){
                   if (fb) {
                     await signOut(fb.auth);
                   }
+                  // fc_session を削除
+                  if (typeof document !== 'undefined') {
+                    document.cookie = 'fc_session=; Max-Age=0; Path=/; SameSite=Lax';
+                  }
+                  window.location.reload();
+                }}
+                className="btn-link"
+              >
+                ログアウト
+              </button>
+            </>
+          ) : sessionMode === 'guest' ? (
+            <>
+              <span className="font-body text-[var(--antique-muted)]">
+                ゲスト
+              </span>
+              <button
+                onClick={async ()=>{
                   // fc_session を削除
                   if (typeof document !== 'undefined') {
                     document.cookie = 'fc_session=; Max-Age=0; Path=/; SameSite=Lax';

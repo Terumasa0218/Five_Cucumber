@@ -1,13 +1,15 @@
-import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export default function RootPage() {
   const cookieStore = cookies();
-  const authToken = cookieStore.get('fc_session')?.value;
+  const session = cookieStore.get('fc_session')?.value;
   
-  if (authToken) {
+  // 認証済み（user または guest）→ /home
+  if (session) {
     redirect('/home');
   } else {
+    // 未認証 → /auth/login
     redirect('/auth/login');
   }
 }
