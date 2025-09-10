@@ -1,8 +1,8 @@
-/* ログイン画面：言語切替のみ表示、CTAは縦並び、ゲストはcookie設定して遷移 */
+/* ログイン画面：半透明カードで視線を集中 */
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-import LanguageSwitcher from '../../../../components/LanguageSwitcher';
+import Link from 'next/link';
 import { getFirebaseClient } from '../../../../lib/firebase';
 import { signInAnonymously } from 'firebase/auth';
 
@@ -42,41 +42,38 @@ function LoginContent() {
 
   return (
     <main className="min-h-[100svh] w-full flex items-center justify-center">
-      {/* 左上：言語切替のみ */}
-      <div className="fixed left-3 top-3 z-50">
-        <LanguageSwitcher />
-      </div>
-
-      {/* 中央カード */}
-      <div className="mx-auto flex min-h-[100svh] max-w-md items-center justify-center px-4">
-        <div
-          className="w-full rounded-2xl border p-6 shadow-lg"
-          style={{ backgroundColor: 'color-mix(in srgb, var(--paper) 92%, transparent)',
-                   borderColor: 'var(--paper-edge)'}}
-        >
-          <h1 className="mb-4 text-center text-3xl font-semibold" style={{color:'var(--cuke)'}}>ログイン</h1>
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={handleLogin}
-              className="w-full rounded-lg border px-4 py-2 hover:opacity-90"
-              style={{borderColor:'var(--paper-edge)'}}
-            >
+      <div className="safe-zone">
+        <div className="max-w-md mx-auto">
+          <div className="card">
+            <h1 className="font-heading text-3xl text-center text-[var(--antique-ink)] mb-8">
               ログイン
-            </button>
-            <a
-              href="/auth/signup"
-              className="w-full rounded-lg border px-4 py-2 text-center hover:opacity-90"
-              style={{borderColor:'var(--paper-edge)'}}
-            >
-              アカウント新規作成
-            </a>
-            <button
-              onClick={handleGuest}
-              className="w-full rounded-lg border px-4 py-2 hover:opacity-90"
-              style={{borderColor:'var(--paper-edge)'}}
-            >
-              ゲストとして利用
-            </button>
+            </h1>
+            
+            <div className="space-y-4">
+              {/* Primary: ゲストで今すぐ遊ぶ */}
+              <button
+                onClick={handleGuest}
+                className="btn-primary w-full"
+              >
+                ゲストで今すぐ遊ぶ
+              </button>
+              
+              {/* Secondary: ログイン */}
+              <button
+                onClick={handleLogin}
+                className="btn-secondary w-full"
+              >
+                ログイン
+              </button>
+              
+              {/* Link: アカウント新規作成 */}
+              <Link
+                href="/auth/signup"
+                className="btn-link w-full text-center block"
+              >
+                アカウント新規作成
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -87,10 +84,10 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <main className="bg-home min-h-[100svh] flex items-center justify-center px-4 py-12">
+      <main className="min-h-[100svh] w-full flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">読み込み中...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--antique-forest)] mx-auto mb-4"></div>
+          <p className="font-body text-[var(--antique-muted)]">読み込み中...</p>
         </div>
       </main>
     }>

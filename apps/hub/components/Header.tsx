@@ -4,17 +4,16 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
 import { getFirebaseClient } from '../lib/firebase';
-import { getSessionMode, clearSession } from '../app/lib/session';
-import LanguageSwitcher from './LanguageSwitcher';
-import ThemeSwitcher from './ThemeSwitcher';
+import { getSessionMode } from '../app/lib/session';
 
-/** 背景の"絵がないエリア"に固定配置する左右ナビ */
+/** 最小限のヘッダー（固定・最小限） */
 export default function Header(){
-  // 🔒 認証画面ではヘッダーを出さない（半透明帯を消す & ログイン画面は最小構成）
+  // 🔒 認証画面ではヘッダーを出さない
   const pathname = usePathname();
   if (pathname?.startsWith('/auth')) {
     return null;
   }
+  
   const [user, setUser] = useState<User | null>(null);
   const [sessionMode, setSessionMode] = useState<'user' | 'guest' | null>(null);
   
@@ -28,74 +27,49 @@ export default function Header(){
     setSessionMode(getSessionMode());
   }, [user]);
 
-  const top = 'clamp(10px, 5vh, 64px)';           // 上からのオフセット（端末高さで可変）
-  const textShadow = '0 1px 0 #ffff, 0 0 6px #0000001f'; // 紙面に馴染む薄い縁取り
-
   return (
-    <>
-      {/* 左：ホーム（背景の左余白に置く） */}
-      <nav
-        className="fixed z-30 left-[max(12px,2vw)] flex items-center gap-6 link-reset"
-        style={{ top, textShadow }}
-      >
-        <Link href="/home" className="hover:opacity-80">ホーム</Link>
-        <Link href="/rules/cucumber5" className="hover:opacity-80">ルール</Link>
-      </nav>
+    <header className="fixed top-0 left-0 right-0 z-50 bg-transparent">
+      <div className="safe-zone flex items-center justify-between py-4">
+        {/* 左：タイトル */}
+        <Link href="/home" className="font-heading text-xl text-[var(--antique-ink)] hover:opacity-80">
+          5本のきゅうり
+        </Link>
 
-      {/* 右：ログイン系（背景の右余白に置く） */}
-      <nav
-        className="fixed z-30 right-[max(12px,2vw)] flex items-center gap-4 md:gap-6 link-reset"
-        style={{ top, textShadow }}
-      >
-        <LanguageSwitcher />
-        <ThemeSwitcher />
-        {sessionMode === 'user' && user ? (
-          <>
-            <Link href="/profile" className="hover:opacity-80">
-              {user.displayName ?? 'ユーザー'}
-            </Link>
-            <button
-              onClick={async ()=>{
-                const fb = getFirebaseClient();
-                if (fb) {
-                  await signOut(fb.auth);
-                }
-                // fc_session を削除
-                if (typeof document !== 'undefined') {
-                  document.cookie = 'fc_session=; Max-Age=0; Path=/; SameSite=Lax';
-                }
-                window.location.reload();
-              }}
-              className="px-3 py-1.5 rounded-lg border hover:opacity-90"
-              style={{borderColor:'var(--paper-edge)'}}
-            >
-              サインアウト
-            </button>
-          </>
-        ) : sessionMode === 'guest' ? (
-          <>
-            <span className="hover:opacity-80">ゲスト</span>
-            <Link
-              href="/auth/login"
-              className="px-3 py-1.5 rounded-lg border hover:opacity-90"
-              style={{borderColor:'var(--paper-edge)'}}
-            >
+        {/* 右：ナビゲーション */}
+        <nav className="flex items-center gap-6">
+          <Link href="/rules/cucumber5" className="font-body text-[var(--antique-ink)] hover:text-[var(--antique-forest)] transition-colors">
+            ルール
+          </Link>
+          
+          {sessionMode === 'user' && user ? (
+            <>
+              <span className="font-body text-[var(--antique-muted)]">
+                {user.displayName ?? 'ユーザー'}
+              </span>
+              <button
+                onClick={async ()=>{
+                  const fb = getFirebaseClient();
+                  if (fb) {
+                    await signOut(fb.auth);
+                  }
+                  // fc_session を削除
+                  if (typeof document !== 'undefined') {
+                    document.cookie = 'fc_session=; Max-Age=0; Path=/; SameSite=Lax';
+                  }
+                  window.location.reload();
+                }}
+                className="btn-link"
+              >
+                ログアウト
+              </button>
+            </>
+          ) : (
+            <Link href="/auth/login" className="btn-link">
               ログイン
             </Link>
-          </>
-        ) : (
-          <>
-            <Link href="/auth/login" className="hover:opacity-80">ゲスト</Link>
-            <Link
-              href="/auth/login"
-              className="px-3 py-1.5 rounded-lg border hover:opacity-90"
-              style={{borderColor:'var(--paper-edge)'}}
-            >
-              ログイン
-            </Link>
-          </>
-        )}
-      </nav>
-    </>
+          )}
+        </nav>
+      </div>
+    </header>
   );
 }

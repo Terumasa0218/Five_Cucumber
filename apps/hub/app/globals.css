@@ -1,4 +1,142 @@
 @import '@five-cucumber/ui/src/theme.css';
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;600&display=swap');
+
+/* === アンティーク調カラーパレット === */
+:root {
+  --antique-paper: #F5F0E6;
+  --antique-ink: #2B2B2B;
+  --antique-forest: #2E7D32;
+  --antique-forest-hover: #27692B;
+  --antique-brass: #C8A85A;
+  --antique-brass-hover: #B89A4A;
+  --antique-muted: #6B6B6B;
+  --antique-border: #D4C4A8;
+  --antique-shadow: rgba(43, 43, 43, 0.1);
+}
+
+/* === アンティーク調フォント === */
+.font-heading {
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 600;
+}
+
+.font-body {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 400;
+}
+
+/* === セーフゾーン（中央配置） === */
+.safe-zone {
+  padding-inline: clamp(16px, 6vw, 96px);
+  padding-block: clamp(48px, 10vh, 112px);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* === アンティーク調ボタン === */
+.btn-primary {
+  background: var(--antique-forest);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.btn-primary:hover {
+  background: var(--antique-forest-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--antique-shadow);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--antique-brass);
+  outline-offset: 2px;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--antique-ink);
+  border: 2px solid var(--antique-border);
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.btn-secondary:hover {
+  background: var(--antique-paper);
+  border-color: var(--antique-forest);
+  transform: translateY(-1px);
+}
+
+.btn-secondary:focus-visible {
+  outline: 2px solid var(--antique-brass);
+  outline-offset: 2px;
+}
+
+.btn-link {
+  background: transparent;
+  color: var(--antique-forest);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: underline;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.btn-link:hover {
+  color: var(--antique-forest-hover);
+  background: rgba(46, 125, 50, 0.05);
+}
+
+.btn-link:focus-visible {
+  outline: 2px solid var(--antique-brass);
+  outline-offset: 2px;
+}
+
+/* === 無効状態 === */
+.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* === バッジ === */
+.badge {
+  display: inline-block;
+  background: var(--antique-brass);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+/* === カード === */
+.card {
+  background: rgba(245, 240, 230, 0.9);
+  border: 1px solid var(--antique-border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px var(--antique-shadow);
+  backdrop-filter: blur(4px);
+}
 
 /* App-specific styles */
 .app {
@@ -257,9 +395,9 @@ header{ background: transparent !important; box-shadow: none !important; backdro
   }
 }
 
-/* === Full-viewport botanical frame (no crop, keep aspect) === */
+/* === Full-viewport botanical frame (fill + object-cover) === */
 html, body { height: 100%; }
-body { background-color: var(--paper); }
+body { background-color: #F5F0E6; }
 .bg-frame {
   position: fixed;
   inset: 0;
@@ -267,10 +405,17 @@ body { background-color: var(--paper); }
   height: 100vh;
   background:
     url('/assets/背景４.png')
-    center center / contain
-    no-repeat fixed var(--paper);
+    center center / cover
+    no-repeat fixed;
   pointer-events: none;   /* クリックは通す */
   z-index: -1;            /* すべてのUIの背面 */
 }
-/* 端末向け微調整：超縦長画面で上下に余白が出るのは仕様（歪み回避）。
-   必要なら @media で background-position を少し上げる。 */
+
+/* 中央の可読性補強（極薄いラジアル白ハイライト） */
+.bg-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
