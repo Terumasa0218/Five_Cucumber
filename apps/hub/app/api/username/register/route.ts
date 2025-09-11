@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { validateNickname } from "@/lib/nickname";
+import { NextResponse } from "next/server";
 
 // すぐ動く重複チェック（デプロイ中のプロセスで共有）
 const globalNames = (globalThis as any).__FC_NAMES__ ?? new Set<string>();
