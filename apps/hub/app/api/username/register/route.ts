@@ -21,10 +21,18 @@ export async function POST(req: Request) {
     }
 
     const store = getStore();
-    if (await store.exists(v.value)) {
+    console.log('[api/register] Using store type:', (store as any).__type);
+    
+    const exists = await store.exists(v.value);
+    console.log('[api/register] Name exists check:', v.value, '→', exists);
+    
+    if (exists) {
+      console.log('[api/register] Duplicate name detected:', v.value);
       return NextResponse.json({ ok:false, reason:"duplicate" }, { status:409 });
     }
+    
     await store.save(v.value);
+    console.log('[api/register] Name saved successfully:', v.value);
 
     const res = NextResponse.json({ ok:true, store: (store as any).__type });
     const jar = cookies();
