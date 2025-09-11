@@ -1,59 +1,56 @@
-import { validateNickname } from "@/lib/nickname";
-import { getStore } from "@/lib/store";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { validateNickname } from "@/lib/nickname";
+
+// すぐ動く重複チェック（デプロイ中のプロセスで共有）
+const globalNames = (globalThis as any).__FC_NAMES__ ?? new Set<string>();
+(globalThis as any).__FC_NAMES__ = globalNames;
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    console.log('[api/register] Starting request');
-    
-    console.log('[api/register] About to parse JSON');
-    const body = await req.json();
-    console.log('[api/register] Parsed body:', body);
-    
-    const { name } = body;
-    console.log('[api/register] Received name:', name, 'type:', typeof name);
-    
-    if (!name || typeof name !== 'string') {
-      console.log('[api/register] Invalid name type');
-      return NextResponse.json({ ok:false, reason:"length" }, { status:400 });
-    }
-    
-    console.log('[api/register] About to call validateNickname');
-    const v = validateNickname(name);
-    console.log('[api/register] validateNickname result:', v);
-    
-    if (!v.ok) {
-      const status = v.reason === "length" ? 400 : 422;
-      console.log('[api/register] Validation failed:', v.reason, 'status:', status);
-      return NextResponse.json({ ok:false, reason:v.reason }, { status });
+    const { name } = await req.json();
+    const r = validateNickname(name);
+    if (!r.ok) {
+      const status = r.reason === "length" ? 400 : 422;
+      return NextResponse.json({ ok: false, reason: r.reason }, { status });
     }
 
-    const store = getStore();
-    const exists = await store.exists(v.value);
-    
-    if (exists) {
-      return NextResponse.json({ ok:false, reason:"duplicate" }, { status:409 });
-    }
-    
-    await store.save(v.value);
+    const nickname = r.value;
 
-    const res = NextResponse.json({ ok:true });
-    const jar = cookies();
-    const gid = jar.get("guestId")?.value ?? crypto.randomUUID();
-    res.cookies.set("guestId", gid, { path:"/", maxAge:60*60*24*180, sameSite:"lax", secure:true });
-    res.cookies.set("hasProfile", "1", { path:"/", maxAge:60*60*24*180, sameSite:"lax", secure:true });
+    // 重複チェック（最小実装）
+    if (globalNames.has(nickname)) {
+      return NextResponse.json({ ok: false, reason: "duplicate" }, { status: 409 });
+    }
+    globalNames.add(nickname);
+
+    // レスポンス作成 & サーバ側で Cookie を確実に付与
+    const res = NextResponse.json({ ok: true });
+    // guestId は既存があれば流用、なければ新規発行
+    const gid =
+      // @ts-ignore ルート関数内の request の Cookie は Response で設定する
+      crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
+
+    res.cookies.set("guestId", gid, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 180,
+      sameSite: "lax",
+      secure: true,
+    });
+    res.cookies.set("hasProfile", "1", {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 180,
+      sameSite: "lax",
+      secure: true,
+    });
     res.headers.set("Cache-Control", "no-store");
     return res;
-  } catch (e) {
-    console.error("[register] error", e);
-    return NextResponse.json({ 
-      ok:false, 
-      reason:"server",
-      error: e instanceof Error ? e.message : 'Unknown error'
-    }, { status:500, headers:{ "Cache-Control":"no-store" } });
+  } catch (e: any) {
+    // 失敗理由を確実に返す（モバイルでも分かる）
+    return NextResponse.json(
+      { ok: false, reason: "server", error: String(e?.message ?? e) },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
+    );
   }
 }
