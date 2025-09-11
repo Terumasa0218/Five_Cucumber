@@ -513,7 +513,7 @@ class CucumberGame {
     this.currentTrick = 1;
     this.fieldCard = null;
     this.sharedGraveyard = [];
-    this.playerGraveyards = Array(this.players).fill().map(() => []);
+    this.playerGraveyards = Array(this.players).fill(null).map(() => []);
     this.trickCards = [];
     
     this.dealCards();
