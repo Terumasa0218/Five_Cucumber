@@ -646,7 +646,7 @@ class CucumberGame {
       });
 
       if (cardElement) {
-        const cardRect = cardElement.getBoundingClientRect();
+        const cardRect = (cardElement as HTMLElement).getBoundingClientRect();
         startX = cardRect.left;
         startY = cardRect.top;
       } else {
@@ -736,7 +736,7 @@ class CucumberGame {
       });
 
       if (cardElement) {
-        const cardRect = cardElement.getBoundingClientRect();
+        const cardRect = (cardElement as HTMLElement).getBoundingClientRect();
         startX = cardRect.left;
         startY = cardRect.top;
       } else {
