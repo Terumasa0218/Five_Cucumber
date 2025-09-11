@@ -44,7 +44,7 @@ export function createInitialState(config: GameConfig, rng: SeededRng): GameStat
   };
 }
 
-export function applyMove(state: GameState, move: Move, config: GameConfig): ActionResult {
+export function applyMove(state: GameState, move: Move, config: GameConfig, rng: SeededRng): ActionResult {
   const { player, card } = move;
   
   // バリデーション
@@ -88,13 +88,13 @@ export function applyMove(state: GameState, move: Move, config: GameConfig): Act
   
   // トリックが完了したかチェック
   if (isTrickComplete(newState.trickCards, config.players, newState.firstPlayer)) {
-    return endTrick(newState, config);
+    return endTrick(newState, config, rng);
   }
   
   return { success: true, newState };
 }
 
-export function endTrick(state: GameState, config: GameConfig): ActionResult {
+export function endTrick(state: GameState, config: GameConfig, rng: SeededRng): ActionResult {
   const newState = { ...state };
   
   // 勝者を決定
@@ -104,7 +104,7 @@ export function endTrick(state: GameState, config: GameConfig): ActionResult {
   
   // 最終トリックかチェック
   if (shouldStartNewRound(newState)) {
-    return finalRound(newState, config);
+    return finalRound(newState, config, rng);
   }
   
   // 次のトリックに進む
@@ -115,7 +115,7 @@ export function endTrick(state: GameState, config: GameConfig): ActionResult {
   return { success: true, newState };
 }
 
-export function finalRound(state: GameState, config: GameConfig): ActionResult {
+export function finalRound(state: GameState, config: GameConfig, rng: SeededRng): ActionResult {
   const newState = { ...state };
   
   // 最終トリックのペナルティを計算
@@ -133,7 +133,7 @@ export function finalRound(state: GameState, config: GameConfig): ActionResult {
   }
   
   // 次のラウンドに進む
-  return startNewRound(newState, config);
+  return startNewRound(newState, config, rng);
 }
 
 export function startNewRound(state: GameState, config: GameConfig, rng: SeededRng): ActionResult {
