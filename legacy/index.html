@@ -78,14 +78,21 @@
             display: grid;
             grid-template-areas: 
                 "hud-left hud-center hud-right"
-                "top-player top-player top-player"
-                "left-player center-area right-player"
+                "seats seats seats"
+                "center-area center-area center-area"
                 "player-hand player-hand player-hand";
-            grid-template-rows: 60px 110px 1fr 130px;
-            grid-template-columns: 220px 1fr 220px;
+            grid-template-rows: 60px 120px 1fr 130px;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 12px;
             padding: 12px;
             z-index: 2;
+        }
+
+        .seats-container {
+            grid-area: seats;
+            position: relative;
+            width: 100%;
+            height: 100%;
         }
 
         .hud-left {
@@ -168,19 +175,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-        }
-
-        .top-player {
-            grid-area: top-player;
-        }
-
-        .left-player {
-            grid-area: left-player;
-        }
-
-        .right-player {
-            grid-area: right-player;
+            position: absolute;
+            transform: translate(-50%, -50%);
         }
 
         .player-panel {
@@ -291,7 +287,7 @@
 
         .field-area {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.2));
-            border: 4px solid rgba(255, 255, 255, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.25);
             border-radius: 25px;
             padding: 30px;
             display: flex;
@@ -301,6 +297,7 @@
             backdrop-filter: blur(15px);
             box-shadow: 0 8px 35px var(--shadow-dark);
             position: relative;
+            z-index: 10;
         }
 
         .field-area::before {
@@ -326,7 +323,7 @@
 
         .graveyard-area {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
-            border: 3px solid rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.25);
             border-radius: 20px;
             padding: 20px;
             display: flex;
@@ -335,6 +332,7 @@
             gap: 15px;
             backdrop-filter: blur(10px);
             box-shadow: 0 6px 25px var(--shadow-dark);
+            z-index: 5;
         }
 
         .graveyard-title {
@@ -661,33 +659,7 @@
         <div class="hud-right">
         </div>
 
-        <div class="player-zone top-player">
-            <div class="player-panel" id="player2">
-                <div class="player-info">
-                    <div class="player-name">CPU-B</div>
-                    <div class="player-stats">
-                        <div class="cucumber-count">🥒 <span id="cucumber2">0</span></div>
-                        <div class="cards-count">🃏 <span id="cards2">7</span></div>
-                    </div>
-                </div>
-                <div class="player-hand-visual" id="playerHand2"></div>
-                <div class="player-graveyard" id="graveyard2"></div>
-            </div>
-        </div>
-
-        <div class="player-zone left-player">
-            <div class="player-panel" id="player3">
-                <div class="player-info">
-                    <div class="player-name">CPU-C</div>
-                    <div class="player-stats">
-                        <div class="cucumber-count">🥒 <span id="cucumber3">0</span></div>
-                        <div class="cards-count">🃏 <span id="cards3">7</span></div>
-                    </div>
-                </div>
-                <div class="player-hand-visual" id="playerHand3"></div>
-                <div class="player-graveyard" id="graveyard3"></div>
-            </div>
-        </div>
+        <div id="seats" class="seats-container"></div>
 
         <div class="center-area">
             <div class="field-area">
@@ -705,20 +677,6 @@
             </div>
         </div>
 
-        <div class="player-zone right-player">
-            <div class="player-panel" id="player1">
-                <div class="player-info">
-                    <div class="player-name">CPU-A</div>
-                    <div class="player-stats">
-                        <div class="cucumber-count">🥒 <span id="cucumber1">0</span></div>
-                        <div class="cards-count">🃏 <span id="cards1">7</span></div>
-                    </div>
-                </div>
-                <div class="player-hand-visual" id="playerHand1"></div>
-                <div class="player-graveyard" id="graveyard1"></div>
-            </div>
-        </div>
-
         <div class="player-hand" id="playerHand">
         </div>
     </div>
@@ -733,20 +691,22 @@
 
     <script>
         class CucumberGame {
-            constructor() {
-                this.players = 4;
-                this.maxPickles = 6;
-                this.initialCards = 7;
+            constructor(config = {}) {
+                this.players = config.players ?? 4;
+                this.maxPickles = config.maxCucumbers ?? 6;
+                this.initialCards = config.initialCards ?? 7;
+                this.turnSeconds = config.turnSeconds ?? 15;
+                this.cpuLevel = config.cpuLevel ?? "easy";
                 this.currentRound = 1;
                 this.currentTrick = 1;
                 this.currentPlayer = 0;
-                this.timeLeft = 15;
+                this.turnDeadline = 0;
                 this.timer = null;
                 this.timerStopped = false;
                 
-                this.playerHands = [[], [], [], []];
-                this.playerCucumbers = [0, 0, 0, 0];
-                this.playerGraveyards = [[], [], [], []];
+                this.playerHands = Array(this.players).fill().map(() => []);
+                this.playerCucumbers = Array(this.players).fill(0);
+                this.playerGraveyards = Array(this.players).fill().map(() => []);
                 this.fieldCard = null;
                 this.sharedGraveyard = [];
                 this.trickCards = [];
@@ -758,8 +718,9 @@
             initGame() {
                 console.log('ゲーム初期化開始');
                 try {
+                    this.createSeats();
                     this.dealCards();
-                    this.firstPlayer = Math.floor(Math.random() * 4);
+                    this.firstPlayer = Math.floor(Math.random() * this.players);
                     this.currentPlayer = this.firstPlayer;
                     console.log('最初のプレイヤー:', this.currentPlayer);
                     this.updateDisplay();
@@ -770,11 +731,48 @@
                 }
             }
 
+            createSeats() {
+                const seatsContainer = document.getElementById('seats');
+                seatsContainer.innerHTML = '';
+                
+                const R = 40; // vw基準の半径
+                const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C', 'CPU-D', 'CPU-E'];
+                
+                for (let i = 0; i < this.players; i++) {
+                    const seat = document.createElement('div');
+                    seat.className = 'player-zone';
+                    seat.id = `player${i}`;
+                    
+                    const angle = (2 * Math.PI * i) / this.players - Math.PI / 2; // 上から時計回り
+                    const x = 50 + R * Math.cos(angle);
+                    const y = 50 + R * 0.6 * Math.sin(angle); // 楕円
+                    
+                    seat.style.left = `${x}%`;
+                    seat.style.top = `${y}%`;
+                    
+                    seat.innerHTML = `
+                        <div class="player-panel">
+                            <div class="player-info">
+                                <div class="player-name">${playerNames[i]}</div>
+                                <div class="player-stats">
+                                    <div class="cucumber-count">🥒 <span id="cucumber${i}">0</span></div>
+                                    <div class="cards-count">🃏 <span id="cards${i}">${this.initialCards}</span></div>
+                                </div>
+                            </div>
+                            <div class="player-hand-visual" id="playerHand${i}"></div>
+                            <div class="player-graveyard" id="graveyard${i}"></div>
+                        </div>
+                    `;
+                    
+                    seatsContainer.appendChild(seat);
+                }
+            }
+
             dealCards() {
                 console.log('カード配布開始');
                 const deck = [];
                 for (let num = 1; num <= 15; num++) {
-                    for (let i = 0; i < 7; i++) {
+                    for (let i = 0; i < 4; i++) {
                         deck.push(num);
                     }
                 }
@@ -784,7 +782,7 @@
                     [deck[i], deck[j]] = [deck[j], deck[i]];
                 }
                 
-                for (let player = 0; player < 4; player++) {
+                for (let player = 0; player < this.players; player++) {
                     this.playerHands[player] = [];
                     for (let card = 0; card < this.initialCards; card++) {
                         this.playerHands[player].push(deck.pop());
@@ -814,7 +812,7 @@
                 try {
                     document.getElementById('roundInfo').innerHTML = `第${this.currentRound}回戦<br><nobr>第${this.currentTrick}ラウンド</nobr>`;
                     
-                    for (let i = 0; i < 4; i++) {
+                    for (let i = 0; i < this.players; i++) {
                         const cucumberElement = document.getElementById(`cucumber${i}`);
                         const cardsElement = document.getElementById(`cards${i}`);
                         
@@ -833,12 +831,13 @@
                         const graveyardElement = document.getElementById(`graveyard${i}`);
                         if (graveyardElement) {
                             graveyardElement.innerHTML = '';
-                            this.playerGraveyards[i].forEach(card => {
+                            const last = this.playerGraveyards[i].at(-1);
+                            if (last) {
                                 const cardElement = document.createElement('div');
                                 cardElement.className = 'graveyard-mini-card';
-                                cardElement.textContent = card;
+                                cardElement.textContent = last;
                                 graveyardElement.appendChild(cardElement);
-                            });
+                            }
                         }
 
                         if (i !== 0) {
@@ -887,12 +886,13 @@
                 const graveyardCards = document.getElementById('graveyardCards');
                 if (graveyardCards) {
                     graveyardCards.innerHTML = '';
-                    this.sharedGraveyard.forEach(card => {
+                    const last = this.sharedGraveyard.at(-1);
+                    if (last) {
                         const cardElement = document.createElement('div');
                         cardElement.className = 'graveyard-card';
-                        cardElement.textContent = card;
+                        cardElement.textContent = last;
                         graveyardCards.appendChild(cardElement);
-                    });
+                    }
                 }
             }
 
@@ -994,7 +994,7 @@
             }
 
             nextPlayer() {
-                this.currentPlayer = (this.currentPlayer + 1) % 4;
+                this.currentPlayer = (this.currentPlayer + 1) % this.players;
                 
                 if (this.currentPlayer === this.firstPlayer) {
                     this.endTrick();
@@ -1024,17 +1024,47 @@
                 }
 
                 let selectedCard;
-                if (playableCards.length > 0) {
-                    selectedCard = playableCards[Math.floor(Math.random() * playableCards.length)];
-                } else {
-                    selectedCard = minCard;
+                switch (this.cpuLevel) {
+                    case "easy":
+                        if (playableCards.length > 0) {
+                            selectedCard = playableCards[Math.floor(Math.random() * playableCards.length)];
+                        } else {
+                            selectedCard = minCard;
+                        }
+                        break;
+                    case "normal":
+                        if (playableCards.length > 0) {
+                            // 中庸値を優先（高すぎず低すぎない）
+                            const sorted = playableCards.sort((a, b) => a - b);
+                            const mid = Math.floor(sorted.length / 2);
+                            selectedCard = sorted[mid];
+                        } else {
+                            selectedCard = minCard;
+                        }
+                        break;
+                    case "hard":
+                        if (playableCards.length > 0) {
+                            // 最後のトリックに高値が残らないよう管理
+                            const remainingCards = this.playerHands.flat();
+                            const highCards = remainingCards.filter(c => c >= 12);
+                            if (highCards.length <= 2 && playableCards.some(c => c >= 12)) {
+                                selectedCard = Math.min(...playableCards.filter(c => c >= 12));
+                            } else {
+                                selectedCard = playableCards[Math.floor(Math.random() * playableCards.length)];
+                            }
+                        } else {
+                            selectedCard = minCard;
+                        }
+                        break;
+                    default:
+                        selectedCard = minCard;
                 }
 
                 this.playCard(this.currentPlayer, selectedCard);
             }
 
             endTrick() {
-                if (this.playerHands[0].length === 0) {
+                if (this.playerHands.some(hand => hand.length === 0)) {
                     setTimeout(() => {
                         this.finalRound();
                     }, 1500);
@@ -1099,18 +1129,16 @@
                     return;
                 }
 
-                const losers = this.trickCards.filter(tc => tc.card === maxCard);
+                // 最大カードを出したプレイヤーの中で、最後に出した人が勝者
+                const winners = this.trickCards.filter(tc => tc.card === maxCard);
+                const winner = winners[winners.length - 1].player;
                 
                 const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C'];
-                let cucumberMessages = [];
+                let cucumbers = this.getCucumberCount(maxCard);
+                if (hasOne) cucumbers *= 2;
                 
-                losers.forEach(loser => {
-                    let cucumbers = this.getCucumberCount(maxCard);
-                    if (hasOne) cucumbers *= 2;
-                    this.playerCucumbers[loser.player] += cucumbers;
-                    
-                    cucumberMessages.push(`${playerNames[loser.player]} きゅうり${cucumbers}本獲得`);
-                });
+                this.playerCucumbers[winner] += cucumbers;
+                const cucumberMessages = [`${playerNames[winner]} きゅうり${cucumbers}本獲得`];
 
                 this.showCucumberResult(cucumberMessages, () => {
                     const gameOverPlayers = this.playerCucumbers
@@ -1130,11 +1158,11 @@
                 this.currentTrick = 1;
                 this.fieldCard = null;
                 this.sharedGraveyard = [];
-                this.playerGraveyards = [[], [], [], []];
+                this.playerGraveyards = Array(this.players).fill().map(() => []);
                 this.trickCards = [];
                 
                 this.dealCards();
-                this.firstPlayer = Math.floor(Math.random() * 4);
+                this.firstPlayer = Math.floor(Math.random() * this.players);
                 this.currentPlayer = this.firstPlayer;
                 
                 this.updateDisplay();
@@ -1162,16 +1190,17 @@
             }
 
             startTimer() {
-                this.timeLeft = 15;
+                this.turnDeadline = performance.now() + this.turnSeconds * 1000;
                 this.timerStopped = false;
                 this.updateTimer();
                 this.timer = setInterval(() => {
                     if (this.timerStopped) return;
                     
-                    this.timeLeft--;
-                    this.updateTimer();
+                    const leftMs = this.turnDeadline - performance.now();
+                    const s = Math.max(0, Math.ceil(leftMs / 1000));
+                    this.updateTimer(s);
                     
-                    if (this.timeLeft <= 0) {
+                    if (s <= 0) {
                         this.stopTimer();
                         if (this.currentPlayer === 0) {
                             this.autoPlayCard();
@@ -1179,7 +1208,7 @@
                             this.cpuPlay();
                         }
                     }
-                }, 1000);
+                }, 200);
             }
 
             resetTimer() {
@@ -1195,16 +1224,21 @@
                 }
             }
 
-            updateTimer() {
+            updateTimer(timeLeft = null) {
                 const timerElement = document.getElementById('timeLeft');
                 const timerDisplay = document.getElementById('timerDisplay');
                 
-                if (this.timeLeft <= 0) {
+                if (timeLeft === null) {
+                    const leftMs = this.turnDeadline - performance.now();
+                    timeLeft = Math.max(0, Math.ceil(leftMs / 1000));
+                }
+                
+                if (timeLeft <= 0) {
                     timerElement.textContent = '0';
                     timerDisplay.classList.add('warning');
                 } else {
-                    timerElement.textContent = this.timeLeft;
-                    if (this.timeLeft <= 5) {
+                    timerElement.textContent = timeLeft;
+                    if (timeLeft <= 5) {
                         timerDisplay.classList.add('warning');
                     } else {
                         timerDisplay.classList.remove('warning');
@@ -1421,10 +1455,10 @@
             startGame();
         });
 
-        function startGame() {
+        function startGame(config = {}) {
             console.log('ゲーム開始');
             try {
-                game = new CucumberGame();
+                game = new CucumberGame(config);
                 console.log('ゲームインスタンス作成完了');
             } catch (error) {
                 console.error('ゲーム開始エラー:', error);

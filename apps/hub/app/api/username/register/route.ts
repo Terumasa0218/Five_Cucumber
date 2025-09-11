@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { validateNickname } from "@/lib/nickname.shared";
+import { NextResponse } from "next/server";
 
 const BASE = process.env.UPSTASH_REDIS_REST_URL!;
 const TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN!;
