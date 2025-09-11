@@ -9,7 +9,12 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     console.log('[api/register] Starting request');
-    const { name } = await req.json();
+    
+    console.log('[api/register] About to parse JSON');
+    const body = await req.json();
+    console.log('[api/register] Parsed body:', body);
+    
+    const { name } = body;
     console.log('[api/register] Received name:', name, 'type:', typeof name);
     
     if (!name || typeof name !== 'string') {

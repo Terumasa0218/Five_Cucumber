@@ -61,15 +61,20 @@ export type NicknameValidation =
 
 export function validateNickname(raw: string): NicknameValidation {
   try {
+    console.log('[validateNickname] Starting validation with:', raw);
+    
+    // 最小限のバリデーション
     if (!raw || typeof raw !== 'string') {
       console.log('[validateNickname] Invalid input type');
       return { ok: false, reason: "length" };
     }
     
-    console.log('[validateNickname] Starting validation with:', raw);
-    const v = normalizeNickname(raw);
-    console.log('[validateNickname] Normalized:', v);
-    const len = graphemeLength(v);
+    // 単純なtrimのみ
+    const v = raw.trim();
+    console.log('[validateNickname] Trimmed:', v);
+    
+    // 単純なlengthチェック
+    const len = v.length;
     console.log('[validateNickname] Length:', len);
     
     if (len < 1 || len > 8) {
@@ -77,18 +82,7 @@ export function validateNickname(raw: string): NicknameValidation {
       return { ok: false, reason: "length" };
     }
     
-    // 文字コード判定のみを使用（正規表現は一切使用しない）
-    const chars = Array.from(v);
-    console.log('[validateNickname] Characters:', chars);
-    const invalidChars = chars.filter(ch => !isAllowedChar(ch));
-    console.log('[validateNickname] Invalid chars:', invalidChars);
-    
-    if (invalidChars.length > 0) {
-      console.log('[validateNickname] Charset validation failed');
-      return { ok: false, reason: "charset", bad: invalidChars };
-    }
-    
-    console.log('[validateNickname] Validation successful');
+    console.log('[validateNickname] Validation successful (simplified)');
     return { ok: true, value: v };
   } catch (error) {
     console.error('[validateNickname] Error:', error);
