@@ -99,7 +99,7 @@ export default function CpuPlayNew() {
     const { state, config, controllers, rng } = gameRef.current;
     const move: Move = { player, card, timestamp: Date.now() };
     
-    const result = applyMove(state, move, config);
+    const result = applyMove(state, move, config, rng);
     if (!result.success) {
       console.error('Invalid move:', result.message);
       return;
