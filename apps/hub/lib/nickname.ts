@@ -31,12 +31,20 @@ function isAllowedChar(char: string): boolean {
 // 正規表現は使用せず、文字コード判定のみを使用
 
 export function normalizeNickname(raw: string): string {
-  // 前後空白を除去、NFKCで全角英数→半角などに正規化（漢字はそのまま）
-  return raw?.normalize("NFKC").trim() ?? "";
+  try {
+    // 前後空白を除去、NFKCで全角英数→半角などに正規化（漢字はそのまま）
+    if (!raw || typeof raw !== 'string') return "";
+    return raw.normalize("NFKC").trim();
+  } catch (error) {
+    console.error('[normalizeNickname] Error:', error);
+    // 正規化に失敗した場合は単純にtrimのみ
+    return raw?.trim() ?? "";
+  }
 }
 
 export function graphemeLength(s: string): number {
   try {
+    if (!s || typeof s !== 'string') return 0;
     // 簡易実装：絵文字や結合文字を考慮した文字数カウント
     const length = Array.from(s).length;
     console.log('[graphemeLength] Input:', s, 'Length:', length);
@@ -53,6 +61,11 @@ export type NicknameValidation =
 
 export function validateNickname(raw: string): NicknameValidation {
   try {
+    if (!raw || typeof raw !== 'string') {
+      console.log('[validateNickname] Invalid input type');
+      return { ok: false, reason: "length" };
+    }
+    
     console.log('[validateNickname] Starting validation with:', raw);
     const v = normalizeNickname(raw);
     console.log('[validateNickname] Normalized:', v);
