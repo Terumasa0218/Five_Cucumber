@@ -81,10 +81,6 @@ export interface PlayerController {
   onTrickEnd?(trick: Trick): void;
 }
 
-export interface RngState {
-  seed: number;
-  state: number;
-}
 
 export interface GameSnapshot {
   state: GameState;

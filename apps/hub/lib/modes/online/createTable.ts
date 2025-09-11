@@ -1,8 +1,8 @@
 // オンライン対戦モードのテーブル作成
 
-import { HumanController } from '../controllers/human';
-import { RemoteConnection, RemoteController } from '../controllers/remote';
-import { GameConfig, PlayerController } from '../game-core/types';
+import { HumanController } from '../../controllers/human';
+import { RemoteConnection, RemoteController } from '../../controllers/remote';
+import { GameConfig, PlayerController } from '../../game-core/types';
 
 export interface OnlineTableConfig {
   players: number;

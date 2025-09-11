@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import './game.css';
 
 interface GameConfig {
@@ -813,7 +813,7 @@ class CucumberGame {
   }
 }
 
-export default function CpuPlay() {
+function CpuPlayContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const gameRef = useRef<CucumberGame | null>(null);
@@ -928,5 +928,13 @@ export default function CpuPlay() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CpuPlay() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CpuPlayContent />
+    </Suspense>
   );
 }

@@ -16,10 +16,10 @@ import {
 } from '@/lib/game-core';
 import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import './game.css';
 
-export default function CpuPlayNew() {
+function CpuPlayNewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const gameRef = useRef<{
@@ -109,13 +109,13 @@ export default function CpuPlayNew() {
     
     // トリック完了チェック
     if (newState.trickCards.length === config.players) {
-      const trickResult = endTrick(newState, config);
+      const trickResult = endTrick(newState, config, rng);
       if (trickResult.success) {
         newState = trickResult.newState;
         
         // 最終トリックかチェック
         if (newState.players.some(p => p.hand.length === 0)) {
-          const finalResult = finalRound(newState, config);
+          const finalResult = finalRound(newState, config, rng);
           if (finalResult.success) {
             newState = finalResult.newState;
             
@@ -249,5 +249,13 @@ export default function CpuPlayNew() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CpuPlayNew() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CpuPlayNewContent />
+    </Suspense>
   );
 }

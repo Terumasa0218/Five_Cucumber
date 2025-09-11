@@ -1,8 +1,8 @@
 // CPU対戦モードのテーブル作成
 
-import { CpuController } from '../controllers/cpu';
-import { HumanController } from '../controllers/human';
-import { GameConfig, PlayerController } from '../game-core/types';
+import { CpuController } from '../../controllers/cpu';
+import { HumanController } from '../../controllers/human';
+import { GameConfig, PlayerController } from '../../game-core/types';
 
 export interface CpuTableConfig {
   players: number;
