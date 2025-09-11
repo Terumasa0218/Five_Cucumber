@@ -7,7 +7,7 @@ import { BaseController } from './base';
 
 export class CpuController extends BaseController {
   private rng: SeededRng;
-  private config: {
+  private cpuConfig: {
     level: 'easy' | 'normal' | 'hard';
     rollouts?: number;
     opponentNoise?: number;
@@ -17,7 +17,7 @@ export class CpuController extends BaseController {
   constructor(playerIndex: number, level: 'easy' | 'normal' | 'hard', seed?: number) {
     super(playerIndex);
     this.rng = new SeededRng(seed);
-    this.config = {
+    this.cpuConfig = {
       level,
       rollouts: level === 'hard' ? 250 : 0,
       opponentNoise: 0.05,
@@ -32,7 +32,7 @@ export class CpuController extends BaseController {
     // 思考演出のため少し待機
     await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
 
-    switch (this.config.level) {
+    switch (this.cpuConfig.level) {
       case 'easy':
         return this.easyMove(view, legalMoves);
       case 'normal':
@@ -46,7 +46,7 @@ export class CpuController extends BaseController {
 
   private easyMove(view: GameView, legalMoves: number[]): number {
     // epsilon-greedy with trivial heuristic
-    if (this.rng.next() < this.config.epsilon!) {
+    if (this.rng.next() < this.cpuConfig.epsilon!) {
       return this.trivialHeuristic(view, legalMoves);
     } else {
       return this.rng.choice(legalMoves);
@@ -59,7 +59,7 @@ export class CpuController extends BaseController {
     const bestMoves = legalMoves.filter((_, i) => scores[i] === bestScore);
     
     // epsilon-choose: 少しだけブレさせる
-    if (this.rng.next() < this.config.epsilon!) {
+    if (this.rng.next() < this.cpuConfig.epsilon!) {
       return this.rng.choice(bestMoves);
     } else {
       return this.rng.choice(legalMoves);
@@ -67,12 +67,12 @@ export class CpuController extends BaseController {
   }
 
   private hardMove(view: GameView, legalMoves: number[]): number {
-    if (this.config.rollouts! <= 0) {
+    if (this.cpuConfig.rollouts! <= 0) {
       return this.normalMove(view, legalMoves);
     }
 
     const results = legalMoves.map(move => 
-      this.mctsLikeRollout(view, move, this.config.rollouts!, this.config.opponentNoise!)
+      this.mctsLikeRollout(view, move, this.cpuConfig.rollouts!, this.cpuConfig.opponentNoise!)
     );
 
     // 平均ペナルティ最小の手を選択
