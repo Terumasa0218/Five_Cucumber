@@ -2,11 +2,11 @@
 
 export interface Profile {
   nickname: string;
-  avatarId?: string;
 }
 
 const PROFILE_KEY = 'five-cucumber-profile';
 const GUEST_ID_KEY = 'five-cucumber-guest-id';
+const HAS_PROFILE_KEY = 'hasProfile';
 
 // 擬似重複チェック用のローカル配列
 const usedNames = new Set<string>();
@@ -82,13 +82,38 @@ export function containsUnsafeWord(name: string): boolean {
 }
 
 /**
+ * hasProfile Cookieを設定/削除
+ */
+export function setHasProfile(hasProfile: boolean): void {
+  if (typeof document === 'undefined') return;
+  
+  if (hasProfile) {
+    const maxAge = 180 * 24 * 60 * 60; // 180日
+    document.cookie = `${HAS_PROFILE_KEY}=1; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
+  } else {
+    document.cookie = `${HAS_PROFILE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  }
+}
+
+/**
+ * hasProfile Cookieをチェック
+ */
+export function hasProfile(): boolean {
+  if (typeof document === 'undefined') return false;
+  
+  return document.cookie
+    .split('; ')
+    .some(row => row.startsWith(`${HAS_PROFILE_KEY}=1`));
+}
+
+/**
  * ニックネームのバリデーション
  */
 export function validateNickname(name: string): { valid: boolean; error?: string } {
   // 長さチェック（グラフェム数）
   const graphemeCount = Array.from(name).length;
   if (graphemeCount < 1 || graphemeCount > 8) {
-    return { valid: false, error: 'ニックネームは1-8文字で入力してください' };
+    return { valid: false, error: '1〜8文字で入力してください' };
   }
   
   // 重複チェック
@@ -102,4 +127,21 @@ export function validateNickname(name: string): { valid: boolean; error?: string
   }
   
   return { valid: true };
+}
+
+/**
+ * デバッグ用: プロフィールとCookieをリセット
+ */
+export function resetProfile(): void {
+  if (typeof window === 'undefined') return;
+  
+  // localStorage削除
+  localStorage.removeItem(PROFILE_KEY);
+  
+  // Cookie削除
+  document.cookie = `${HAS_PROFILE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  document.cookie = `${GUEST_ID_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+  
+  // 重複チェック配列クリア
+  usedNames.clear();
 }

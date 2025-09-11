@@ -1,13 +1,9 @@
 'use client';
 
-import { useRequireNickname } from "@/hooks/useRequireNickname";
 import Link from "next/link";
 import { useEffect } from "react";
 
 export default function Home() {
-  // 初回アクセスで自動表示
-  useRequireNickname({ mode: 'auto' });
-
   useEffect(() => {
     document.title = 'ホーム | Five Cucumber';
   }, []);

@@ -1,14 +1,11 @@
 'use client';
 
-import { useRequireNickname } from "@/hooks/useRequireNickname";
 import { createRoom } from "@/lib/roomMock";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function FriendCreatePage() {
   const router = useRouter();
-  // ニックネーム未設定時は必須表示
-  useRequireNickname({ mode: 'require' });
   const [settings, setSettings] = useState({
     size: 4,
     cucumber: 5,

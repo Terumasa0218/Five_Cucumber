@@ -1,6 +1,5 @@
 'use client';
 
-import { useRequireNickname } from "@/hooks/useRequireNickname";
 import { getProfile } from "@/lib/profile";
 import { addParticipant, getRoom, removeParticipant, type Room } from "@/lib/roomMock";
 import Link from "next/link";
@@ -10,8 +9,6 @@ import { useEffect, useState } from "react";
 export default function RoomPage() {
   const params = useParams();
   const router = useRouter();
-  // ニックネーム未設定時は必須表示
-  useRequireNickname({ mode: 'require' });
   const roomCode = params.code as string;
   const [room, setRoom] = useState<Room | null>(null);
   const [isParticipating, setIsParticipating] = useState(false);

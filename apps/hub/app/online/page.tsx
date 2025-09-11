@@ -1,12 +1,8 @@
 'use client';
 
-import { useRequireNickname } from "@/hooks/useRequireNickname";
 import { useEffect } from "react";
 
 export default function OnlinePage() {
-  // ニックネーム未設定時は必須表示
-  useRequireNickname({ mode: 'require' });
-
   useEffect(() => {
     document.title = 'オンライン対戦 | Five Cucumber';
   }, []);

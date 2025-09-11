@@ -1,8 +1,6 @@
-import { ProfileProvider } from "@/contexts/ProfileContext";
 import { AuthProvider } from "@/providers/AuthProvider";
 import type { Metadata } from 'next';
 import Header from "../components/Header";
-import PlayerSetupModal from "../components/PlayerSetupModal";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -43,19 +41,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja" data-theme="light">
       <AuthProvider>
-        <ProfileProvider>
-          <body>
-            <div className="bg-frame" aria-hidden="true" />
-            {/* アプリケーションルート */}
-            <main id="app-root">
-              {/* 浮遊ナビ（背景の空白域に左右配置） */}
-              <Header />
-              {children}
-            </main>
-            {/* グローバルモーダル（Portalでbody直下に描画） */}
-            <PlayerSetupModal />
-          </body>
-        </ProfileProvider>
+        <body>
+          <div className="bg-frame" aria-hidden="true" />
+          {/* 浮遊ナビ（背景の空白域に左右配置） */}
+          <Header />
+          {children}
+        </body>
       </AuthProvider>
     </html>
   );

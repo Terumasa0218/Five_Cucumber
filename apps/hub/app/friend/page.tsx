@@ -1,13 +1,9 @@
 'use client';
 
-import { useRequireNickname } from "@/hooks/useRequireNickname";
 import Link from "next/link";
 import { useEffect } from "react";
 
 export default function FriendPage() {
-  // ニックネーム未設定時は必須表示
-  useRequireNickname({ mode: 'require' });
-
   useEffect(() => {
     document.title = 'フレンド対戦 | Five Cucumber';
   }, []);
