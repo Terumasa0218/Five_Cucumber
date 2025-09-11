@@ -14,8 +14,8 @@ const usedNames = new Set<string>();
 // 許容文字の正規表現（半角英数字、ひらがな、カタカナ、漢字）
 const ALLOWED_CHARS = /^[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]+$/;
 
-// 簡易NGワード配列
-const unsafeWords = ['admin', 'root', 'test', 'guest', 'user', 'null', 'undefined'];
+// 簡易NGワード配列（一般語は除外）
+const unsafeWords = ['admin', 'root', 'guest', 'user', 'null', 'undefined'];
 
 /**
  * プロフィールを取得
@@ -119,6 +119,7 @@ function getGraphemeCount(text: string): number {
 
 /**
  * ニックネームのバリデーション（クライアント側）
+ * @deprecated 新しい共通ロジック @/lib/nickname を使用してください
  */
 export function validateNickname(name: string): { valid: boolean; error?: string } {
   // 長さチェック（グラフェム数）

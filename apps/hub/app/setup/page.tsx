@@ -1,6 +1,7 @@
 'use client';
 
-import { resetProfile, setHasProfile, setProfile, validateNickname } from '@/lib/profile';
+import { resetProfile, setHasProfile, setProfile } from '@/lib/profile';
+import { validateNickname } from '@/lib/nickname';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 
@@ -25,9 +26,9 @@ function SetupForm() {
     setError(null);
 
     // クライアント側バリデーション
-    const validation = validateNickname(nickname);
-    if (!validation.valid) {
-      setError(validation.error || 'エラーが発生しました');
+    const r = validateNickname(nickname);
+    if (!r.ok) {
+      setError(r.reason === "length" ? "1〜8文字で入力してください" : "利用できない文字が含まれています");
       setIsSubmitting(false);
       return;
     }
@@ -39,7 +40,7 @@ function SetupForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: nickname }),
+        body: JSON.stringify({ name: r.value }),
       });
 
       const data = await response.json();
@@ -47,8 +48,8 @@ function SetupForm() {
       if (!data.ok) {
         if (data.reason === 'duplicate') {
           setError('このユーザー名はすでにつかわれています');
-        } else if (data.reason === 'validation_failed') {
-          setError(data.error || 'バリデーションエラー');
+        } else if (data.reason === 'length' || data.reason === 'charset') {
+          setError(data.reason === 'length' ? '1〜8文字で入力してください' : '利用できない文字が含まれています');
         } else {
           setError('登録に失敗しました');
         }
@@ -57,7 +58,7 @@ function SetupForm() {
       }
 
       // プロフィール保存
-      setProfile({ nickname });
+      setProfile({ nickname: r.value });
       
       // Cookie設定
       setHasProfile(true);
