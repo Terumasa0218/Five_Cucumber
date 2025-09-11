@@ -51,9 +51,9 @@ class CucumberGame {
     this.timer = null;
     this.timerStopped = false;
     
-    this.playerHands = Array(this.players).fill().map(() => []);
+    this.playerHands = Array(this.players).fill(null).map(() => []);
     this.playerCucumbers = Array(this.players).fill(0);
-    this.playerGraveyards = Array(this.players).fill().map(() => []);
+    this.playerGraveyards = Array(this.players).fill(null).map(() => []);
     this.fieldCard = null;
     this.sharedGraveyard = [];
     this.trickCards = [];
