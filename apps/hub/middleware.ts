@@ -1,59 +1,40 @@
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
-  const { pathname, origin } = request.nextUrl;
+const ALLOW = [
+  /^\/setup/,
+  /^\/_next\//,
+  /^\/assets\//,
+  /^\/favicon/,
+  /^\/api\//,
+  /^\/(robots\.txt|sitemap\.xml)$/
+];
+
+export function middleware(req: NextRequest) {
+  const { pathname, href } = req.nextUrl;
   
-  // デバッグ用バイパス
-  if (request.nextUrl.searchParams.get('devBypass') === '1') {
-    return NextResponse.next();
+  // 許可パスは素通し（診断ヘッダだけ付与）
+  if (ALLOW.some(r => r.test(pathname))) {
+    const res = NextResponse.next();
+    res.headers.set("x-profile-gate", "allow");
+    return res;
   }
   
-  // 許可パス（/setup 以外の全ページをブロック）
-  const allowedPaths = [
-    '^/setup',
-    '^/_next/',
-    '^/assets/',
-    '^/favicon',
-    '^/robots\\.txt',
-    '^/sitemap\\.xml',
-    '^/api/.*'
-  ];
-  
-  // 許可パスかチェック
-  const isAllowed = allowedPaths.some(pattern => {
-    const regex = new RegExp(pattern);
-    return regex.test(pathname);
-  });
-  
-  if (isAllowed) {
-    return NextResponse.next();
+  const has = req.cookies.get("hasProfile")?.value === "1";
+
+  if (!has) {
+    const to = new URL(`/setup?returnTo=${encodeURIComponent(href)}`, req.url);
+    const res = NextResponse.redirect(to, 302);
+    res.headers.set("x-profile-gate", "required");
+    return res;
   }
   
-  // hasProfile Cookieをチェック
-  const hasProfile = request.cookies.get('hasProfile')?.value === '1';
-  
-  if (!hasProfile) {
-    // /setup へリダイレクト（returnTo付き）
-    const fullURL = request.url;
-    const setupURL = new URL('/setup', origin);
-    setupURL.searchParams.set('returnTo', fullURL);
-    
-    return NextResponse.redirect(setupURL);
-  }
-  
-  return NextResponse.next();
+  const res = NextResponse.next();
+  res.headers.set("x-profile-gate", "passed");
+  return res;
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  // すべてのパスに適用（/api などは上のALLOWで弾く）
+  matcher: ["/:path*"],
 };

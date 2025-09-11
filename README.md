@@ -1,6 +1,167 @@
-# Five Cucumber - 遊び大全
+# Five Cucumber – 5本のきゅうり
 
 A multi-game web application featuring the Five Cucumbers card game, built with Next.js, TypeScript, and Firebase.
+
+## 📋 Walking Skeleton Implementation
+
+This implementation follows the flowchart specification exactly, providing a minimal UI focused on screen transitions and user flow validation.
+
+### 🗂️ File Structure
+
+```
+apps/hub/
+├── app/
+│   ├── page.tsx                    # Root redirect to /home
+│   ├── home/page.tsx               # Home screen with 3 mode buttons
+│   ├── cpu/settings/page.tsx       # CPU game settings (4 items)
+│   ├── play/cpu/page.tsx           # CPU game placeholder
+│   ├── online/page.tsx             # Online game placeholder
+│   ├── friend/page.tsx             # Friend match entry
+│   ├── friend/create/page.tsx      # Room creation
+│   ├── friend/join/page.tsx        # Room joining
+│   ├── room/[code]/page.tsx        # Room management
+│   └── rules/page.tsx              # Rules placeholder
+├── components/
+│   └── PlayerSetupModal.tsx        # Nickname setup modal
+├── hooks/
+│   └── useRequireNickname.ts       # Nickname requirement hook
+└── lib/
+    ├── profile.ts                  # Profile management
+    └── roomMock.ts                 # Room management mock
+```
+
+### 🔄 Flowchart Node Mapping
+
+| Flowchart Node | Implementation File | URL Path | Description |
+|---|---|---|---|
+| `アプリ起動` | `app/page.tsx` | `/` | Root redirect to /home |
+| `B1` (nickname saved) | `app/home/page.tsx` | `/home` | Home screen with 3 buttons |
+| `E0[ホーム画面]` | `app/home/page.tsx` | `/home` | Mode selection screen |
+| `F_CPU_Setting` | `app/cpu/settings/page.tsx` | `/cpu/settings` | CPU settings (4 items) |
+| `F_CPU_Game` | `app/play/cpu/page.tsx` | `/play/cpu` | CPU game placeholder |
+| `G_Online_Match` | `app/online/page.tsx` | `/online` | Online game placeholder |
+| `H_Friend_Entry` | `app/friend/page.tsx` | `/friend` | Friend match entry |
+| `H_CreateSet` | `app/friend/create/page.tsx` | `/friend/create` | Room creation settings |
+| `I_RoomNumberInput` | `app/friend/join/page.tsx` | `/friend/join` | Room number input |
+| `endNodeRoomScreen` | `app/room/[code]/page.tsx` | `/room/[code]` | Room management |
+| `PlayerSetupModal` | `components/PlayerSetupModal.tsx` | - | Nickname setup modal |
+
+### 🎯 Key Features
+
+- **Nickname-First Flow**: No login required, nickname setup on first access
+- **Page-Level Guards**: Nickname modal appears on specific pages (`/friend/*`, `/room/*`, `/online`)
+- **Room Management**: 5-digit room codes, manual participant management
+- **CPU Settings**: 4-item validation (players, cucumbers, time, difficulty)
+- **Minimal UI**: Tailwind CSS with focus on functionality over decoration
+
+### 🧪 Acceptance Criteria
+
+1. ✅ `/` → `/home` redirect
+2. ✅ Nickname modal on `/friend/join` direct access, stays on page after save
+3. ✅ CPU settings: all 4 items required for "Game Start" button activation
+4. ✅ CPU game: "End Game" returns to `/cpu/settings`
+5. ✅ Room creation: generates 5-digit code → `/room/{code}`
+6. ✅ Room joining: invalid code shows error, valid code → `/room/{code}`
+7. ✅ Room management: manual `+参加`/`-退出`, "対戦開始" when full
+8. ✅ Navigation links on all pages as specified
+
+### 🔧 QA Testing Procedures
+
+#### A) 初回アクセステスト
+1. ブラウザのlocalStorageとCookieをクリア
+2. `/home` にアクセス
+3. **期待結果**: 自動でプレイヤー設定モーダルが開く
+4. ニックネームを入力して保存
+5. **期待結果**: モーダルが閉じ、`/home` のまま残る
+
+#### B) 再アクセステスト
+1. 上記Aで保存した状態でページをリロード
+2. **期待結果**: `/home` ではモーダルは表示されない
+
+#### C) 必須ページテスト
+1. `window.resetProfile()` を実行してプロフィールを削除
+2. `/friend/join` を直接アクセス
+3. **期待結果**: そのページ上でモーダルが開く
+4. ニックネームを入力して保存
+5. **期待結果**: `/friend/join` に留まる（リダイレクトしない）
+
+#### D) デバッグ機能テスト
+1. 任意のページに `?forceProfile=1` を付けてアクセス
+2. **期待結果**: 必ずモーダルが開く
+
+#### E) ナビゲーションテスト
+1. どのページでもブラウザの戻る/進むボタンを使用
+2. ページを更新
+3. **期待結果**: フローが壊れず、適切にモーダルが表示される
+
+### 🛠️ Debug Commands
+
+開発時に使用できるデバッグ機能：
+
+```javascript
+// プロフィールをリセット
+window.resetProfile()
+
+// 強制モーダル表示
+// URLに ?forceProfile=1 を追加
+```
+
+### 🎭 Modal Implementation Details
+
+#### 全画面オーバーレイモーダル仕様
+
+- **レンダリング位置**: React Portal で `document.body` に直接描画
+- **z-index**: `z-[1000]` でアプリ内要素より上位
+- **オーバーレイ**: `fixed inset-0 bg-black/50` で全画面半透明
+- **アクセシビリティ**: `role="dialog" aria-modal="true" aria-labelledby`
+
+#### 非アクティブ化制御
+
+- **スクロールロック**: `document.body.style.overflow = 'hidden'`
+- **メインコンテンツ非アクティブ化**: `#app-root` に `inert` と `aria-hidden="true"`
+- **ポインターイベント無効化**: `#app-root` に `pointer-events: none`
+
+#### フォーカス管理
+
+- **初期フォーカス**: ニックネーム入力フィールド
+- **フォーカストラップ**: Tab/Shift+Tab でモーダル内循環
+- **Esc キー**: autoモード（/home）のみで閉じる
+
+#### モード別動作
+
+| ページ | mode | Esc で閉じる | 外側クリックで閉じる |
+|---|---|---|---|
+| `/home` | `auto` | ✅ | ✅ |
+| `/friend/*` | `require` | ❌ | ❌ |
+| `/room/*` | `require` | ❌ | ❌ |
+| `/online` | `require` | ❌ | ❌ |
+
+### 📁 File Structure (Updated)
+
+```
+apps/hub/
+├── app/
+│   ├── layout.tsx                    # AppShell構造（#app-root）
+│   ├── page.tsx                      # Root redirect to /home
+│   ├── home/page.tsx                 # useRequireNickname({ mode: 'auto' })
+│   ├── cpu/settings/page.tsx         # CPU game settings (4 items)
+│   ├── play/cpu/page.tsx             # CPU game placeholder
+│   ├── online/page.tsx               # useRequireNickname({ mode: 'require' })
+│   ├── friend/page.tsx               # useRequireNickname({ mode: 'require' })
+│   ├── friend/create/page.tsx        # useRequireNickname({ mode: 'require' })
+│   ├── friend/join/page.tsx          # useRequireNickname({ mode: 'require' })
+│   ├── room/[code]/page.tsx          # useRequireNickname({ mode: 'require' })
+│   └── rules/page.tsx                # Rules placeholder
+├── components/
+│   └── PlayerSetupModal.tsx          # Portal全画面オーバーレイモーダル
+├── contexts/
+│   └── ProfileContext.tsx            # グローバルプロフィール制御
+├── hooks/
+│   └── useRequireNickname.ts         # mode引数対応フック
+└── lib/
+    ├── profile.ts                    # Profile management
+    └── roomMock.ts                   # Room management mock
+```
 
 ## 🎮 Features
 

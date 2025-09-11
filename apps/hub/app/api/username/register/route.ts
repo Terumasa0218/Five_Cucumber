@@ -1,5 +1,5 @@
-import { getStore } from '@/lib/usernameStore';
 import { validateNickname } from '@/lib/nickname';
+import { getStore } from '@/lib/usernameStore';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {

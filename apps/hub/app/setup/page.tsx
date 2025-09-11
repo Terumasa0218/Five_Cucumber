@@ -1,7 +1,7 @@
 'use client';
 
-import { resetProfile, setHasProfile, setProfile } from '@/lib/profile';
 import { validateNickname } from '@/lib/nickname';
+import { resetProfile, setHasProfile, setProfile } from '@/lib/profile';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 

@@ -1,4 +1,4 @@
-import { validateNickname, normalizeNickname, graphemeLength } from '../nickname';
+import { graphemeLength, normalizeNickname, validateNickname } from '../nickname';
 
 describe('nickname validation', () => {
   describe('validateNickname', () => {

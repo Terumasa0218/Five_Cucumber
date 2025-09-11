@@ -1,11 +1,21 @@
 'use client';
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [gateStatus, setGateStatus] = useState<string>('');
+
   useEffect(() => {
     document.title = 'ホーム | Five Cucumber';
+    
+    // middleware判定ヘッダを取得（開発時のみ表示）
+    fetch('/home', { method: 'HEAD' })
+      .then(response => {
+        const gateHeader = response.headers.get('x-profile-gate');
+        setGateStatus(gateHeader || 'unknown');
+      })
+      .catch(() => setGateStatus('error'));
   }, []);
 
   return (
@@ -19,6 +29,18 @@ export default function Home() {
           <p className="text-lg text-gray-600">
             遊び方を選んでください。
           </p>
+          
+          {/* デバッグ情報（開発時のみ） */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded-md">
+              <p className="text-sm text-yellow-800">
+                <strong>Middleware Status:</strong> {gateStatus}
+              </p>
+              <p className="text-xs text-yellow-600 mt-1">
+                allow: 許可パス / passed: 認証済み / required: 未認証→/setup
+              </p>
+            </div>
+          )}
         </div>
 
         {/* モード選択 */}
