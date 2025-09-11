@@ -1,12 +1,12 @@
-import { validateNickname } from "@/lib/nickname";
 import { NextResponse } from "next/server";
+import { validateNickname } from "@/lib/nickname.shared";
 
-// すぐ動く重複チェック（デプロイ中のプロセスで共有）
-const globalNames = (globalThis as any).__FC_NAMES__ ?? new Set<string>();
-(globalThis as any).__FC_NAMES__ = globalNames;
+// まずは最小の重複チェック（デプロイ中のプロセス内で共有）
+const names = (globalThis as any).__FC_NAMES__ ?? new Set<string>();
+(globalThis as any).__FC_NAMES__ = names;
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const runtime = "nodejs";        // Nodeで安定
+export const dynamic = "force-dynamic"; // キャッシュ無効
 
 export async function POST(req: Request) {
   try {
@@ -14,43 +14,30 @@ export async function POST(req: Request) {
     const r = validateNickname(name);
     if (!r.ok) {
       const status = r.reason === "length" ? 400 : 422;
-      return NextResponse.json({ ok: false, reason: r.reason }, { status });
+      return NextResponse.json({ ok:false, reason:r.reason }, { status });
     }
-
     const nickname = r.value;
 
-    // 重複チェック（最小実装）
-    if (globalNames.has(nickname)) {
-      return NextResponse.json({ ok: false, reason: "duplicate" }, { status: 409 });
+    if (names.has(nickname)) {
+      return NextResponse.json({ ok:false, reason:"duplicate" }, { status:409 });
     }
-    globalNames.add(nickname);
+    names.add(nickname);
 
-    // レスポンス作成 & サーバ側で Cookie を確実に付与
-    const res = NextResponse.json({ ok: true });
-    // guestId は既存があれば流用、なければ新規発行
-    const gid =
-      // @ts-ignore ルート関数内の request の Cookie は Response で設定する
-      crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
-
+    const res = NextResponse.json({ ok:true });
+    // ここはブラウザ依存せずにCookie設定（iOSでもOK）
+    const gid = Math.random().toString(36).slice(2) + Date.now().toString(36);
     res.cookies.set("guestId", gid, {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 180,
-      sameSite: "lax",
-      secure: true,
+      path: "/", maxAge: 60*60*24*180, sameSite: "lax", secure: true
     });
     res.cookies.set("hasProfile", "1", {
-      path: "/",
-      maxAge: 60 * 60 * 24 * 180,
-      sameSite: "lax",
-      secure: true,
+      path: "/", maxAge: 60*60*24*180, sameSite: "lax", secure: true
     });
     res.headers.set("Cache-Control", "no-store");
     return res;
-  } catch (e: any) {
-    // 失敗理由を確実に返す（モバイルでも分かる）
+  } catch (e:any) {
     return NextResponse.json(
-      { ok: false, reason: "server", error: String(e?.message ?? e) },
-      { status: 500, headers: { "Cache-Control": "no-store" } }
+      { ok:false, reason:"server", error: String(e?.message ?? e) },
+      { status:500, headers:{ "Cache-Control":"no-store" } }
     );
   }
 }

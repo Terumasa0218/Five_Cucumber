@@ -39,7 +39,7 @@ export function getFirebaseClient():
 }
 
 // 型を再エクスポート（便利用）
-export type { FirebaseApp, Auth, Firestore };
+export type { Auth, FirebaseApp, Firestore };
 
 export const actionCodeSettings = {
   url: `${process.env.NEXT_PUBLIC_APP_ORIGIN ?? 'http://localhost:3000'}/auth/complete`,
