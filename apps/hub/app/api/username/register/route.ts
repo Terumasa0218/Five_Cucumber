@@ -1,49 +1,35 @@
-import { validateNickname } from '@/lib/nickname';
-import { getStore } from '@/lib/usernameStore';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { validateNickname } from "@/lib/nickname";
+import { getStore } from "@/lib/store";
 
-export async function POST(request: NextRequest) {
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const { name } = body;
-
-    if (!name || typeof name !== 'string') {
-      return NextResponse.json(
-        { ok: false, reason: 'invalid_input' },
-        { status: 400 }
-      );
+    const { name } = await req.json();
+    const v = validateNickname(name);
+    if (!v.ok) {
+      const status = v.reason === "length" ? 400 : 422;
+      return NextResponse.json({ ok:false, reason:v.reason }, { status });
     }
 
-    // サーバ側バリデーション
-    const r = validateNickname(name);
-    if (!r.ok) {
-      return NextResponse.json(
-        { ok: false, reason: r.reason },
-        { status: 400 }
-      );
-    }
-
-    // ストアを取得
     const store = getStore();
-
-    // 重複チェック
-    const exists = await store.exists(r.value);
-    if (exists) {
-      return NextResponse.json(
-        { ok: false, reason: 'duplicate' },
-        { status: 409 }
-      );
+    if (await store.exists(v.value)) {
+      return NextResponse.json({ ok:false, reason:"duplicate" }, { status:409 });
     }
+    await store.save(v.value);
 
-    // 保存
-    await store.save(r.value);
-
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error('Username registration error:', error);
-    return NextResponse.json(
-      { ok: false, reason: 'server_error' },
-      { status: 500 }
-    );
+    const res = NextResponse.json({ ok:true, store: (store as any).__type });
+    const jar = cookies();
+    const gid = jar.get("guestId")?.value ?? crypto.randomUUID();
+    res.cookies.set("guestId", gid, { path:"/", maxAge:60*60*24*180, sameSite:"lax", secure:true });
+    res.cookies.set("hasProfile", "1", { path:"/", maxAge:60*60*24*180, sameSite:"lax", secure:true });
+    res.headers.set("Cache-Control", "no-store");
+    return res;
+  } catch (e) {
+    console.error("[register] error", e);
+    return NextResponse.json({ ok:false, reason:"server" }, { status:500, headers:{ "Cache-Control":"no-store" } });
   }
 }

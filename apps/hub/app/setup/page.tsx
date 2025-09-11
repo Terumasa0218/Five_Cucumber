@@ -41,6 +41,7 @@ function SetupForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ name: r.value }),
+        cache: 'no-store',
       });
 
       const data = await response.json();
@@ -48,10 +49,13 @@ function SetupForm() {
       if (!data.ok) {
         if (data.reason === 'duplicate') {
           setError('このユーザー名はすでにつかわれています');
-        } else if (data.reason === 'length' || data.reason === 'charset') {
-          setError(data.reason === 'length' ? '1〜8文字で入力してください' : '利用できない文字が含まれています');
+        } else if (data.reason === 'length') {
+          setError('1〜8文字で入力してください');
+        } else if (data.reason === 'charset') {
+          setError('利用できない文字が含まれています');
         } else {
           setError('登録に失敗しました');
+          console.error('Registration failed:', response.status, data);
         }
         setIsSubmitting(false);
         return;
@@ -60,7 +64,7 @@ function SetupForm() {
       // プロフィール保存
       setProfile({ nickname: r.value });
       
-      // Cookie設定
+      // Cookie設定（サーバ側で設定されるが、クライアント側でも設定）
       setHasProfile(true);
       
       // 遷移
@@ -68,6 +72,7 @@ function SetupForm() {
       router.replace(returnTo || '/home');
     } catch (err) {
       setError('登録に失敗しました');
+      console.error('Registration error:', err);
     } finally {
       setIsSubmitting(false);
     }
