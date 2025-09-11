@@ -33,13 +33,10 @@ function SetupForm() {
     setDiagnostic(null);
 
     // クライアント側バリデーション
-    console.log('[setup] Validating nickname:', nickname);
     const r = validateNickname(nickname);
-    console.log('[setup] Validation result:', r);
     
     if (!r.ok) {
       const errorMsg = r.reason === "length" ? "1〜8文字で入力してください" : "利用できない文字が含まれています";
-      console.log('[setup] Validation failed:', r.reason, errorMsg);
       setError(errorMsg);
       setIsSubmitting(false);
       return;
@@ -68,7 +65,7 @@ function SetupForm() {
         reason === "duplicate" ? "このユーザー名はすでにつかわれています" :
         reason === "length"    ? "1〜8文字で入力してください" :
         reason === "charset"   ? "利用できない文字が含まれています" :
-        reason === "server"    ? "登録に失敗しました（サーバエラー）" :
+        reason === "server"    ? `登録に失敗しました（サーバエラー: ${response.json?.error || 'Unknown'}）` :
                                   "通信に失敗しました。電波状況を確認して再試行してください";
       
       setError(errorMsg);

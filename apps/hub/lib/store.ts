@@ -6,23 +6,12 @@ export interface UsernameStore {
 class MockStore implements UsernameStore {
   private s = new Set<string>();
   
-  constructor() {
-    // 開発用：既存のユーザー名を初期化（テスト用）
-    this.s.add('テスト');
-    this.s.add('test');
-    this.s.add('test1');
-    console.log('[MockStore] Initialized with test usernames:', Array.from(this.s));
-  }
-  
   async exists(n: string) { 
-    const result = this.s.has(n);
-    console.log('[MockStore] exists check:', n, '→', result);
-    return result;
+    return this.s.has(n);
   }
   
   async save(n: string) { 
     this.s.add(n);
-    console.log('[MockStore] saved:', n, 'total:', this.s.size);
   }
 }
 

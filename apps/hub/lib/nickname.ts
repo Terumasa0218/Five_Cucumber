@@ -38,30 +38,14 @@ export function validateNickname(raw: string): NicknameValidation {
   const v = normalizeNickname(raw);
   const len = graphemeLength(v);
   
-  // デバッグ情報をコンソールに出力
-  console.log('[validateNickname] Debug info:', {
-    raw,
-    normalized: v,
-    length: len,
-    testResult: ALLOW_RE.test(v),
-    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server'
-  });
-  
   if (len < 1 || len > 8) return { ok: false, reason: "length" };
   
   // スマホ対応：正規表現と文字コード判定の両方を使用
   const regexTest = ALLOW_RE.test(v);
   const charCodeTest = Array.from(v).every(ch => isAllowedChar(ch));
   
-  console.log('[validateNickname] Validation tests:', {
-    regexTest,
-    charCodeTest,
-    finalResult: regexTest && charCodeTest
-  });
-  
   if (!regexTest || !charCodeTest) {
     const bad = Array.from(v).filter(ch => !isAllowedChar(ch));
-    console.log('[validateNickname] Bad characters:', bad);
     return { ok: false, reason: "charset", bad };
   }
   return { ok: true, value: v };
