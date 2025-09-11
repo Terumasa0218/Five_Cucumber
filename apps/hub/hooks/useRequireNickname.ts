@@ -8,7 +8,7 @@ interface UseRequireNicknameOptions {
 }
 
 export function useRequireNickname({ mode }: UseRequireNicknameOptions) {
-  const { isOpen, open, close, profile } = useProfile();
+  const { open, profile } = useProfile();
 
   useEffect(() => {
     // プロフィールが未設定の場合
@@ -17,14 +17,6 @@ export function useRequireNickname({ mode }: UseRequireNicknameOptions) {
     }
   }, [profile, open]);
 
-  const handleProfileSaved = () => {
-    close();
-  };
-
-  return {
-    isOpen,
-    close,
-    profile,
-    handleProfileSaved
-  };
+  // フックはモーダルを開くだけ。リダイレクトはしない。
+  return {};
 }
