@@ -1,10 +1,12 @@
 'use client';
 
+import { getProfile } from '@/lib/profile';
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Home() {
   const [gateStatus, setGateStatus] = useState<string>('');
+  const [profile, setProfile] = useState(getProfile());
 
   useEffect(() => {
     document.title = 'ホーム | Five Cucumber';
@@ -16,6 +18,14 @@ export default function Home() {
         setGateStatus(gateHeader || 'unknown');
       })
       .catch(() => setGateStatus('error'));
+    
+    // プロフィール変更を監視
+    const handleStorageChange = () => {
+      setProfile(getProfile());
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   return (
@@ -26,9 +36,14 @@ export default function Home() {
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             ホーム
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-600 mb-2">
             遊び方を選んでください。
           </p>
+          {profile?.nickname && (
+            <p className="text-sm text-blue-600 font-medium">
+              ようこそ、{profile.nickname}さん！
+            </p>
+          )}
           
           {/* デバッグ情報（開発時のみ） */}
           {process.env.NODE_ENV === 'development' && (

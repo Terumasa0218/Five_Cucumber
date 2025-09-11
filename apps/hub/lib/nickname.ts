@@ -1,9 +1,8 @@
 "use client";
 
-export const ALLOW_CHAR_CLASS =
-  "[A-Za-z0-9\\p{Script=Hiragana}\\p{Script=Katakana}\\p{Script=Han}]";
-export const ALLOW_RE     = new RegExp(`^${ALLOW_CHAR_CLASS}+$`, "u");  // 文字列全体
-export const ALLOW_ONE_RE = new RegExp(`${ALLOW_CHAR_CLASS}`, "u");     // 1文字判定
+// より互換性の高い正規表現（スマホ対応）
+export const ALLOW_RE = /^[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+$/;  // 文字列全体
+export const ALLOW_ONE_RE = /[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/;  // 1文字判定
 
 export function normalizeNickname(raw: string): string {
   // 前後空白を除去、NFKCで全角英数→半角などに正規化（漢字はそのまま）
