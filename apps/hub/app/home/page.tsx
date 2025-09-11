@@ -61,18 +61,18 @@ export default function Home() {
         {/* モード選択 */}
         <div className="max-w-2xl mx-auto space-y-6">
           {/* CPU対戦 */}
-          <div className="flex items-center justify-between p-6 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border-2 border-blue-300 hover:shadow-lg transition-all">
             <div className="flex-1">
-              <h2 className="text-xl font-semibold mb-2">
-                CPU対戦
+              <h2 className="text-xl font-semibold mb-2 text-blue-800">
+                🎮 CPU対戦
               </h2>
-              <p className="text-gray-600">
+              <p className="text-blue-700">
                 設定してすぐに開始
               </p>
             </div>
             <Link 
-              href="/cpu/settings" 
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              href="/cucumber/cpu/settings" 
+              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow-md"
             >
               はじめる
             </Link>
@@ -97,7 +97,7 @@ export default function Home() {
           </div>
 
           {/* フレンド対戦 */}
-          <div className="flex items-center justify-between p-6 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between p-6 bg-gray-50 rounded-lg border border-gray-200 opacity-60">
             <div className="flex-1">
               <h2 className="text-xl font-semibold mb-2">
                 フレンド対戦
@@ -106,12 +106,12 @@ export default function Home() {
                 フレンドを招待して対戦
               </p>
             </div>
-            <Link 
-              href="/friend" 
-              className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            <button 
+              disabled 
+              className="px-6 py-2 bg-gray-400 text-white rounded-md cursor-not-allowed"
             >
-              はじめる
-            </Link>
+              近日公開
+            </button>
           </div>
         </div>
 

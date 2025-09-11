@@ -1,0 +1,569 @@
+/* ゲーム画面専用スタイル */
+.game-root {
+  position: relative;
+  min-height: 100vh;
+  background: url("/assets/背景５.png") center/cover no-repeat fixed;
+}
+
+/* 文字の可読性を上げる薄いビネット */
+.game-root::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.10) 0%, rgba(0,0,0,.25) 65%, rgba(0,0,0,.35) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.game-container {
+  position: relative;
+  height: 100vh;
+  display: grid;
+  grid-template-areas: 
+    "hud-left hud-center hud-right"
+    "seats seats seats"
+    "center-area center-area center-area"
+    "player-hand player-hand player-hand";
+  grid-template-rows: 60px 120px 1fr 130px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 12px;
+  z-index: 2;
+}
+
+.seats-container {
+  grid-area: seats;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.hud-left {
+  grid-area: hud-left;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.hud-center {
+  grid-area: hud-center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hud-right {
+  grid-area: hud-right;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 15px;
+}
+
+.round-indicator {
+  background: linear-gradient(135deg, #0b7f71, #0a6b5d);
+  color: white;
+  padding: 10px 18px;
+  border-radius: 25px;
+  font-weight: bold;
+  font-size: 0.9em;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+  min-width: 120px;
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.timer-display {
+  background: linear-gradient(135deg, #ffbe3b, #e6a82d);
+  color: #2d2d2d;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-weight: bold;
+  font-size: 1em;
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.timer-display.warning {
+  background: linear-gradient(135deg, #f7465f, #e03d4f);
+  color: white;
+  animation: pulse-warning 0.8s infinite;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes pulse-warning {
+  0%, 100% { transform: scale(1); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); }
+  50% { transform: scale(1.08); box-shadow: 0 8px 30px rgba(247, 70, 95, 0.6); }
+}
+
+.game-title {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+  color: white;
+  padding: 15px 30px;
+  border-radius: 30px;
+  font-size: 1.8em;
+  font-weight: bold;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+}
+
+.player-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.player-panel {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+  transition: all 0.4s ease;
+  min-width: 200px;
+}
+
+.player-panel.current-turn {
+  border: 4px solid #ffbe3b;
+  box-shadow: 
+    0 0 30px rgba(255, 190, 59, 0.8),
+    0 6px 25px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, rgba(255, 190, 59, 0.25), rgba(255, 190, 59, 0.12));
+  animation: glow-pulse 2s infinite alternate;
+}
+
+@keyframes glow-pulse {
+  0% { box-shadow: 0 0 30px rgba(255, 190, 59, 0.8), 0 6px 25px rgba(0, 0, 0, 0.4); }
+  100% { box-shadow: 0 0 40px rgba(255, 190, 59, 1), 0 8px 30px rgba(0, 0, 0, 0.4); }
+}
+
+.player-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.player-name {
+  color: white;
+  font-weight: bold;
+  font-size: 1.1em;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.player-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.9em;
+}
+
+.cucumber-count {
+  color: #f7465f;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.cards-count {
+  color: #3199ff;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.player-hand-visual {
+  display: flex;
+  gap: 3px;
+  max-width: 90px;
+  flex-wrap: wrap;
+}
+
+.mini-card {
+  width: 14px;
+  height: 20px;
+  background: linear-gradient(135deg, #3199ff, #2a7dd1);
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.player-graveyard {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  max-width: 70px;
+}
+
+.graveyard-mini-card {
+  width: 12px;
+  height: 18px;
+  background: linear-gradient(135deg, #666, #555);
+  color: white;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5em;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.center-area {
+  grid-area: center-area;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 60px;
+  position: relative;
+}
+
+.field-area {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.2));
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 25px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 8px 35px rgba(0, 0, 0, 0.4);
+  position: relative;
+  z-index: 10;
+}
+
+.field-title {
+  color: white;
+  font-weight: bold;
+  font-size: 1.3em;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+  margin-bottom: 5px;
+}
+
+.graveyard-area {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+  z-index: 5;
+}
+
+.graveyard-title {
+  color: white;
+  font-weight: bold;
+  font-size: 1.1em;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.graveyard-cards {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  max-width: 180px;
+  max-height: 120px;
+  overflow-y: auto;
+  justify-content: center;
+}
+
+.graveyard-card {
+  width: 28px;
+  height: 40px;
+  background: linear-gradient(135deg, #666, #555);
+  color: white;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  font-weight: bold;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.card {
+  width: 65px;
+  height: 90px;
+  border-radius: 8px;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(5px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(240, 240, 240, 0.8));
+  color: #333;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.player-hand .card {
+  width: 65px;
+  height: 90px;
+}
+
+.card-number {
+  font-size: 1.6em;
+  margin-bottom: 2px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.cucumber-icons {
+  font-size: 0.6em;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.card.playable {
+  background: linear-gradient(135deg, #50c878, #45b36b);
+  color: white;
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 12px 35px rgba(80, 200, 120, 0.5);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.card.discard {
+  background: linear-gradient(135deg, #f7465f, #e03d4f);
+  color: white;
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 10px 30px rgba(247, 70, 95, 0.5);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.card.disabled {
+  background: linear-gradient(135deg, #999, #777);
+  color: #555;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.card.current-card {
+  background: linear-gradient(135deg, #3199ff, #2a7dd1);
+  color: white;
+  border: 4px solid #ffbe3b;
+  box-shadow: 0 0 30px rgba(49, 153, 255, 0.8);
+  animation: card-glow 2s infinite alternate;
+}
+
+@keyframes card-glow {
+  0% { box-shadow: 0 0 30px rgba(49, 153, 255, 0.8); }
+  100% { box-shadow: 0 0 40px rgba(49, 153, 255, 1), 0 0 60px rgba(255, 190, 59, 0.6); }
+}
+
+.card:hover:not(.disabled) {
+  transform: translateY(-12px) scale(1.08);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+  z-index: 10;
+}
+
+.player-hand {
+  grid-area: player-hand;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 15px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  border-radius: 15px 15px 0 0;
+  backdrop-filter: blur(15px);
+  box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.4);
+  overflow-x: auto;
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  min-height: 110px;
+  max-height: 130px;
+  margin-bottom: 20px;
+}
+
+.player-hand .card {
+  width: 65px;
+  height: 90px;
+  flex-shrink: 0;
+}
+
+.player-hand .card:hover:not(.disabled) {
+  transform: translateY(-8px) scale(1.05);
+  z-index: 15;
+}
+
+.game-over {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+}
+
+.game-over-content {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+  padding: 50px;
+  border-radius: 25px;
+  text-align: center;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+  border: 4px solid rgba(255, 255, 255, 0.4);
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.game-over-title {
+  font-size: 2.5em;
+  color: #f7465f;
+  margin-bottom: 30px;
+  font-weight: bold;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
+}
+
+.restart-btn {
+  background: linear-gradient(135deg, #50c878, #45b36b);
+  color: white;
+  border: none;
+  padding: 18px 40px;
+  border-radius: 30px;
+  font-size: 1.2em;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 25px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.restart-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.trick-result {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+  border-radius: 30px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+  border: 4px solid #50c878;
+  z-index: 500;
+  min-width: 350px;
+  backdrop-filter: blur(15px);
+}
+
+.trick-result-title {
+  font-size: 1.8em;
+  color: #0b7f71;
+  margin-bottom: 25px;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.card-animation {
+  /* 統一されたアニメーション用クラス */
+}
+
+@keyframes cardDeal {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.card-deal-animation {
+  animation: cardDeal 0.3s ease-out;
+}
+
+@media (max-width: 1200px) {
+  .game-container {
+    grid-template-columns: 180px 1fr 180px;
+    grid-template-rows: 50px 90px 1fr 110px;
+    height: calc(100vh - 70px);
+  }
+  
+  .card {
+    width: 55px;
+    height: 75px;
+  }
+  
+  .player-hand .card {
+    width: 55px;
+    height: 75px;
+  }
+  
+  .player-hand {
+    min-height: 90px;
+    max-height: 110px;
+    padding: 12px;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 768px) {
+  .game-container {
+    grid-template-columns: 130px 1fr 130px;
+    grid-template-rows: 40px 70px 1fr 90px;
+    height: calc(100vh - 100px);
+    gap: 8px;
+    padding: 8px;
+  }
+  
+  .center-area {
+    gap: 15px;
+  }
+  
+  .card {
+    width: 45px;
+    height: 60px;
+  }
+  
+  .player-hand .card {
+    width: 45px;
+    height: 60px;
+  }
+  
+  .player-hand {
+    min-height: 70px;
+    max-height: 90px;
+    padding: 8px;
+    gap: 4px;
+  }
+  
+  .card-number {
+    font-size: 1.2em;
+  }
+  
+  .cucumber-icons {
+    font-size: 0.5em;
+  }
+}
