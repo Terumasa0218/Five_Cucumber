@@ -2,11 +2,5 @@
 
 // クライアント用ラッパー - 共通関数を再エクスポート
 export {
-  validateNickname,
-  normalizeNickname,
-  graphemeLength,
-  ALLOW_RE,
-  ALLOW_ONE_RE,
-  ALLOW_CHAR_CLASS,
-  type NicknameValidation
+    ALLOW_CHAR_CLASS, ALLOW_ONE_RE, ALLOW_RE, graphemeLength, normalizeNickname, validateNickname, type NicknameValidation
 } from "./nickname.shared";
