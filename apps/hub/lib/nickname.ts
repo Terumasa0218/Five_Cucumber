@@ -1,8 +1,8 @@
 "use client";
 
-// 文字判定関数（簡素化）
+// 文字判定関数（極限簡素化）
 function isAllowedChar(char: string): boolean {
-  if (!char || typeof char !== 'string' || char.length === 0) return false;
+  if (!char) return false;
   
   const code = char.charCodeAt(0);
   
@@ -26,12 +26,12 @@ function isAllowedChar(char: string): boolean {
 // 正規表現は使用せず、文字コード判定のみを使用
 
 export function normalizeNickname(raw: string): string {
-  if (!raw || typeof raw !== 'string') return "";
+  if (!raw) return "";
   return raw.trim();
 }
 
 export function graphemeLength(s: string): number {
-  if (!s || typeof s !== 'string') return 0;
+  if (!s) return 0;
   return s.length;
 }
 
@@ -40,13 +40,13 @@ export type NicknameValidation =
   | { ok: false; reason: "length" | "charset"; bad?: string[] };
 
 export function validateNickname(raw: string): NicknameValidation {
-  // 超簡素化：trimとlengthのみ
-  if (!raw || typeof raw !== 'string') {
+  // 極限簡素化：基本的なチェックのみ
+  if (!raw) {
     return { ok: false, reason: "length" };
   }
   
   const v = raw.trim();
-  if (v.length < 1 || v.length > 8) {
+  if (v.length === 0 || v.length > 8) {
     return { ok: false, reason: "length" };
   }
   
