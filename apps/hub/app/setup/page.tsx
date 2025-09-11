@@ -26,9 +26,14 @@ function SetupForm() {
     setError(null);
 
     // クライアント側バリデーション
+    console.log('[setup] Validating nickname:', nickname);
     const r = validateNickname(nickname);
+    console.log('[setup] Validation result:', r);
+    
     if (!r.ok) {
-      setError(r.reason === "length" ? "1〜8文字で入力してください" : "利用できない文字が含まれています");
+      const errorMsg = r.reason === "length" ? "1〜8文字で入力してください" : "利用できない文字が含まれています";
+      console.log('[setup] Validation failed:', r.reason, errorMsg);
+      setError(errorMsg);
       setIsSubmitting(false);
       return;
     }

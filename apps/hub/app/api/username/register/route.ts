@@ -9,9 +9,14 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     const { name } = await req.json();
+    console.log('[api/register] Received name:', name);
+    
     const v = validateNickname(name);
+    console.log('[api/register] Validation result:', v);
+    
     if (!v.ok) {
       const status = v.reason === "length" ? 400 : 422;
+      console.log('[api/register] Validation failed:', v.reason, 'status:', status);
       return NextResponse.json({ ok:false, reason:v.reason }, { status });
     }
 

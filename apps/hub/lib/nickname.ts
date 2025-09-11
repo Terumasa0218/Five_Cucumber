@@ -1,6 +1,22 @@
 "use client";
 
-// より互換性の高い正規表現（スマホ対応）
+// スマホ対応の文字判定関数
+function isAllowedChar(char: string): boolean {
+  const code = char.charCodeAt(0);
+  return (
+    // 半角英数字
+    (code >= 48 && code <= 57) ||  // 0-9
+    (code >= 65 && code <= 90) ||  // A-Z
+    (code >= 97 && code <= 122) || // a-z
+    // ひらがな
+    (code >= 0x3040 && code <= 0x309F) ||
+    // カタカナ
+    (code >= 0x30A0 && code <= 0x30FF) ||
+    // 漢字
+    (code >= 0x4E00 && code <= 0x9FAF)
+  );
+}
+
 export const ALLOW_RE = /^[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+$/;  // 文字列全体
 export const ALLOW_ONE_RE = /[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/;  // 1文字判定
 
@@ -21,9 +37,31 @@ export type NicknameValidation =
 export function validateNickname(raw: string): NicknameValidation {
   const v = normalizeNickname(raw);
   const len = graphemeLength(v);
+  
+  // デバッグ情報をコンソールに出力
+  console.log('[validateNickname] Debug info:', {
+    raw,
+    normalized: v,
+    length: len,
+    testResult: ALLOW_RE.test(v),
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server'
+  });
+  
   if (len < 1 || len > 8) return { ok: false, reason: "length" };
-  if (!ALLOW_RE.test(v)) {
-    const bad = Array.from(v).filter(ch => !ALLOW_ONE_RE.test(ch));
+  
+  // スマホ対応：正規表現と文字コード判定の両方を使用
+  const regexTest = ALLOW_RE.test(v);
+  const charCodeTest = Array.from(v).every(ch => isAllowedChar(ch));
+  
+  console.log('[validateNickname] Validation tests:', {
+    regexTest,
+    charCodeTest,
+    finalResult: regexTest && charCodeTest
+  });
+  
+  if (!regexTest || !charCodeTest) {
+    const bad = Array.from(v).filter(ch => !isAllowedChar(ch));
+    console.log('[validateNickname] Bad characters:', bad);
     return { ok: false, reason: "charset", bad };
   }
   return { ok: true, value: v };
