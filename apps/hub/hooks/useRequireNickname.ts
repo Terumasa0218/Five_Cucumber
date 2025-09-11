@@ -1,27 +1,29 @@
 'use client';
 
-import { getProfile } from '@/lib/profile';
-import { useEffect, useState } from 'react';
+import { useProfile } from '@/contexts/ProfileContext';
+import { useEffect } from 'react';
 
-export function useRequireNickname() {
-  const [showModal, setShowModal] = useState(false);
-  const [profile, setProfile] = useState(getProfile());
+interface UseRequireNicknameOptions {
+  mode: 'auto' | 'require';
+}
+
+export function useRequireNickname({ mode }: UseRequireNicknameOptions) {
+  const { isOpen, open, close, profile } = useProfile();
 
   useEffect(() => {
-    // プロフィールが未設定の場合はモーダルを表示
-    if (!profile?.nickname) {
-      setShowModal(true);
+    // プロフィールが未設定の場合
+    if (!profile?.nickname || profile.nickname.trim() === '' || profile.nickname.length > 8) {
+      open();
     }
-  }, [profile]);
+  }, [profile, open]);
 
-  const handleProfileSaved = (newProfile: { nickname: string; avatarId?: string }) => {
-    setProfile(newProfile);
-    setShowModal(false);
+  const handleProfileSaved = () => {
+    close();
   };
 
   return {
-    showModal,
-    setShowModal,
+    isOpen,
+    close,
     profile,
     handleProfileSaved
   };

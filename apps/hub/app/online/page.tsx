@@ -1,11 +1,11 @@
 'use client';
 
-import PlayerSetupModal from "@/components/PlayerSetupModal";
 import { useRequireNickname } from "@/hooks/useRequireNickname";
 import { useEffect } from "react";
 
 export default function OnlinePage() {
-  const { showModal, handleProfileSaved } = useRequireNickname();
+  // ニックネーム未設定時は必須表示
+  useRequireNickname({ mode: 'require' });
 
   useEffect(() => {
     document.title = 'オンライン対戦 | Five Cucumber';
@@ -45,13 +45,6 @@ export default function OnlinePage() {
           </div>
         </div>
       </div>
-
-      {/* ニックネーム未設定時はこのページ上でモーダル表示 */}
-      <PlayerSetupModal
-        isOpen={showModal}
-        onClose={() => {}}
-        onProfileSaved={handleProfileSaved}
-      />
     </main>
   );
 }

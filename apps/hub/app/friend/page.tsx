@@ -1,12 +1,12 @@
 'use client';
 
-import PlayerSetupModal from "@/components/PlayerSetupModal";
 import { useRequireNickname } from "@/hooks/useRequireNickname";
 import Link from "next/link";
 import { useEffect } from "react";
 
 export default function FriendPage() {
-  const { showModal, handleProfileSaved } = useRequireNickname();
+  // ニックネーム未設定時は必須表示
+  useRequireNickname({ mode: 'require' });
 
   useEffect(() => {
     document.title = 'フレンド対戦 | Five Cucumber';
@@ -53,13 +53,6 @@ export default function FriendPage() {
           </div>
         </div>
       </div>
-
-      {/* ニックネーム未設定時はこのページ上でモーダル表示 */}
-      <PlayerSetupModal
-        isOpen={showModal}
-        onClose={() => {}}
-        onProfileSaved={handleProfileSaved}
-      />
     </main>
   );
 }

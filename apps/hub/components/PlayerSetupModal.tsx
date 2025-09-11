@@ -1,13 +1,8 @@
 'use client';
 
+import { useProfile } from '@/contexts/ProfileContext';
 import { setProfile, validateNickname, type Profile } from '@/lib/profile';
 import { useState } from 'react';
-
-interface PlayerSetupModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onProfileSaved: (profile: Profile) => void;
-}
 
 // ダミーアイコン配列
 const avatarOptions = [
@@ -19,7 +14,8 @@ const avatarOptions = [
   { id: '6', emoji: '🎨' }
 ];
 
-export default function PlayerSetupModal({ isOpen, onClose, onProfileSaved }: PlayerSetupModalProps) {
+export default function PlayerSetupModal() {
+  const { isOpen, close } = useProfile();
   const [nickname, setNickname] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(avatarOptions[0].id);
   const [error, setError] = useState<string | null>(null);
@@ -47,8 +43,7 @@ export default function PlayerSetupModal({ isOpen, onClose, onProfileSaved }: Pl
       };
 
       setProfile(profile);
-      onProfileSaved(profile);
-      onClose();
+      close();
     } catch (err) {
       setError('保存に失敗しました');
     } finally {
@@ -100,6 +95,16 @@ export default function PlayerSetupModal({ isOpen, onClose, onProfileSaved }: Pl
             </div>
           </div>
 
+          {/* 言語切替ボタン */}
+          <div>
+            <button
+              type="button"
+              className="w-full py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              言語切替
+            </button>
+          </div>
+
           {/* エラー表示 */}
           {error && (
             <div className="text-red-600 text-sm text-center">
@@ -111,7 +116,7 @@ export default function PlayerSetupModal({ isOpen, onClose, onProfileSaved }: Pl
           <div className="flex gap-3 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={close}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
             >
               キャンセル

@@ -1,6 +1,5 @@
 'use client';
 
-import PlayerSetupModal from "@/components/PlayerSetupModal";
 import { useRequireNickname } from "@/hooks/useRequireNickname";
 import { validateRoomCode } from "@/lib/roomMock";
 import { useRouter } from "next/navigation";
@@ -8,7 +7,8 @@ import { useEffect, useState } from "react";
 
 export default function FriendJoinPage() {
   const router = useRouter();
-  const { showModal, handleProfileSaved } = useRequireNickname();
+  // ニックネーム未設定時は必須表示
+  useRequireNickname({ mode: 'require' });
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -65,13 +65,6 @@ export default function FriendJoinPage() {
           </div>
         </div>
       </div>
-
-      {/* ニックネーム未設定時はこのページ上でモーダル表示 */}
-      <PlayerSetupModal
-        isOpen={showModal}
-        onClose={() => {}}
-        onProfileSaved={handleProfileSaved}
-      />
     </main>
   );
 }
