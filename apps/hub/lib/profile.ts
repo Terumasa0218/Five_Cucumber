@@ -11,6 +11,9 @@ const HAS_PROFILE_KEY = 'hasProfile';
 // 擬似重複チェック用のローカル配列
 const usedNames = new Set<string>();
 
+// 許容文字の正規表現（半角英数字、ひらがな、カタカナ、漢字）
+const ALLOWED_CHARS = /^[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]+$/;
+
 // 簡易NGワード配列
 const unsafeWords = ['admin', 'root', 'test', 'guest', 'user', 'null', 'undefined'];
 
@@ -107,18 +110,26 @@ export function hasProfile(): boolean {
 }
 
 /**
- * ニックネームのバリデーション
+ * グラフェム数を取得（簡易実装）
+ */
+function getGraphemeCount(text: string): number {
+  // 簡易実装：絵文字や結合文字を考慮した文字数カウント
+  return Array.from(text).length;
+}
+
+/**
+ * ニックネームのバリデーション（クライアント側）
  */
 export function validateNickname(name: string): { valid: boolean; error?: string } {
   // 長さチェック（グラフェム数）
-  const graphemeCount = Array.from(name).length;
+  const graphemeCount = getGraphemeCount(name);
   if (graphemeCount < 1 || graphemeCount > 8) {
     return { valid: false, error: '1〜8文字で入力してください' };
   }
   
-  // 重複チェック
-  if (isDuplicateName(name)) {
-    return { valid: false, error: 'すでに使われています' };
+  // 文字種チェック
+  if (!ALLOWED_CHARS.test(name)) {
+    return { valid: false, error: '利用できない文字が含まれています' };
   }
   
   // 不適切語チェック

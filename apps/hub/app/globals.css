@@ -395,27 +395,15 @@ header{ background: transparent !important; box-shadow: none !important; backdro
   }
 }
 
-/* === Full-viewport botanical frame (fill + object-cover) === */
-html, body { height: 100%; }
-body { background-color: #F5F0E6; }
-.bg-frame {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  background:
-    url('/assets/背景４.png')
-    center center / cover
-    no-repeat fixed;
-  pointer-events: none;   /* クリックは通す */
-  z-index: -1;            /* すべてのUIの背面 */
+/* === 背景設定（1枚のみ） === */
+html, body { 
+  min-height: 100%; 
 }
 
-/* 中央の可読性補強（極薄いラジアル白ハイライト） */
-.bg-frame::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at center, rgba(255,255,255,0.15) 0%, transparent 70%);
-  pointer-events: none;
+body {
+  background-image: url('/assets/背景４.png');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* スクロールで切れない */
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import { setProfile, setHasProfile, validateNickname, resetProfile } from '@/lib/profile';
+import { resetProfile, setHasProfile, setProfile, validateNickname } from '@/lib/profile';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 function SetupForm() {
   const router = useRouter();
@@ -24,7 +24,7 @@ function SetupForm() {
     setIsSubmitting(true);
     setError(null);
 
-    // バリデーション
+    // クライアント側バリデーション
     const validation = validateNickname(nickname);
     if (!validation.valid) {
       setError(validation.error || 'エラーが発生しました');
@@ -33,6 +33,29 @@ function SetupForm() {
     }
 
     try {
+      // サーバ側で重複チェック
+      const response = await fetch('/api/username/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: nickname }),
+      });
+
+      const data = await response.json();
+
+      if (!data.ok) {
+        if (data.reason === 'duplicate') {
+          setError('このユーザー名はすでにつかわれています');
+        } else if (data.reason === 'validation_failed') {
+          setError(data.error || 'バリデーションエラー');
+        } else {
+          setError('登録に失敗しました');
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
       // プロフィール保存
       setProfile({ nickname });
       
@@ -43,7 +66,7 @@ function SetupForm() {
       const returnTo = searchParams.get('returnTo');
       router.replace(returnTo || '/home');
     } catch (err) {
-      setError('保存に失敗しました');
+      setError('登録に失敗しました');
     } finally {
       setIsSubmitting(false);
     }
@@ -54,61 +77,57 @@ function SetupForm() {
   };
 
   return (
-    <main className="min-h-screen w-full bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/assets/背景４.png)' }}>
-      <div className="min-h-screen bg-black/20 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg p-8 w-full max-w-md shadow-xl">
-          <h1 className="text-2xl font-bold mb-6 text-center">プレイヤー設定</h1>
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* ニックネーム入力 */}
-            <div>
-              <label htmlFor="nickname" className="block text-sm font-medium mb-2">
-                ニックネーム (1-8文字)
-              </label>
-              <input
-                type="text"
-                id="nickname"
-                value={nickname}
-                onChange={(e) => {
-                  setNickname(e.target.value);
-                  setError(null);
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="ニックネームを入力"
-                maxLength={8}
-                required
-                autoFocus
-              />
+    <main className="min-h-screen grid place-items-center bg-transparent">
+      <div className="max-w-md w-[min(92vw,560px)] bg-transparent">
+        <h1 className="text-2xl font-bold mb-6 text-center text-white">プレイヤー設定</h1>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* ニックネーム入力 */}
+          <div>
+            <label htmlFor="nickname" className="block text-sm font-medium mb-2 text-white">
+              ニックネーム（1–8文字）
+            </label>
+            <input
+              type="text"
+              id="nickname"
+              value={nickname}
+              onChange={(e) => {
+                setNickname(e.target.value);
+                setError(null);
+              }}
+              className="w-full px-3 py-2 bg-transparent border border-white/50 rounded-md focus:outline-none focus:ring-2 focus:ring-white/70 text-white placeholder-white/70"
+              placeholder="ニックネームを入力"
+              maxLength={8}
+              required
+              autoFocus
+            />
+          </div>
+
+          {/* エラー表示 */}
+          {error && (
+            <div className="text-red-400 text-sm text-center">
+              {error}
             </div>
+          )}
 
-            {/* 言語切替 */}
-            <div>
-              <button
-                type="button"
-                onClick={handleLanguageToggle}
-                className="w-full py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              >
-                言語切替: {language === 'ja' ? '日本語' : 'English'}
-              </button>
-            </div>
-
-            {/* エラー表示 */}
-            {error && (
-              <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-md">
-                {error}
-              </div>
-            )}
-
-            {/* 保存ボタン */}
+          {/* ボタン */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleLanguageToggle}
+              className="flex-1 py-2 px-4 bg-transparent border border-white/50 rounded-md hover:bg-white/10 transition-colors text-white"
+            >
+              言語切替
+            </button>
             <button
               type="submit"
               disabled={isSubmitting || !nickname.trim()}
-              className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 py-2 px-4 bg-white text-black rounded-md hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
-              {isSubmitting ? '保存中...' : '保存'}
+              {isSubmitting ? '登録中...' : '登録'}
             </button>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </main>
   );
