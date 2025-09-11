@@ -1,7 +1,9 @@
 "use client";
 
-// スマホ対応の文字判定関数
+// スマホ対応の文字判定関数（Unicode対応）
 function isAllowedChar(char: string): boolean {
+  if (!char || char.length === 0) return false;
+  
   const code = char.charCodeAt(0);
   return (
     // 半角英数字
@@ -17,8 +19,9 @@ function isAllowedChar(char: string): boolean {
   );
 }
 
-export const ALLOW_RE = /^[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+$/;  // 文字列全体
-export const ALLOW_ONE_RE = /[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/;  // 1文字判定
+// Node.js環境でのUnicode正規表現対応
+export const ALLOW_RE = /^[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]+$/u;  // 文字列全体
+export const ALLOW_ONE_RE = /[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/u;  // 1文字判定
 
 export function normalizeNickname(raw: string): string {
   // 前後空白を除去、NFKCで全角英数→半角などに正規化（漢字はそのまま）
@@ -40,11 +43,10 @@ export function validateNickname(raw: string): NicknameValidation {
   
   if (len < 1 || len > 8) return { ok: false, reason: "length" };
   
-  // スマホ対応：正規表現と文字コード判定の両方を使用
-  const regexTest = ALLOW_RE.test(v);
+  // 文字コード判定のみを使用（正規表現のUnicode問題を回避）
   const charCodeTest = Array.from(v).every(ch => isAllowedChar(ch));
   
-  if (!regexTest || !charCodeTest) {
+  if (!charCodeTest) {
     const bad = Array.from(v).filter(ch => !isAllowedChar(ch));
     return { ok: false, reason: "charset", bad };
   }
