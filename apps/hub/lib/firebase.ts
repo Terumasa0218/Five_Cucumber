@@ -31,10 +31,7 @@ export function getFirebaseClient():
   // SSRでは初期化しない
   if (typeof window === 'undefined') return null;
   if (!firebaseEnvOk) {
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.warn('Firebase configuration is incomplete. Missing:', missing.join(', '));
-    }
+    // Firebase設定が不完全な場合は警告を出さずにnullを返す
     return null;
   }
   const app = getApps().length ? getApp() : initializeApp(cfg);
