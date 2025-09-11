@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { validateNickname } from "@/lib/nickname";
 import { getStore } from "@/lib/store";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

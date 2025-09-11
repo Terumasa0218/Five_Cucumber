@@ -43,6 +43,7 @@ function SetupForm() {
     }
 
     // fetchJSONを使用してサーバ側で重複チェック
+    console.log('[setup] About to call API with:', r.value);
     const response = await fetchJSON('/api/username/register', {
       method: 'POST',
       headers: {
@@ -51,6 +52,7 @@ function SetupForm() {
       body: JSON.stringify({ name: r.value }),
       timeoutMs: 8000,
     });
+    console.log('[setup] API response:', response);
 
     // 診断情報を保存
     setDiagnostic({
