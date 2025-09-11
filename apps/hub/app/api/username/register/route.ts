@@ -8,15 +8,22 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
+    console.log('[api/register] Starting request');
     const { name } = await req.json();
+    console.log('[api/register] Received name:', name, 'type:', typeof name);
     
     if (!name || typeof name !== 'string') {
+      console.log('[api/register] Invalid name type');
       return NextResponse.json({ ok:false, reason:"length" }, { status:400 });
     }
     
+    console.log('[api/register] About to call validateNickname');
     const v = validateNickname(name);
+    console.log('[api/register] validateNickname result:', v);
+    
     if (!v.ok) {
       const status = v.reason === "length" ? 400 : 422;
+      console.log('[api/register] Validation failed:', v.reason, 'status:', status);
       return NextResponse.json({ ok:false, reason:v.reason }, { status });
     }
 

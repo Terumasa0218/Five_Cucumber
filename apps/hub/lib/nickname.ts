@@ -36,8 +36,15 @@ export function normalizeNickname(raw: string): string {
 }
 
 export function graphemeLength(s: string): number {
-  // 簡易実装：絵文字や結合文字を考慮した文字数カウント
-  return Array.from(s).length;
+  try {
+    // 簡易実装：絵文字や結合文字を考慮した文字数カウント
+    const length = Array.from(s).length;
+    console.log('[graphemeLength] Input:', s, 'Length:', length);
+    return length;
+  } catch (error) {
+    console.error('[graphemeLength] Error:', error);
+    return 0;
+  }
 }
 
 export type NicknameValidation =
@@ -45,18 +52,33 @@ export type NicknameValidation =
   | { ok: false; reason: "length" | "charset"; bad?: string[] };
 
 export function validateNickname(raw: string): NicknameValidation {
-  const v = normalizeNickname(raw);
-  const len = graphemeLength(v);
-  
-  if (len < 1 || len > 8) return { ok: false, reason: "length" };
-  
-  // 文字コード判定のみを使用（正規表現は一切使用しない）
-  const chars = Array.from(v);
-  const invalidChars = chars.filter(ch => !isAllowedChar(ch));
-  
-  if (invalidChars.length > 0) {
-    return { ok: false, reason: "charset", bad: invalidChars };
+  try {
+    console.log('[validateNickname] Starting validation with:', raw);
+    const v = normalizeNickname(raw);
+    console.log('[validateNickname] Normalized:', v);
+    const len = graphemeLength(v);
+    console.log('[validateNickname] Length:', len);
+    
+    if (len < 1 || len > 8) {
+      console.log('[validateNickname] Length validation failed');
+      return { ok: false, reason: "length" };
+    }
+    
+    // 文字コード判定のみを使用（正規表現は一切使用しない）
+    const chars = Array.from(v);
+    console.log('[validateNickname] Characters:', chars);
+    const invalidChars = chars.filter(ch => !isAllowedChar(ch));
+    console.log('[validateNickname] Invalid chars:', invalidChars);
+    
+    if (invalidChars.length > 0) {
+      console.log('[validateNickname] Charset validation failed');
+      return { ok: false, reason: "charset", bad: invalidChars };
+    }
+    
+    console.log('[validateNickname] Validation successful');
+    return { ok: true, value: v };
+  } catch (error) {
+    console.error('[validateNickname] Error:', error);
+    return { ok: false, reason: "charset" };
   }
-  
-  return { ok: true, value: v };
 }
