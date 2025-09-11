@@ -176,10 +176,10 @@ export default function CpuPlayNew() {
     <div className="game-root">
       <div className="game-container">
         <div className="hud-left">
-          <div className="round-indicator" id="roundInfo">
-            第{gameState.currentRound}回戦<br />
-            <nobr>第{gameState.currentTrick}ラウンド</nobr>
-          </div>
+           <div className="round-indicator" id="roundInfo">
+             第{gameState.currentRound}回戦<br />
+             <span style={{ whiteSpace: 'nowrap' }}>第{gameState.currentTrick}ラウンド</span>
+           </div>
           <Timer
             turnSeconds={gameRef.current?.config.turnSeconds || null}
             isActive={gameState.currentPlayer === 0}
