@@ -1,6 +1,6 @@
 'use client';
 
-import { validateRoomCode } from "@/lib/roomMock";
+import { getNickname } from "@/utils/user";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -8,21 +8,64 @@ export default function FriendJoinPage() {
   const router = useRouter();
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
     document.title = 'ルーム参加 | Five Cucumber';
   }, []);
 
-  const handleJoinRoom = () => {
+  const handleJoinRoom = async () => {
+    const nickname = getNickname();
+    if (!nickname) {
+      router.push('/setup?returnTo=/friend/join');
+      return;
+    }
+
     if (!roomCode.trim()) {
       setError('ルーム番号を入力してください');
       return;
     }
 
-    if (validateRoomCode(roomCode)) {
-      router.push(`/room/${roomCode}`);
-    } else {
-      setError('ルーム番号が違います');
+    setIsJoining(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/friend/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: roomCode.trim(), nickname })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.roomId) {
+          router.push(`/friend/room/${data.roomId}`);
+        } else {
+          setError('参加に失敗しました');
+        }
+      } else {
+        switch (res.status) {
+          case 404:
+            setError('ルーム番号が違います');
+            break;
+          case 409:
+            setError('部屋が満員です');
+            break;
+          case 410:
+            setError('部屋の有効期限が切れました');
+            break;
+          case 423:
+            setError('対戦中のため入室できません');
+            break;
+          default:
+            setError('参加に失敗しました');
+            break;
+        }
+      }
+    } catch (err) {
+      setError('ネットワークエラーが発生しました');
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -54,9 +97,14 @@ export default function FriendJoinPage() {
 
               <button
                 onClick={handleJoinRoom}
-                className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                disabled={isJoining}
+                className={`w-full py-3 rounded-md font-semibold transition-colors ${
+                  isJoining
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
               >
-                参加する
+                {isJoining ? '参加中...' : '参加する'}
               </button>
             </div>
           </div>

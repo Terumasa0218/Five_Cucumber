@@ -1,11 +1,11 @@
 'use client';
 
+import { useI18n } from '@/hooks/useI18n';
 import { fetchJSON } from '@/lib/http';
 import { validateNickname } from '@/lib/nickname';
-import { getProfile, resetProfile, setHasProfile, setProfile } from '@/lib/profile';
+import { getProfile, resetProfile, setProfile } from '@/lib/profile';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
-import { useI18n } from '@/hooks/useI18n';
 
 function SetupForm() {
   const router = useRouter();
@@ -86,9 +86,6 @@ function SetupForm() {
 
     // プロフィール保存
     setProfile({ nickname: r.value });
-    
-    // Cookie設定（サーバ側で設定されるが、クライアント側でも設定）
-    setHasProfile(true);
     
     // 遷移
     const returnTo = searchParams.get('returnTo');

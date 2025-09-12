@@ -1,34 +1,39 @@
 'use client';
 
 import { useI18n } from '@/hooks/useI18n';
-import { getProfile } from '@/lib/profile';
+import { getNickname } from '@/utils/user';
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Home() {
   const [gateStatus, setGateStatus] = useState<string>('');
-  const [profile, setProfile] = useState(getProfile());
+  const [nickname, setNickname] = useState<string | null>(null);
   const { language, changeLanguage, t } = useI18n();
 
   useEffect(() => {
     document.title = `${t('homeTitle')} | Five Cucumber`;
     
+    // ニックネームを取得
+    setNickname(getNickname());
+    
     // middleware判定ヘッダを取得（開発時のみ表示）
-    fetch('/home', { method: 'HEAD' })
-      .then(response => {
-        const gateHeader = response.headers.get('x-profile-gate');
-        setGateStatus(gateHeader || 'unknown');
-      })
-      .catch(() => setGateStatus('error'));
+    if (process.env.NODE_ENV === 'development') {
+      fetch('/home', { method: 'HEAD' })
+        .then(response => {
+          const gateHeader = response.headers.get('x-profile-gate');
+          setGateStatus(gateHeader || 'unknown');
+        })
+        .catch(() => setGateStatus('error'));
+    }
     
     // プロフィール変更を監視
     const handleStorageChange = () => {
-      setProfile(getProfile());
+      setNickname(getNickname());
     };
     
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [t]);
 
   return (
     <main className="page-home min-h-screen w-full flex items-center justify-center relative">
@@ -44,9 +49,14 @@ export default function Home() {
           <p className="text-lg md:text-xl text-gray-700 mb-4 font-medium">
             {t('homeSubtitle')}
           </p>
-          {profile?.nickname && (
+          {nickname && (
             <p className="text-base text-green-700 font-semibold bg-green-50 rounded-full px-4 py-2 inline-block">
-              {t('welcomeMessage', { name: profile.nickname })}
+              {t('welcomeMessage', { name: nickname })}
+            </p>
+          )}
+          {!nickname && (
+            <p className="text-base text-gray-600 bg-gray-50 rounded-full px-4 py-2 inline-block">
+              ユーザー名: 未設定
             </p>
           )}
           

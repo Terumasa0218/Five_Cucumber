@@ -1,31 +1,59 @@
 'use client';
 
-import { createRoom } from "@/lib/roomMock";
+import { getNickname } from "@/utils/user";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function FriendCreatePage() {
   const router = useRouter();
-  const [settings, setSettings] = useState({
-    size: 4,
-    cucumber: 5,
-    limit: 15
-  });
+  const [roomSize, setRoomSize] = useState(4);
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = 'ルーム作成 | Five Cucumber';
   }, []);
 
-  const handleSettingChange = (key: string, value: number) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-  };
+  const handleCreateRoom = async () => {
+    const nickname = getNickname();
+    if (!nickname) {
+      router.push('/setup?returnTo=/friend/create');
+      return;
+    }
 
-  const isAllSettingsComplete = settings.size && settings.cucumber && settings.limit;
+    setIsCreating(true);
+    setError(null);
 
-  const handleCreateRoom = () => {
-    if (isAllSettingsComplete) {
-      const room = createRoom(settings);
-      router.push(`/room/${room.code}`);
+    try {
+      const res = await fetch('/api/friend/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomSize, nickname })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.roomId) {
+          router.push(`/friend/room/${data.roomId}`);
+        } else {
+          setError('ルーム作成に失敗しました');
+        }
+      } else {
+        switch (res.status) {
+          case 400:
+            setError('入力内容に問題があります');
+            break;
+          case 500:
+            setError('サーバーエラーが発生しました');
+            break;
+          default:
+            setError('ルーム作成に失敗しました');
+        }
+      }
+    } catch (err) {
+      setError('ネットワークエラーが発生しました');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -37,16 +65,17 @@ export default function FriendCreatePage() {
           
           <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-md mx-auto">
             <div className="space-y-6">
-              {/* 人数 */}
+              {/* 人数選択 */}
               <div>
                 <label className="block text-sm font-medium mb-2">人数</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[2, 3, 4, 5, 6].map(num => (
                     <button
                       key={num}
-                      onClick={() => handleSettingChange('size', num)}
-                      className={`opt ${settings.size === num ? 'selected' : ''}`}
-                      aria-pressed={settings.size === num}
+                      onClick={() => setRoomSize(num)}
+                      className={`opt ${roomSize === num ? 'selected' : ''}`}
+                      aria-pressed={roomSize === num}
+                      disabled={isCreating}
                     >
                       {num}人
                     </button>
@@ -54,50 +83,23 @@ export default function FriendCreatePage() {
                 </div>
               </div>
 
-              {/* きゅうり数 */}
-              <div>
-                <label className="block text-sm font-medium mb-2">きゅうり数</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[3, 4, 5, 6, 7].map(num => (
-                    <button
-                      key={num}
-                      onClick={() => handleSettingChange('cucumber', num)}
-                      className={`opt ${settings.cucumber === num ? 'selected' : ''}`}
-                      aria-pressed={settings.cucumber === num}
-                    >
-                      {num}本
-                    </button>
-                  ))}
+              {/* エラー表示 */}
+              {error && (
+                <div className="p-3 bg-red-100 border border-red-300 rounded-md">
+                  <p className="text-red-600 text-sm">{error}</p>
                 </div>
-              </div>
-
-              {/* 制限時間 */}
-              <div>
-                <label className="block text-sm font-medium mb-2">制限時間（秒）</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[10, 15, 20, 30, 60].map(num => (
-                    <button
-                      key={num}
-                      onClick={() => handleSettingChange('limit', num)}
-                      className={`opt ${settings.limit === num ? 'selected' : ''}`}
-                      aria-pressed={settings.limit === num}
-                    >
-                      {num}秒
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
 
               <button
                 onClick={handleCreateRoom}
-                disabled={!isAllSettingsComplete}
+                disabled={isCreating}
                 className={`w-full py-3 rounded-md font-semibold transition-colors ${
-                  isAllSettingsComplete
-                    ? 'bg-green-600 text-white hover:bg-green-700'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  isCreating
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
                 }`}
               >
-                ルーム作成
+                {isCreating ? '作成中...' : 'ルーム作成'}
               </button>
             </div>
           </div>

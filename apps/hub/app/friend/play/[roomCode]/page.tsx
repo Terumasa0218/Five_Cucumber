@@ -1,6 +1,7 @@
 'use client';
 
 import { EllipseTable, Timer } from '@/components/ui';
+import { delay, runAnimation } from '@/lib/animQueue';
 import {
     applyMove,
     createInitialState,
@@ -13,9 +14,8 @@ import {
     Move,
     SeededRng
 } from '@/lib/game-core';
-import { delay, runAnimation } from '@/lib/animQueue';
-import { getProfile } from '@/lib/profile';
-import { getRoom } from '@/lib/roomMock';
+import { getRoom } from '@/lib/roomSystem';
+import { getNickname } from '@/utils/user';
 import { useParams, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import '../../../cucumber/cpu/play/game.css';
@@ -43,17 +43,17 @@ function FriendPlayContent() {
     
     setRoomInfo(room);
     
-    const profile = getProfile();
-    if (!profile?.nickname) {
-      router.push('/setup');
+    const nickname = getNickname();
+    if (!nickname) {
+      router.push(`/setup?returnTo=/friend/play/${roomCode}`);
       return;
     }
     
-    // ゲーム設定を作成
+    // ゲーム設定を作成（新しいルームシステムに対応）
     const config: GameConfig = {
       players: room.size,
-      turnSeconds: room.limit,
-      maxCucumbers: room.cucumber,
+      turnSeconds: 30, // デフォルト30秒
+      maxCucumbers: 6, // デフォルト6本
       initialCards: 7,
       cpuLevel: 'easy', // フレンド対戦ではCPUレベルは関係ない
       minTurnMs: 500,
@@ -195,9 +195,10 @@ function FriendPlayContent() {
           <div className="participants-info">
             <h3>参加者</h3>
             <div className="participants-list">
-              {roomInfo.participants.map((name: string, index: number) => (
-                <div key={index} className={`participant ${index === 0 ? 'current-player' : ''}`}>
-                  {name}
+              {roomInfo.seats.filter((seat: any) => seat !== null).map((seat: any, index: number) => (
+                <div key={index} className={`participant ${index === 0 ? 'current-player host' : ''}`}>
+                  {seat.nickname}
+                  {index === 0 && <span className="host-badge">★</span>}
                 </div>
               ))}
             </div>

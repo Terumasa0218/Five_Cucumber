@@ -1,6 +1,7 @@
 'use client';
 
 import { EllipseTable, Timer } from '@/components/ui';
+import { delay, runAnimation } from '@/lib/animQueue';
 import {
     applyMove,
     createGameView,
@@ -16,10 +17,9 @@ import {
     SeededRng,
     startNewRound
 } from '@/lib/game-core';
-import { delay, runAnimation } from '@/lib/animQueue';
 import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState, Suspense } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import './game.css';
 
 function CpuPlayContent() {
@@ -108,14 +108,14 @@ function CpuPlayContent() {
 
   // CPU手番の処理をuseEffectで分離
   useEffect(() => {
-    if (!gameState || gameState.currentPlayer === 0 || gameOver) return;
+    if (!gameState || gameState.currentPlayer === 0 || gameOver || gameState.phase !== "AwaitMove") return;
     
     const timer = setTimeout(() => {
       playCpuTurn();
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [gameState?.currentPlayer, gameState?.currentTrick, gameOver]);
+  }, [gameState?.currentPlayer, gameState?.phase, gameOver]);
 
   const playMove = async (player: number, card: number) => {
     if (!gameRef.current) return;
