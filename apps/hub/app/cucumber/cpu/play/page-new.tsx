@@ -193,8 +193,9 @@ function CpuPlayNewContent() {
   }
 
   return (
-    <div className="game-root">
-      <div className="game-container">
+    <div className="page-game">
+      <div className="game-root">
+        <div className="game-container">
         <div className="hud-left">
            <div className="round-indicator" id="roundInfo">
              第{gameState.currentRound}回戦<br />
@@ -259,6 +260,7 @@ function CpuPlayNewContent() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

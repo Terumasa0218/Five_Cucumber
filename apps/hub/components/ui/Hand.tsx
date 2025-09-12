@@ -2,6 +2,7 @@
 
 import { getCucumberIcons, getLegalMoves } from '@/lib/game-core/rules';
 import { GameState } from '@/lib/game-core/types';
+import { useEffect, useState } from 'react';
 
 interface HandProps {
   state: GameState;
@@ -14,9 +15,15 @@ export function Hand({ state, playerIndex, onCardClick, className = '' }: HandPr
   const hand = state.players[playerIndex]?.hand || [];
   const legalMoves = getLegalMoves(state, playerIndex);
   const isMyTurn = state.currentPlayer === playerIndex;
+  const [locked, setLocked] = useState(false);
+
+  // 手番が進む or 新しいトリック開始でロック解除
+  useEffect(() => {
+    setLocked(false);
+  }, [state.currentPlayer, state.currentTrick]);
 
   const getCardClassName = (card: number): string => {
-    if (!isMyTurn) return 'card disabled';
+    if (!isMyTurn || locked) return 'card disabled';
     
     if (legalMoves.includes(card)) {
       if (state.fieldCard === null || card >= state.fieldCard) {
@@ -30,13 +37,14 @@ export function Hand({ state, playerIndex, onCardClick, className = '' }: HandPr
   };
 
   const handleCardClick = (card: number) => {
-    if (isMyTurn && legalMoves.includes(card) && onCardClick) {
-      onCardClick(card);
-    }
+    if (!isMyTurn || locked || !legalMoves.includes(card) || !onCardClick) return;
+    
+    setLocked(true);
+    onCardClick(card);
   };
 
   return (
-    <div className={`player-hand ${className}`} id="playerHand">
+    <div className={`player-hand ${locked ? 'is-locked' : ''} ${className}`} id="playerHand">
       {hand.map((card, index) => (
         <div
           key={`${card}-${index}`}

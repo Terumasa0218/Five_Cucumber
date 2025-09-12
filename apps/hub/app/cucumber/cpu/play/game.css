@@ -3,6 +3,7 @@
   position: relative;
   min-height: 100vh;
   background: url("/assets/背景５.png") center/cover no-repeat fixed;
+  z-index: 0; /* レイヤー背景 */
 }
 
 /* 文字の可読性を上げる薄いビネット */
@@ -36,6 +37,7 @@
   position: relative;
   width: 100%;
   height: 100%;
+  z-index: 10; /* レイヤー座席 */
 }
 
 .hud-left {
@@ -74,6 +76,7 @@
   text-align: center;
   line-height: 1.2;
   white-space: nowrap;
+  z-index: 30; /* レイヤーバナー */
 }
 
 .timer-display {
@@ -143,6 +146,23 @@
     0 6px 25px rgba(0, 0, 0, 0.4);
   background: linear-gradient(135deg, rgba(255, 190, 59, 0.25), rgba(255, 190, 59, 0.12));
   animation: glow-pulse 2s infinite alternate;
+}
+
+/* 手番ハイライト（光る枠） */
+.player-zone[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 16px;
+  box-shadow: 0 0 0 2px #ffe7a1, 0 0 16px #ffd15c, 0 0 36px rgba(255, 178, 0, 0.55);
+  animation: pulse 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 2px #ffe7a1, 0 0 10px #ffd15c; }
+  50% { box-shadow: 0 0 0 4px #ffd15c, 0 0 24px #ffb400; }
+  100% { box-shadow: 0 0 0 2px #ffe7a1, 0 0 10px #ffd15c; }
 }
 
 @keyframes glow-pulse {
@@ -240,7 +260,7 @@
   backdrop-filter: blur(15px);
   box-shadow: 0 8px 35px rgba(0, 0, 0, 0.4);
   position: relative;
-  z-index: 10;
+  z-index: 20; /* レイヤー場の1枚 */
 }
 
 .field-title {
@@ -262,7 +282,7 @@
   gap: 15px;
   backdrop-filter: blur(10px);
   box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
-  z-index: 5;
+  z-index: 15; /* レイヤー墓地（場より下） */
 }
 
 .graveyard-title {
@@ -407,6 +427,11 @@
   z-index: 15;
 }
 
+.player-hand.is-locked {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
 .game-over {
   position: fixed;
   top: 0;
@@ -417,7 +442,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1000; /* レイヤーモーダル */
   backdrop-filter: blur(8px);
 }
 
@@ -529,6 +554,12 @@
   }
 }
 
+/* 5/6人時の座席サイズ縮小 */
+.seats-container.players-5 .player-panel,
+.seats-container.players-6 .player-panel {
+  transform: scale(0.88);
+}
+
 @media (max-width: 768px) {
   .game-container {
     grid-template-columns: 130px 1fr 130px;
@@ -536,6 +567,10 @@
     height: calc(100vh - 100px);
     gap: 8px;
     padding: 8px;
+  }
+  
+  .seats-container.players-6 .player-panel {
+    transform: scale(0.8);
   }
   
   .center-area {

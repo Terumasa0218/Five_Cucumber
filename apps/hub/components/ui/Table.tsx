@@ -11,21 +11,25 @@ interface TableProps {
 }
 
 export function Table({ state, config, currentPlayerIndex, onCardClick, className = '' }: TableProps) {
-  const R = 40; // vw基準の半径
   const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C', 'CPU-D', 'CPU-E'];
+  
+  // プレイヤー数に応じて半径を調整
+  const Rvw = Math.max(28, 44 - config.players * 3); // 2..6人で 38→26 くらいに
 
   return (
-    <div className={`seats-container ${className}`}>
+    <div className={`seats-container players-${config.players} ${className}`}>
       {state.players.map((player, i) => {
-        const angle = (2 * Math.PI * i) / config.players - Math.PI / 2; // 上から時計回り
-        const x = 50 + R * Math.cos(angle);
-        const y = 50 + R * 0.6 * Math.sin(angle); // 楕円
+        const baseAngle = -Math.PI / 2; // 12時開始
+        const angle = baseAngle + (2 * Math.PI * i) / config.players;
+        const x = 50 + Rvw * Math.cos(angle);
+        const y = 50 + Rvw * 0.62 * Math.sin(angle); // 楕円
 
         return (
           <div
             key={i}
             id={`player${i}`}
             className="player-zone"
+            data-active={state.currentPlayer === i}
             style={{
               left: `${x}%`,
               top: `${y}%`,

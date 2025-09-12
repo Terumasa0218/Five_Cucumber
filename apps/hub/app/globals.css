@@ -407,3 +407,13 @@ body {
   background-repeat: no-repeat;
   background-attachment: fixed; /* スクロールで切れない */
 }
+
+/* ゲーム画面では背景４を無効化して背景５のみ表示 */
+.page-game, .page-game body { 
+  background: none !important; 
+}
+
+.page-game {
+  min-height: 100dvh;
+  background: url("/assets/背景５.png") center/cover no-repeat fixed;
+}

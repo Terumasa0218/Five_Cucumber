@@ -863,8 +863,9 @@ function CpuPlayContent() {
   };
 
   return (
-    <div className="game-root">
-      <div className="game-container">
+    <div className="page-game">
+      <div className="game-root">
+        <div className="game-container">
         <div className="hud-left">
           <div className="round-indicator" id="roundInfo">ROUND 1/1</div>
           <div className="timer-display" id="timerDisplay">
@@ -927,6 +928,7 @@ function CpuPlayContent() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
