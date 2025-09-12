@@ -1,6 +1,6 @@
 'use client';
 
-import { Field, Graveyard, Hand, Table, Timer } from '@/components/ui';
+import { EllipseTable, Timer } from '@/components/ui';
 import {
     applyMove,
     createGameView,
@@ -193,7 +193,7 @@ function CpuPlayNewContent() {
   }
 
   return (
-    <div className="page-game">
+    <div className="page-arena">
       <div className="game-root">
         <div className="game-container">
         <header className="hud layer-hud">
@@ -216,20 +216,10 @@ function CpuPlayNewContent() {
           </div>
         </header>
 
-        <Table
+        <EllipseTable
           state={gameState}
           config={gameRef.current?.config || {} as GameConfig}
           currentPlayerIndex={gameState.currentPlayer}
-        />
-
-        <div className="center-area">
-          <Field state={gameState} />
-          <Graveyard state={gameState} />
-        </div>
-
-        <Hand
-          state={gameState}
-          playerIndex={0}
           onCardClick={handleCardClick}
         />
       </div>

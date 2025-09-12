@@ -443,9 +443,10 @@ body {
 }
 
 /* ページ背景 */
-.page-game, .page-home { min-height: 100dvh; }
+.page-game, .page-home, .page-arena { min-height: 100dvh; }
 .page-game { background: url("/assets/背景５.png") center/cover no-repeat fixed; }
 .page-home { background: url("/assets/背景４.png") center/cover no-repeat fixed; }
+.page-arena { background: url("/assets/背景８.png") center/cover no-repeat fixed; }
 
 /* 設定画面の選択状態 */
 .opt {
@@ -467,4 +468,163 @@ body {
 .opt:focus-visible {
   outline: 3px solid #ffd27a;
   outline-offset: 2px;
+}
+
+/* 楕円卓レイアウト（対戦画面専用） */
+.page-arena {
+  position: relative;
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* レイヤー順序を固定 */
+#oval-inner { position: absolute; inset: 0; z-index: 20; }
+#seats { position: absolute; inset: 0; z-index: 15; pointer-events: none; }
+#hand-dock { 
+  position: absolute; 
+  left: 0; 
+  right: 0; 
+  bottom: calc(8px + env(safe-area-inset-bottom, 0));
+  z-index: 30; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  gap: 0.35rem; 
+}
+
+/* 場と墓地（内側楕円の内側に収める） */
+#oval-inner {
+  display: grid; 
+  place-items: center;
+}
+
+#field {
+  width: min(22vw, 300px);
+  aspect-ratio: 3/4;
+  display: grid; 
+  place-items: center;
+}
+
+#grave {
+  position: absolute;
+  right: calc(50% - min(24vw, 320px));
+  top: 50%;
+  transform: translateY(-50%);
+  width: min(12vw, 160px);
+  aspect-ratio: 3/4;
+  display: grid; 
+  place-items: center;
+  opacity: 0.95;
+}
+
+/* 座席ボックス */
+#seats .seat {
+  position: absolute;
+  width: clamp(180px, 18vw, 240px);
+  height: clamp(90px, 9vw, 130px);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+#seats .seat .content {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  padding: 0.5rem 0.7rem;
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* 5/6人で軽く縮小して重なり回避 */
+#seats.players-5 .seat { transform: translate(-50%, -50%) scale(0.9); }
+#seats.players-6 .seat { transform: translate(-50%, -50%) scale(0.86); }
+
+/* 手番ハイライト（枠を光らせる） */
+#seats .seat[data-active="true"] .content {
+  box-shadow: 0 0 0 2px #ffe7a1, 0 0 16px #ffd15c, 0 0 36px rgba(255, 178, 0, 0.55), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* 手札ドック（下辺中央） */
+#hand-dock .me-name {
+  font-weight: 600;
+  font-size: clamp(14px, 1.2vw, 18px);
+  padding: 0.2rem 0.6rem;
+  color: #f5efe4;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+#hand-dock .hand {
+  display: flex; 
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+}
+
+/* 画面幅が狭い時は全体的に軸を小さく */
+@media (max-width: 640px) {
+  #seats .seat { width: 42vw; height: 22vw; }
+  #field { width: 40vw; }
+  #grave { width: 22vw; right: calc(50% - 44vw); }
+}
+
+/* 楕円卓用の追加スタイル */
+.player-name {
+  color: white;
+  font-weight: bold;
+  font-size: 1.1em;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.player-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.9em;
+}
+
+.cucumber-count {
+  color: #f7465f;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.cards-count {
+  color: #3199ff;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.player-hand-visual {
+  display: flex;
+  gap: 3px;
+  max-width: 90px;
+  flex-wrap: wrap;
+}
+
+.mini-card {
+  width: 14px;
+  height: 20px;
+  background: linear-gradient(135deg, #3199ff, #2a7dd1);
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.graveyard-card {
+  width: 28px;
+  height: 40px;
+  background: linear-gradient(135deg, #666, #555);
+  color: white;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
+  font-weight: bold;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
 }
