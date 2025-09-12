@@ -101,8 +101,11 @@ export default function RoomWaitingPage() {
 
   if (error) {
     return (
-      <main className="page-home min-h-screen w-full pt-20">
-        <div className="container mx-auto px-4 text-center">
+      <main className="page-home min-h-screen w-full pt-20 relative">
+        {/* 背景オーバーレイ */}
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+        
+        <div className="container mx-auto px-4 text-center relative z-10">
           <div className="bg-red-100 border border-red-300 rounded-lg p-6 max-w-md mx-auto">
             <p className="text-red-600 font-semibold">{error}</p>
             <Link 
@@ -119,9 +122,12 @@ export default function RoomWaitingPage() {
 
   if (!room || !nickname) {
     return (
-      <main className="page-home min-h-screen w-full pt-20">
-        <div className="container mx-auto px-4 text-center">
-          <p>読み込み中...</p>
+      <main className="page-home min-h-screen w-full pt-20 relative">
+        {/* 背景オーバーレイ */}
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+        
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <p className="text-white text-xl">読み込み中...</p>
         </div>
       </main>
     );
@@ -132,11 +138,14 @@ export default function RoomWaitingPage() {
   const isFull = filledSeats === room.size;
 
   return (
-    <main className="page-home min-h-screen w-full pt-20">
-      <div className="container mx-auto px-4">
+    <main className="page-home min-h-screen w-full pt-20 relative">
+      {/* 背景オーバーレイ */}
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+      
+      <div className="container mx-auto px-4 relative z-10">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">ルーム {roomId}</h1>
+          <h1 className="text-3xl font-bold text-white drop-shadow-lg">ルーム {roomId}</h1>
           <div className="space-x-2">
             <Link 
               href="/rules" 

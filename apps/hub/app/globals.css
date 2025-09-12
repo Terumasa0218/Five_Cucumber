@@ -353,6 +353,28 @@
   .main {
     padding: var(--space-sm);
   }
+  
+  /* モバイルでの背景調整 */
+  body {
+    background-size: cover;
+    background-position: center center;
+  }
+  
+  .page-game, .page-arena {
+    background-size: cover;
+    background-position: center center;
+  }
+  
+  /* モバイルでのテキスト可読性向上 */
+  .bg-black\/30 {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+  }
+  
+  /* 手札のサイズ調整 */
+  .hand .card {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.6rem;
+  }
 }
 
 /* Game-specific overrides */
@@ -402,27 +424,26 @@ header{ background: transparent !important; box-shadow: none !important; backdro
   }
 }
 
-/* === 背景設定（1枚のみ） === */
+/* === 背景設定 === */
 html, body { 
   min-height: 100%; 
+  margin: 0;
+  padding: 0;
 }
 
+/* デフォルト背景（ホーム用） */
 body {
   background-image: url('/images/bg-home-04.png');
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
-  background-attachment: fixed; /* スクロールで切れない */
+  background-attachment: fixed;
 }
 
-/* ゲーム画面では背景４を無効化して背景５のみ表示 */
-.page-game, .page-game body { 
-  background: none !important; 
-}
-
-.page-game {
-  min-height: 100dvh;
-  background: url("/images/bg-game-05.png") center/cover no-repeat fixed;
+/* 特定ページでの背景オーバーライド */
+.page-game body,
+.page-arena body {
+  background: none !important;
 }
 
 /* レイヤー管理 */
@@ -443,10 +464,23 @@ body {
 }
 
 /* ページ背景 */
-.page-game, .page-home, .page-arena { min-height: 100dvh; }
-.page-game { background: url("/images/bg-game-05.png") center/cover no-repeat fixed; }
-.page-home { background: url("/images/bg-home-04.png") center/cover no-repeat fixed; }
-.page-arena { background: url("/images/bg-board-08.png") center/cover no-repeat fixed; }
+.page-game, .page-home, .page-arena { 
+  min-height: 100dvh; 
+  position: relative;
+}
+
+.page-game { 
+  background: url("/images/bg-game-05.png") center/cover no-repeat fixed;
+}
+
+.page-arena { 
+  background: url("/images/bg-board-08.png") center/cover no-repeat fixed;
+}
+
+/* ホーム画面は body の背景を使用 */
+.page-home {
+  background: none; /* bodyの背景を使用 */
+}
 
 /* 設定画面の選択状態 */
 .opt {

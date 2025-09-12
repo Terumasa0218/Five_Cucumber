@@ -70,10 +70,13 @@ export default function FriendJoinPage() {
   };
 
   return (
-    <main className="page-home min-h-screen w-full pt-20">
-      <div className="container mx-auto px-4">
+    <main className="page-home min-h-screen w-full pt-20 relative">
+      {/* 背景オーバーレイ */}
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+      
+      <div className="container mx-auto px-4 relative z-10">
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-8">ルーム参加</h1>
+          <h1 className="text-3xl font-bold mb-8 text-white drop-shadow-lg">ルーム参加</h1>
           
           <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-md mx-auto">
             <div className="space-y-6">
