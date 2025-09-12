@@ -175,7 +175,9 @@ function CpuPlayContent() {
     const { state, config, controllers, rng } = gameRef.current;
     const currentPlayer = state.currentPlayer;
     
-    console.log(`[CPU Turn] Current player: ${currentPlayer}, Phase: ${state.phase}, GameOver: ${gameOver}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[CPU Turn] Current player: ${currentPlayer}, Phase: ${state.phase}, GameOver: ${gameOver}`);
+    }
     
     if (currentPlayer === 0) return; // 人間のターン
     if (state.phase !== "AwaitMove") return; // 適切なフェーズでない
@@ -188,14 +190,18 @@ function CpuPlayContent() {
     
     const hand = state.players[currentPlayer]?.hand;
     const legalMoves = getLegalMoves(state, currentPlayer);
-    console.log(`[CPU ${currentPlayer}] Hand:`, hand, 'Legal moves:', legalMoves, 'Field card:', state.fieldCard);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[CPU ${currentPlayer}] Hand:`, hand, 'Legal moves:', legalMoves, 'Field card:', state.fieldCard);
+    }
     
     const view = createGameView(state, config, currentPlayer);
     
     try {
       const move = await controller.onYourTurn(view);
       if (move !== null && typeof move === 'number') {
-        console.log(`[CPU ${currentPlayer}] Selected move:`, move);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[CPU ${currentPlayer}] Selected move:`, move);
+        }
         
         // 合法性を再確認
         if (!legalMoves.includes(move)) {
