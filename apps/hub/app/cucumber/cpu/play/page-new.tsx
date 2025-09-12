@@ -196,30 +196,25 @@ function CpuPlayNewContent() {
     <div className="page-game">
       <div className="game-root">
         <div className="game-container">
-        <div className="hud-left">
-           <div className="round-indicator" id="roundInfo">
-             第{gameState.currentRound}回戦<br />
-             <span style={{ whiteSpace: 'nowrap' }}>第{gameState.currentTrick}ラウンド</span>
-           </div>
-          <Timer
-            turnSeconds={gameRef.current?.config.turnSeconds || null}
-            isActive={gameState.currentPlayer === 0}
-            onTimeout={handleTimeout}
-          />
-        </div>
-        
-        <div className="hud-center">
-          <div className="game-title">🥒 ５本のきゅうり 🥒</div>
-        </div>
-        
-        <div className="hud-right">
-          <button
-            onClick={handleBackToHome}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
-          >
-            ホーム
-          </button>
-        </div>
+        <header className="hud layer-hud">
+          <div className="hud-left">
+            <div className="round-indicator" id="roundInfo">
+              第{gameState.currentRound}回戦 / 第{gameState.currentTrick}トリック
+            </div>
+          </div>
+          
+          <div className="hud-center">
+            <Timer
+              turnSeconds={gameRef.current?.config.turnSeconds || null}
+              isActive={gameState.currentPlayer === 0}
+              onTimeout={handleTimeout}
+            />
+          </div>
+          
+          <div className="hud-right">
+            <a href="/home" className="btn">ホーム</a>
+          </div>
+        </header>
 
         <Table
           state={gameState}

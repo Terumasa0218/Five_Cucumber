@@ -36,6 +36,9 @@ export function Table({ state, config, currentPlayerIndex, onCardClick, classNam
             }}
           >
             <div className={`player-panel ${i === currentPlayerIndex ? 'current-turn' : ''}`}>
+              <div className="turn-badge" hidden={state.currentPlayer !== i}>
+                {i === 0 ? 'あなたの番' : `${playerNames[i]}の番`}
+              </div>
               <div className="player-info">
                 <div className="player-name">{playerNames[i]}</div>
                 <div className="player-stats">

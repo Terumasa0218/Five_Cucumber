@@ -23,17 +23,17 @@ export function Hand({ state, playerIndex, onCardClick, className = '' }: HandPr
   }, [state.currentPlayer, state.currentTrick]);
 
   const getCardClassName = (card: number): string => {
-    if (!isMyTurn || locked) return 'card disabled';
+    if (!isMyTurn || locked) return 'card is-disabled';
     
     if (legalMoves.includes(card)) {
       if (state.fieldCard === null || card >= state.fieldCard) {
-        return 'card playable';
+        return 'card is-legal';
       } else {
-        return 'card discard';
+        return 'card is-legal discard';
       }
     }
     
-    return 'card disabled';
+    return 'card is-disabled';
   };
 
   const handleCardClick = (card: number) => {

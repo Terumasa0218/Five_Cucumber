@@ -58,11 +58,8 @@ export default function CpuSettings() {
                 <button
                   key={num}
                   onClick={() => handleSettingChange('players', num)}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    settings.players === num
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`opt ${settings.players === num ? 'selected' : ''}`}
+                  aria-pressed={settings.players === num}
                 >
                   {num}人
                 </button>
@@ -82,11 +79,8 @@ export default function CpuSettings() {
                 <button
                   key={option.value}
                   onClick={() => handleSettingChange('turnSeconds', option.value)}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    settings.turnSeconds === option.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`opt ${settings.turnSeconds === option.value ? 'selected' : ''}`}
+                  aria-pressed={settings.turnSeconds === option.value}
                 >
                   {option.label}
                 </button>
@@ -102,11 +96,8 @@ export default function CpuSettings() {
                 <button
                   key={num}
                   onClick={() => handleSettingChange('maxCucumbers', num)}
-                  className={`p-3 rounded-lg border-2 transition-all ${
-                    settings.maxCucumbers === num
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`opt ${settings.maxCucumbers === num ? 'selected' : ''}`}
+                  aria-pressed={settings.maxCucumbers === num}
                 >
                   {num}本
                 </button>
@@ -126,11 +117,8 @@ export default function CpuSettings() {
                 <button
                   key={option.value}
                   onClick={() => handleSettingChange('cpuLevel', option.value)}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    settings.cpuLevel === option.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`opt ${settings.cpuLevel === option.value ? 'selected' : ''}`}
+                  aria-pressed={settings.cpuLevel === option.value}
                 >
                   <div className="font-semibold">{option.label}</div>
                   <div className="text-sm text-gray-600">{option.desc}</div>

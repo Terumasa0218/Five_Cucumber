@@ -40,22 +40,33 @@
   z-index: 10; /* レイヤー座席 */
 }
 
+/* HUD（上部の情報帯） */
+.hud {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--panel-border);
+  backdrop-filter: blur(6px);
+}
+
 .hud-left {
-  grid-area: hud-left;
   display: flex;
   align-items: center;
   gap: 20px;
 }
 
 .hud-center {
-  grid-area: hud-center;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .hud-right {
-  grid-area: hud-right;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -80,16 +91,14 @@
 }
 
 .timer-display {
-  background: linear-gradient(135deg, #ffbe3b, #e6a82d);
-  color: #2d2d2d;
-  padding: 12px 20px;
-  border-radius: 25px;
+  background: #e85d5d;
+  color: #fff;
+  border-radius: 22px;
+  padding: 0.3rem 0.9rem;
   font-weight: bold;
   font-size: 1em;
-  border: 3px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   transition: all 0.3s ease;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .timer-display.warning {
@@ -163,6 +172,19 @@
   0% { box-shadow: 0 0 0 2px #ffe7a1, 0 0 10px #ffd15c; }
   50% { box-shadow: 0 0 0 4px #ffd15c, 0 0 24px #ffb400; }
   100% { box-shadow: 0 0 0 2px #ffe7a1, 0 0 10px #ffd15c; }
+}
+
+.turn-badge {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  padding: 0.1rem 0.4rem;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 @keyframes glow-pulse {
@@ -430,6 +452,18 @@
 .player-hand.is-locked {
   pointer-events: none;
   opacity: 0.6;
+}
+
+/* カードの可視化 */
+.card.is-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  filter: grayscale(0.3);
+}
+
+.card.is-legal {
+  outline: 2px solid #ffd27a;
+  box-shadow: 0 0 10px rgba(255, 210, 122, 0.5);
 }
 
 .game-over {

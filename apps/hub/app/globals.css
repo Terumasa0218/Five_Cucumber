@@ -12,6 +12,13 @@
   --antique-muted: #6B6B6B;
   --antique-border: #D4C4A8;
   --antique-shadow: rgba(43, 43, 43, 0.1);
+  
+  /* ゲーム専用カラーパレット */
+  --ivy-green: #2e5031;
+  --gold: #c8b27a;
+  --ivory: #f5efe4;
+  --panel-bg: rgba(0, 0, 0, 0.28);
+  --panel-border: rgba(255, 255, 255, 0.18);
 }
 
 /* === アンティーク調フォント === */
@@ -416,4 +423,48 @@ body {
 .page-game {
   min-height: 100dvh;
   background: url("/assets/背景５.png") center/cover no-repeat fixed;
+}
+
+/* レイヤー管理 */
+.layer-bg { z-index: 0; }
+.layer-seats { z-index: 10; }
+.layer-grave { z-index: 15; }
+.layer-field { z-index: 20; }
+.layer-hud { z-index: 30; }
+.layer-modal { z-index: 1000; }
+
+/* パネル共通スタイル */
+.panel {
+  background: var(--panel-bg);
+  border: 1.5px solid var(--panel-border);
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* ページ背景 */
+.page-game, .page-home { min-height: 100dvh; }
+.page-game { background: url("/assets/背景５.png") center/cover no-repeat fixed; }
+.page-home { background: url("/assets/背景４.png") center/cover no-repeat fixed; }
+
+/* 設定画面の選択状態 */
+.opt {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.65);
+  transition: 0.15s;
+  cursor: pointer;
+}
+
+.opt.selected {
+  background: linear-gradient(#2f6b46, #1e5b3f);
+  color: #fff;
+  border-color: var(--gold);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+.opt:focus-visible {
+  outline: 3px solid #ffd27a;
+  outline-offset: 2px;
 }
