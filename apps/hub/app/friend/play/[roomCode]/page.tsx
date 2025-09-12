@@ -10,6 +10,7 @@ import {
     GameConfig,
     GameState,
     getEffectiveTurnSeconds,
+    getLegalMoves,
     getMinResolveMs,
     Move,
     SeededRng

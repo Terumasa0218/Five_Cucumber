@@ -11,6 +11,7 @@ import {
     GameConfig,
     GameState,
     getEffectiveTurnSeconds,
+    getLegalMoves,
     getMinResolveMs,
     Move,
     PlayerController,
@@ -88,14 +89,27 @@ function CpuPlayContent() {
         
         if (savedGameRef && savedGameState) {
           console.log('[Game] Restoring saved game state');
+          
+          // 新しいテーブル設定を作成（復元用）
+          const table = createCpuTableFromUrlParams(searchParams);
           const rng = new SeededRng();
           if (savedGameRef.rng) {
             rng.setState(savedGameRef.rng);
           }
+          
+          // 最小ペース制御の設定
+          table.config.minTurnMs = 500;
+          table.config.minResolveMs = 600;
+          
+          // ゲーム参照を再構築（コントローラーを含む）
           gameRef.current = {
-            ...savedGameRef,
-            rng
+            state: savedGameState,
+            config: table.config,
+            controllers: table.controllers, // 新しく作成されたコントローラーを使用
+            rng,
+            humanController: table.humanController
           };
+          
           setGameState(savedGameState);
           setGameOver(savedGameOver || false);
           setGameOverData(savedGameOverData || []);
@@ -161,34 +175,56 @@ function CpuPlayContent() {
     const { state, config, controllers, rng } = gameRef.current;
     const currentPlayer = state.currentPlayer;
     
+    console.log(`[CPU Turn] Current player: ${currentPlayer}, Phase: ${state.phase}, GameOver: ${gameOver}`);
+    
     if (currentPlayer === 0) return; // 人間のターン
     if (state.phase !== "AwaitMove") return; // 適切なフェーズでない
     
     const controller = controllers[currentPlayer];
+    if (!controller) {
+      console.error(`[CPU ${currentPlayer}] Controller not found!`);
+      return;
+    }
+    
+    const hand = state.players[currentPlayer]?.hand;
+    const legalMoves = getLegalMoves(state, currentPlayer);
+    console.log(`[CPU ${currentPlayer}] Hand:`, hand, 'Legal moves:', legalMoves, 'Field card:', state.fieldCard);
+    
     const view = createGameView(state, config, currentPlayer);
     
     try {
       const move = await controller.onYourTurn(view);
       if (move !== null && typeof move === 'number') {
-        console.log(`[CPU ${currentPlayer}] Playing card:`, move);
+        console.log(`[CPU ${currentPlayer}] Selected move:`, move);
+        
+        // 合法性を再確認
+        if (!legalMoves.includes(move)) {
+          console.error(`[CPU ${currentPlayer}] Selected illegal move:`, move, 'Legal moves:', legalMoves);
+          // 最初の合法手を使用
+          const fallbackMove = legalMoves[0];
+          if (fallbackMove !== undefined) {
+            console.log(`[CPU ${currentPlayer}] Using first legal move:`, fallbackMove);
+            await playMove(currentPlayer, fallbackMove);
+          }
+          return;
+        }
+        
         await playMove(currentPlayer, move);
-      } else {
+    } else {
         console.warn(`[CPU ${currentPlayer}] No valid move returned:`, move);
-        // フォールバック：最初の有効なカードを出す
-        const hand = state.players[currentPlayer]?.hand;
-        if (hand && hand.length > 0) {
-          const fallbackMove = hand[0];
-          console.log(`[CPU ${currentPlayer}] Using fallback move:`, fallbackMove);
+        // フォールバック：最初の合法手を出す
+        if (legalMoves.length > 0) {
+          const fallbackMove = legalMoves[0];
+          console.log(`[CPU ${currentPlayer}] Using fallback legal move:`, fallbackMove);
           await playMove(currentPlayer, fallbackMove);
         }
       }
     } catch (error) {
       console.error(`[CPU ${currentPlayer}] Turn error:`, error);
       // エラー時のフォールバック処理
-      const hand = state.players[currentPlayer]?.hand;
-      if (hand && hand.length > 0) {
-        const fallbackMove = hand[0];
-        console.log(`[CPU ${currentPlayer}] Error fallback move:`, fallbackMove);
+      if (legalMoves.length > 0) {
+        const fallbackMove = legalMoves[0];
+        console.log(`[CPU ${currentPlayer}] Error fallback legal move:`, fallbackMove);
         await playMove(currentPlayer, fallbackMove);
       }
     }
@@ -214,19 +250,26 @@ function CpuPlayContent() {
       await runAnimation(async () => {
         const { state, config, controllers, rng } = gameRef.current!;
         
-        // フェーズチェック
+        // フェーズと現在プレイヤーの厳密チェック
         if (state.phase !== "AwaitMove") {
-          console.warn('Move attempted during invalid phase:', state.phase);
+          console.warn(`Move attempted during invalid phase: ${state.phase}`);
+          return;
+        }
+        
+        if (state.currentPlayer !== player) {
+          console.warn(`Move attempted by wrong player: ${player}, expected: ${state.currentPlayer}`);
           return;
         }
         
         const move: Move = { player, card, timestamp: Date.now() };
+        console.log(`[PlayMove] Player ${player} playing card ${card}, Phase: ${state.phase}`);
         
         const result = applyMove(state, move, config, rng);
         if (!result.success) {
-          console.error('Invalid move:', result.message || 'Unknown error');
-          return;
-        }
+          console.error(`Invalid move by player ${player}:`, result.message || 'Unknown error');
+          console.error(`Hand:`, state.players[player]?.hand, `Field card:`, state.fieldCard);
+      return;
+    }
 
       let newState = result.newState;
       
@@ -279,12 +322,27 @@ function CpuPlayContent() {
         setGameState(newState);
       });
     } catch (error) {
-      console.error('Error in playMove:', error);
-      // エラーが発生した場合、ゲームが止まらないように次のプレイヤーに進む
+      console.error(`Error in playMove for player ${player}:`, error);
+      
+      // エラーが発生した場合の復旧処理
       if (gameRef.current && !gameOver) {
-        const { state } = gameRef.current;
+        const { state, config, rng } = gameRef.current;
+        console.log(`[Recovery] Current state - Player: ${state.currentPlayer}, Phase: ${state.phase}`);
+        
+        // フェーズがおかしい場合は AwaitMove に戻す
+        if (state.phase !== "AwaitMove" && state.phase !== "GameEnd") {
+          console.log('[Recovery] Resetting phase to AwaitMove');
+          state.phase = "AwaitMove";
+          gameRef.current.state = state;
+          setGameState({...state});
+        }
+        
+        // CPUターンが必要な場合は継続
         if (state.phase === "AwaitMove" && state.currentPlayer !== 0) {
-          setTimeout(() => playCpuTurn(), 1000);
+    setTimeout(() => {
+            console.log('[Recovery] Resuming CPU turn after error');
+            playCpuTurn();
+          }, 1500);
         }
       }
     }
