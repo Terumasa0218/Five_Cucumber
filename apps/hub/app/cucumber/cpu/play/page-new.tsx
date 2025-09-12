@@ -93,6 +93,17 @@ function CpuPlayNewContent() {
     }
   };
 
+  // CPU手番の処理をuseEffectで分離
+  useEffect(() => {
+    if (!gameState || gameState.currentPlayer === 0 || gameOver) return;
+    
+    const timer = setTimeout(() => {
+      playCpuTurn();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [gameState?.currentPlayer, gameState?.currentTrick, gameOver]);
+
   const playMove = async (player: number, card: number) => {
     if (!gameRef.current) return;
     
@@ -142,9 +153,7 @@ function CpuPlayNewContent() {
     setGameState(newState);
     
     // 次のプレイヤーのターン
-    if (newState.currentPlayer !== 0) {
-      setTimeout(() => playCpuTurn(), 1000);
-    }
+    // CPU手番はuseEffectで処理される
   };
 
   const handleCardClick = (card: number) => {
@@ -155,6 +164,17 @@ function CpuPlayNewContent() {
     if (state.currentPlayer === 0) {
       humanController.playCard(card);
       playMove(0, card);
+    }
+  };
+
+  const handleTimeout = () => {
+    if (!gameRef.current || gameState?.currentPlayer !== 0) return;
+    
+    // 自動プレイ
+    const legalMoves = gameState.players[0].hand;
+    if (legalMoves.length > 0) {
+      const minCard = Math.min(...legalMoves);
+      handleCardClick(minCard);
     }
   };
 
@@ -183,16 +203,7 @@ function CpuPlayNewContent() {
           <Timer
             turnSeconds={gameRef.current?.config.turnSeconds || null}
             isActive={gameState.currentPlayer === 0}
-            onTimeout={() => {
-              if (gameState.currentPlayer === 0) {
-                // 自動プレイ
-                const legalMoves = gameState.players[0].hand;
-                if (legalMoves.length > 0) {
-                  const minCard = Math.min(...legalMoves);
-                  handleCardClick(minCard);
-                }
-              }
-            }}
+            onTimeout={handleTimeout}
           />
         </div>
         
