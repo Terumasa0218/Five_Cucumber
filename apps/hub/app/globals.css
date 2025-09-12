@@ -408,7 +408,7 @@ html, body {
 }
 
 body {
-  background-image: url('/assets/背景４.png');
+  background-image: url('/assets/bg-home.png');
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -422,7 +422,7 @@ body {
 
 .page-game {
   min-height: 100dvh;
-  background: url("/assets/背景５.png") center/cover no-repeat fixed;
+  background: url("/assets/bg-game.png") center/cover no-repeat fixed;
 }
 
 /* レイヤー管理 */
@@ -444,9 +444,9 @@ body {
 
 /* ページ背景 */
 .page-game, .page-home, .page-arena { min-height: 100dvh; }
-.page-game { background: url("/assets/背景５.png") center/cover no-repeat fixed; }
-.page-home { background: url("/assets/背景４.png") center/cover no-repeat fixed; }
-.page-arena { background: url("/assets/背景８.png") center/cover no-repeat fixed; }
+.page-game { background: url("/assets/bg-game.png") center/cover no-repeat fixed; }
+.page-home { background: url("/assets/bg-home.png") center/cover no-repeat fixed; }
+.page-arena { background: url("/assets/bg-arena.png") center/cover no-repeat fixed; }
 
 /* 設定画面の選択状態 */
 .opt {

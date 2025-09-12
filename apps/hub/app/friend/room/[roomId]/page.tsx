@@ -137,7 +137,7 @@ export default function RoomWaitingPage() {
             {/* ルーム情報 */}
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-4">ルーム情報</h2>
-              <div className="bg-gray-50 p-4 rounded-md">
+              <div className="bg-gray-50 p-4 rounded-md space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="font-medium">定員: {room.size}人</span>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -148,6 +148,10 @@ export default function RoomWaitingPage() {
                     {room.status === 'waiting' ? '待機中' :
                      room.status === 'playing' ? '対戦中' : '終了'}
                   </span>
+                </div>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p>制限時間: {room.turnSeconds === 0 ? '無制限' : `${room.turnSeconds}秒`}</p>
+                  <p>きゅうり上限: {room.maxCucumbers}本</p>
                 </div>
               </div>
             </div>

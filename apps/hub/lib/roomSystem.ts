@@ -57,7 +57,7 @@ function clamp(value: number, min: number, max: number): number {
 /**
  * ルームを作成（作成者は seats[0] に固定配置）
  */
-export function createRoom(roomSize: number, nickname: string): { success: boolean; roomId?: string; reason?: string } {
+export function createRoom(roomSize: number, nickname: string, turnSeconds: number = 15, maxCucumbers: number = 6): { success: boolean; roomId?: string; reason?: string } {
   if (!nickname || typeof nickname !== 'string' || !nickname.trim()) {
     return { success: false, reason: 'bad-request' };
   }
@@ -71,7 +71,9 @@ export function createRoom(roomSize: number, nickname: string): { success: boole
     size,
     seats: Array.from({ length: size }, () => null),
     status: 'waiting',
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    turnSeconds: Math.max(0, turnSeconds),
+    maxCucumbers: clamp(maxCucumbers, 4, 6)
   };
 
   // ★ 作成者は必ず先頭席（seats[0]）に配置

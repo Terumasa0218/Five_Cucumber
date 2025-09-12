@@ -49,11 +49,11 @@ function FriendPlayContent() {
       return;
     }
     
-    // ゲーム設定を作成（新しいルームシステムに対応）
+    // ゲーム設定を作成（ルーム設定を使用）
     const config: GameConfig = {
       players: room.size,
-      turnSeconds: 30, // デフォルト30秒
-      maxCucumbers: 6, // デフォルト6本
+      turnSeconds: room.turnSeconds === 0 ? null : room.turnSeconds,
+      maxCucumbers: room.maxCucumbers,
       initialCards: 7,
       cpuLevel: 'easy', // フレンド対戦ではCPUレベルは関係ない
       minTurnMs: 500,

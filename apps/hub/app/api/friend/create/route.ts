@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
   try {
     const body: CreateRoomRequest = await req.json();
-    const { roomSize, nickname } = body;
+    const { roomSize, nickname, turnSeconds, maxCucumbers } = body;
 
     // バリデーション
     if (!nickname || typeof nickname !== 'string' || !nickname.trim()) {
@@ -22,8 +22,22 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       );
     }
 
+    if (typeof turnSeconds !== 'number' || turnSeconds < 0) {
+      return NextResponse.json(
+        { ok: false, reason: 'bad-request' },
+        { status: 400 }
+      );
+    }
+
+    if (!maxCucumbers || typeof maxCucumbers !== 'number' || maxCucumbers < 4 || maxCucumbers > 6) {
+      return NextResponse.json(
+        { ok: false, reason: 'bad-request' },
+        { status: 400 }
+      );
+    }
+
     // ルーム作成
-    const result = createRoom(roomSize, nickname);
+    const result = createRoom(roomSize, nickname, turnSeconds, maxCucumbers);
 
     if (!result.success) {
       return NextResponse.json(

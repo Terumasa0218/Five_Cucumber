@@ -10,11 +10,16 @@ export interface Room {
   seats: RoomSeat[];        // length === size
   status: RoomStatus;
   createdAt: number;
+  // ゲーム設定
+  turnSeconds: number;      // ターン時間（秒）
+  maxCucumbers: number;     // きゅうり上限
 }
 
 export interface CreateRoomRequest {
   roomSize: number;
   nickname: string;
+  turnSeconds: number;
+  maxCucumbers: number;
 }
 
 export interface JoinRoomRequest {
