@@ -10,9 +10,10 @@ interface EllipseTableProps {
   currentPlayerIndex: number;
   onCardClick?: (card: number) => void;
   className?: string;
+  showAllHands?: boolean; // デバッグ用：全員の手札を表示
 }
 
-export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, className = '' }: EllipseTableProps) {
+export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, className = '', showAllHands = false }: EllipseTableProps) {
   const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C', 'CPU-D', 'CPU-E'];
   const mySeatIndex = 0; // プレイヤーは常に0番
   
@@ -91,9 +92,19 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
               </div>
               {i !== 0 && (
                 <div className="player-hand-visual">
-                  {player.hand.map((_, cardIndex) => (
-                    <div key={cardIndex} className="mini-card" />
-                  ))}
+                  {showAllHands ? (
+                    // デバッグモード：実際のカード値を表示
+                    player.hand.map((card, cardIndex) => (
+                      <div key={cardIndex} className="debug-card" title={`カード${card}`}>
+                        {card}
+                      </div>
+                    ))
+                  ) : (
+                    // 通常モード：裏面のカードを表示
+                    player.hand.map((_, cardIndex) => (
+                      <div key={cardIndex} className="mini-card" />
+                    ))
+                  )}
                 </div>
               )}
             </div>

@@ -9,7 +9,8 @@ export default function CpuSettings() {
     players: 4,
     turnSeconds: 15,
     maxCucumbers: 6,
-    cpuLevel: 'normal' as 'easy' | 'normal' | 'hard'
+    cpuLevel: 'normal' as 'easy' | 'normal' | 'hard',
+    showAllHands: false // デバッグモード
   });
 
   const handleSettingChange = (key: string, value: any) => {
@@ -31,6 +32,7 @@ export default function CpuSettings() {
     params.set('turnSeconds', config.turnSeconds?.toString() || '0');
     params.set('maxCucumbers', config.maxCucumbers.toString());
     params.set('cpuLevel', config.cpuLevel);
+    params.set('showAllHands', settings.showAllHands.toString());
     
     router.push(`/cucumber/cpu/play?${params.toString()}`);
   };
@@ -126,6 +128,27 @@ export default function CpuSettings() {
               ))}
             </div>
           </div>
+
+          {/* デバッグモード（開発時のみ） */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-6">
+              <h3 className="text-xl font-semibold mb-4 text-yellow-800">🔧 デバッグモード</h3>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.showAllHands}
+                    onChange={(e) => handleSettingChange('showAllHands', e.target.checked)}
+                    className="w-5 h-5 text-yellow-600"
+                  />
+                  <span className="text-yellow-800 font-medium">全員の手札を表示</span>
+                </label>
+                <span className="text-sm text-yellow-600">
+                  （ゲームシステムの動作確認用）
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 開始ボタン */}
