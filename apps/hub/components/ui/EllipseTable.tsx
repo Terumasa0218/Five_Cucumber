@@ -48,6 +48,13 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
           {state.fieldCard !== null ? (
             <div className="card current-card">
               <div className="card-number">{state.fieldCard}</div>
+              <div className="cucumber-icons">
+                {state.fieldCard >= 2 && state.fieldCard <= 5 && '🥒'}
+                {state.fieldCard >= 6 && state.fieldCard <= 9 && '🥒🥒'}
+                {state.fieldCard >= 10 && state.fieldCard <= 11 && '🥒🥒🥒'}
+                {state.fieldCard >= 12 && state.fieldCard <= 14 && '🥒🥒🥒🥒'}
+                {state.fieldCard === 15 && '🥒🥒🥒🥒🥒'}
+              </div>
             </div>
           ) : (
             <div className="card disabled">
@@ -98,15 +105,30 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
       <section id="hand-dock" aria-label="自分の手札">
         <div className="me-name">{getPlayerName(0)}</div>
         <div className="hand">
-          {state.players[0]?.hand.map((card, index) => (
-            <div
-              key={`${card}-${index}`}
-              className="card is-legal"
-              onClick={() => onCardClick?.(card)}
-            >
-              <div className="card-number">{card}</div>
-            </div>
-          ))}
+          {state.players[0]?.hand.map((card, index) => {
+            const isPlayable = state.fieldCard === null || card >= state.fieldCard;
+            const isMinCard = card === Math.min(...state.players[0].hand);
+            const isDiscard = !isPlayable && isMinCard;
+            
+            const isLocked = className?.includes('cards-locked');
+            
+            return (
+              <div
+                key={`${card}-${index}`}
+                className={`card ${isPlayable && !isLocked ? 'playable' : isDiscard && !isLocked ? 'discard' : 'disabled'} ${isLocked ? 'locked' : ''}`}
+                onClick={() => !isLocked && onCardClick?.(card)}
+              >
+                <div className="card-number">{card}</div>
+                <div className="cucumber-icons">
+                  {card >= 2 && card <= 5 && '🥒'}
+                  {card >= 6 && card <= 9 && '🥒🥒'}
+                  {card >= 10 && card <= 11 && '🥒🥒🥒'}
+                  {card >= 12 && card <= 14 && '🥒🥒🥒🥒'}
+                  {card === 15 && '🥒🥒🥒🥒🥒'}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
     </>

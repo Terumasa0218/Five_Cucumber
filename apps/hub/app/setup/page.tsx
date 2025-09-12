@@ -2,9 +2,10 @@
 
 import { fetchJSON } from '@/lib/http';
 import { validateNickname } from '@/lib/nickname';
-import { resetProfile, setHasProfile, setProfile } from '@/lib/profile';
+import { getProfile, resetProfile, setHasProfile, setProfile } from '@/lib/profile';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
+import { useI18n } from '@/hooks/useI18n';
 
 function SetupForm() {
   const router = useRouter();
@@ -12,12 +13,20 @@ function SetupForm() {
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [language, setLanguage] = useState<'ja' | 'en'>('ja');
   const [diagnostic, setDiagnostic] = useState<any>(null);
   const [isDebugMode, setIsDebugMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const { language, changeLanguage, t } = useI18n();
 
   useEffect(() => {
     document.title = 'プレイヤー設定 | Five Cucumber';
+    
+    // 既存プロフィールがあるかチェック
+    const existingProfile = getProfile();
+    if (existingProfile) {
+      setNickname(existingProfile.nickname);
+      setIsEditMode(true);
+    }
     
     // デバッグ用: window.resetProfile() をグローバルに公開
     (window as any).resetProfile = resetProfile;
@@ -87,7 +96,7 @@ function SetupForm() {
   };
 
   const handleLanguageToggle = () => {
-    setLanguage(prev => prev === 'ja' ? 'en' : 'ja');
+    changeLanguage(language === 'ja' ? 'en' : 'ja');
   };
 
   const handleNetworkTest = async () => {
@@ -131,7 +140,9 @@ function SetupForm() {
   return (
     <main className="page-home min-h-screen grid place-items-center bg-transparent">
       <div className="max-w-md w-[min(92vw,560px)] bg-transparent">
-        <h1 className="text-2xl font-bold mb-6 text-center text-white">プレイヤー設定</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center text-white">
+          {isEditMode ? 'ニックネーム変更' : 'プレイヤー設定'}
+        </h1>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* ニックネーム入力 */}
@@ -176,7 +187,7 @@ function SetupForm() {
               disabled={isSubmitting || nickname.length === 0}
               className="flex-1 py-2 px-4 bg-white text-black rounded-md hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
-              {isSubmitting ? '登録中...' : '登録'}
+              {isSubmitting ? (isEditMode ? '変更中...' : '決定中...') : (isEditMode ? '変更' : '決定')}
             </button>
           </div>
         </form>

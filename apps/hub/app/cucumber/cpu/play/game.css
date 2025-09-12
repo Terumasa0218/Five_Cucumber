@@ -376,6 +376,7 @@
   font-size: 0.6em;
   line-height: 1.1;
   text-align: center;
+  margin-top: 2px;
 }
 
 .card.playable {

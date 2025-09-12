@@ -25,6 +25,7 @@ function FriendPlayContent() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [gameOver, setGameOver] = useState(false);
   const [roomInfo, setRoomInfo] = useState<any>(null);
+  const [isCardLocked, setIsCardLocked] = useState(false);
   const gameRef = useRef<{ config: GameConfig; rng: SeededRng } | null>(null);
 
   useEffect(() => {
@@ -62,7 +63,10 @@ function FriendPlayContent() {
   }, [roomCode, router]);
 
   const handleCardClick = (card: number) => {
-    if (!gameState || gameOver || gameState.currentPlayer !== 0) return;
+    if (!gameState || gameOver || gameState.currentPlayer !== 0 || isCardLocked) return;
+    
+    // カードをロックして連続出しを防止
+    setIsCardLocked(true);
     
     const move: Move = { player: 0, card, timestamp: Date.now() };
     const result = applyMove(gameState, move, gameRef.current!.config, gameRef.current!.rng);
@@ -74,6 +78,14 @@ function FriendPlayContent() {
       if (result.newState.isGameOver) {
         setGameOver(true);
       }
+      
+      // 2秒後にカードロックを解除（次のプレイヤーのターンに移行するため）
+      setTimeout(() => {
+        setIsCardLocked(false);
+      }, 2000);
+    } else {
+      // 失敗した場合はすぐにロックを解除
+      setIsCardLocked(false);
     }
   };
 
@@ -128,6 +140,7 @@ function FriendPlayContent() {
           config={gameRef.current?.config || {} as GameConfig}
           currentPlayerIndex={gameState.currentPlayer}
           onCardClick={handleCardClick}
+          className={isCardLocked ? 'cards-locked' : ''}
         />
         
         {/* 参加者一覧 */}

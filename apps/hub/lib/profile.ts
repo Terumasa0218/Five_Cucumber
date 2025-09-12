@@ -8,8 +8,29 @@ const PROFILE_KEY = 'five-cucumber-profile';
 const GUEST_ID_KEY = 'five-cucumber-guest-id';
 const HAS_PROFILE_KEY = 'hasProfile';
 
-// 擬似重複チェック用のローカル配列
-const usedNames = new Set<string>();
+// 擬似重複チェック用のローカル配列（localStorage基盤）
+const USED_NAMES_KEY = 'five-cucumber-used-names';
+
+function getUsedNames(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  
+  try {
+    const stored = localStorage.getItem(USED_NAMES_KEY);
+    return new Set(stored ? JSON.parse(stored) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveUsedNames(names: Set<string>): void {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    localStorage.setItem(USED_NAMES_KEY, JSON.stringify([...names]));
+  } catch {
+    // エラーは無視
+  }
+}
 
 // 許容文字の正規表現（半角英数字、ひらがな、カタカナ、漢字）
 const ALLOWED_CHARS = /^[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]+$/;
@@ -40,7 +61,9 @@ export function setProfile(profile: Profile): void {
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     // 重複チェック用配列に追加
+    const usedNames = getUsedNames();
     usedNames.add(profile.nickname);
+    saveUsedNames(usedNames);
   } catch {
     // エラーは無視
   }
@@ -73,6 +96,13 @@ export function getGuestId(): string {
  * ニックネームの重複チェック
  */
 export function isDuplicateName(name: string): boolean {
+  // 現在のプロフィールと同じ名前なら重複ではない
+  const currentProfile = getProfile();
+  if (currentProfile && currentProfile.nickname === name) {
+    return false;
+  }
+  
+  const usedNames = getUsedNames();
   return usedNames.has(name);
 }
 
@@ -149,11 +179,9 @@ export function resetProfile(): void {
   
   // localStorage削除
   localStorage.removeItem(PROFILE_KEY);
+  localStorage.removeItem(USED_NAMES_KEY);
   
   // Cookie削除
   document.cookie = `${HAS_PROFILE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
   document.cookie = `${GUEST_ID_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-  
-  // 重複チェック配列クリア
-  usedNames.clear();
 }

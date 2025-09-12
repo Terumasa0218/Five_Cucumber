@@ -675,3 +675,99 @@ body {
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
 }
+
+/* カード状態の視覚表現 */
+.card {
+  width: 65px;
+  height: 90px;
+  background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.card-number {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.cucumber-icons {
+  font-size: 0.8em;
+  line-height: 1;
+}
+
+.card.playable {
+  background: linear-gradient(135deg, #3199ff, #2a7dd1);
+  color: white;
+  border-color: #ffbe3b;
+  box-shadow: 0 4px 12px rgba(49, 153, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.card.playable .card-number {
+  color: white;
+}
+
+.card.discard {
+  background: linear-gradient(135deg, #f7465f, #e03d4f);
+  color: white;
+  border-color: #ff6b7a;
+  box-shadow: 0 4px 12px rgba(247, 70, 95, 0.4);
+}
+
+.card.discard .card-number {
+  color: white;
+}
+
+.card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #ccc, #bbb);
+}
+
+.card.disabled .card-number {
+  color: #666;
+}
+
+.card.current-card {
+  background: linear-gradient(135deg, #ffbe3b, #ffa726);
+  color: #333;
+  border-color: #ff8f00;
+  box-shadow: 0 6px 16px rgba(255, 190, 59, 0.6);
+  transform: scale(1.1);
+}
+
+.card.current-card .card-number {
+  color: #333;
+  font-weight: bold;
+}
+
+/* ホバー効果 */
+.card:not(.disabled):hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* カードロック状態 */
+.card.locked {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.3);
+}
+
+.cards-locked .card {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: grayscale(0.3);
+}
