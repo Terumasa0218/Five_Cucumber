@@ -1,4 +1,3 @@
-import { AuthProvider } from "@/providers/AuthProvider";
 import type { Metadata } from 'next';
 import Header from "../components/Header";
 import "./globals.css";
@@ -41,13 +40,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja" data-theme="light">
-      <AuthProvider>
-        <body>
-          {/* 浮遊ナビ（背景の空白域に左右配置） */}
-          <Header />
-          {children}
-        </body>
-      </AuthProvider>
+      <body>
+        {/* 浮遊ナビ（背景の空白域に左右配置） */}
+        <Header />
+        {children}
+      </body>
     </html>
   );
 }

@@ -1,7 +1,26 @@
 'use client';
 
 import { useI18n } from '@/hooks/useI18n';
-import { fetchJSON } from '@/lib/http';
+// 簡易fetchJSON実装
+const fetchJSON = async (url: string, options: any) => {
+  try {
+    const response = await fetch(url, options);
+    const json = await response.json();
+    return {
+      ok: response.ok,
+      status: response.status,
+      json,
+      error: null
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      json: null,
+      error: error instanceof Error ? error.message : 'Network error'
+    };
+  }
+};
 import { validateNickname } from '@/lib/nickname';
 import { getProfile, resetProfile, setProfile } from '@/lib/profile';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -66,7 +85,7 @@ function SetupForm() {
     // 診断情報を保存
     setDiagnostic({
       status: response.status,
-      body: response.json ?? response.text ?? null,
+      body: response.json ?? null,
       error: response.error
     });
 

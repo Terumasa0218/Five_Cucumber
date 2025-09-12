@@ -27,6 +27,19 @@ export function getProfile(): Profile | null {
 }
 
 /**
+ * 現在のユーザーのニックネームを取得
+ * @returns ニックネーム文字列、または null（未設定の場合）
+ */
+export function getNickname(): string | null {
+  const profile = getProfile();
+  const nickname = profile?.nickname;
+  
+  return nickname && typeof nickname === 'string' && nickname.trim().length > 0 
+    ? nickname.trim() 
+    : null;
+}
+
+/**
  * プロフィールを保存
  */
 export function setProfile(profile: Profile): void {

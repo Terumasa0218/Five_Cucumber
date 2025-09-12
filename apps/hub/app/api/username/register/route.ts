@@ -1,4 +1,4 @@
-import { validateNickname } from "@/lib/nickname.shared";
+import { validateNickname } from "@/lib/nickname";
 import { NextResponse } from "next/server";
 
 const BASE = process.env.UPSTASH_REDIS_REST_URL!;

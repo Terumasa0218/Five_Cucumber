@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/providers/AuthProvider';
+// AuthProvider削除済みのため、ダミーのuseAuth実装
+const useAuth = () => ({ user: null as any });
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function genCode(){ return String(Math.floor(Math.random()*100000)).padStart(5,'0'); }

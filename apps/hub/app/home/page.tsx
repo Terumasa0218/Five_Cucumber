@@ -1,7 +1,7 @@
 'use client';
 
 import { useI18n } from '@/hooks/useI18n';
-import { getNickname } from '@/utils/user';
+import { getNickname } from '@/lib/profile';
 import Link from "next/link";
 import { useEffect, useState } from "react";
 

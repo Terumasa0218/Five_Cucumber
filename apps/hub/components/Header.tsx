@@ -1,5 +1,5 @@
 'use client';
-import { getNickname } from '@/utils/user';
+import { getNickname } from '@/lib/profile';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';

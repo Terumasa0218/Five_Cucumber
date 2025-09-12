@@ -14,7 +14,7 @@ import {
     Move,
     SeededRng
 } from '@/lib/game-core';
-import { getNickname } from '@/utils/user';
+import { getNickname } from '@/lib/profile';
 import { useParams, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import '../../../cucumber/cpu/play/game.css';

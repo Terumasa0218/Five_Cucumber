@@ -1,6 +1,6 @@
 'use client';
 
-import { getNickname } from "@/utils/user";
+import { getNickname } from "@/lib/profile";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
