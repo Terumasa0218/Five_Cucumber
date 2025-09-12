@@ -9,11 +9,14 @@ import {
     finalRound,
     GameConfig,
     GameState,
+    getEffectiveTurnSeconds,
+    getMinResolveMs,
     Move,
     PlayerController,
     SeededRng,
     startNewRound
 } from '@/lib/game-core';
+import { delay, runAnimation } from '@/lib/animQueue';
 import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState, Suspense } from 'react';
@@ -45,6 +48,10 @@ function CpuPlayContent() {
     // テーブルを作成
     const table = createCpuTableFromUrlParams(searchParams);
     const rng = new SeededRng(table.config.seed);
+    
+    // 最小ペース制御の設定
+    table.config.minTurnMs = 500;
+    table.config.minResolveMs = 600;
     
     // 初期状態を作成
     const initialState = createInitialState(table.config, rng);
@@ -113,53 +120,73 @@ function CpuPlayContent() {
   const playMove = async (player: number, card: number) => {
     if (!gameRef.current) return;
     
-    const { state, config, controllers, rng } = gameRef.current;
-    const move: Move = { player, card, timestamp: Date.now() };
-    
-    const result = applyMove(state, move, config, rng);
-    if (!result.success) {
-      console.error('Invalid move:', result.message);
-      return;
-    }
-    
-    let newState = result.newState;
-    
-    // トリック完了チェック
-    if (newState.trickCards.length === config.players) {
-      const trickResult = endTrick(newState, config, rng);
-      if (trickResult.success) {
-        newState = trickResult.newState;
-        
-        // 最終トリックかチェック
-        if (newState.players.some(p => p.hand.length === 0)) {
-          const finalResult = finalRound(newState, config, rng);
-          if (finalResult.success) {
-            newState = finalResult.newState;
-            
-            if (newState.isGameOver) {
-              setGameOverData(newState.gameOverPlayers.map(p => ({ 
-                player: p, 
-                count: newState.players[p].cucumbers 
-              })));
-              setGameOver(true);
-      return;
-    }
-
-            // 次のラウンド
-            const roundResult = startNewRound(newState, config, rng);
-            if (roundResult.success) {
-              newState = roundResult.newState;
+    await runAnimation(async () => {
+      const { state, config, controllers, rng } = gameRef.current!;
+      
+      // フェーズチェック
+      if (state.phase !== "AwaitMove") {
+        console.warn('Move attempted during invalid phase:', state.phase);
+        return;
+      }
+      
+      const move: Move = { player, card, timestamp: Date.now() };
+      
+      const result = applyMove(state, move, config, rng);
+      if (!result.success) {
+        console.error('Invalid move:', result.message);
+        return;
+      }
+      
+      let newState = result.newState;
+      
+      // 状態更新（カード移動アニメーション用の猶予）
+      gameRef.current!.state = newState;
+      setGameState(newState);
+      
+      // 最小ターン時間の待機
+      const minTurnMs = config.minTurnMs || 500;
+      await delay(minTurnMs);
+      
+      // トリック解決フェーズの処理
+      if (newState.phase === "ResolvingTrick") {
+        const trickResult = endTrick(newState, config, rng);
+        if (trickResult.success) {
+          newState = trickResult.newState;
+          
+          // 解決時間の待機
+          const minResolveMs = getMinResolveMs(config);
+          await delay(minResolveMs);
+          
+          // 最終トリック処理
+          if (newState.phase === "RoundEnd") {
+            const finalResult = finalRound(newState, config, rng);
+            if (finalResult.success) {
+              newState = finalResult.newState;
+              
+              if (newState.phase === "GameEnd") {
+                setGameOverData(newState.gameOverPlayers.map(p => ({ 
+                  player: p, 
+                  count: newState.players[p].cucumbers 
+                })));
+                setGameOver(true);
+                gameRef.current!.state = newState;
+                setGameState(newState);
+                return;
+              }
+              
+              // 次のラウンド
+              const roundResult = startNewRound(newState, config, rng);
+              if (roundResult.success) {
+                newState = roundResult.newState;
+              }
+            }
           }
         }
       }
-    }
-  }
-
-    gameRef.current.state = newState;
-    setGameState(newState);
-    
-    // 次のプレイヤーのターン
-    // CPU手番はuseEffectで処理される
+      
+      gameRef.current!.state = newState;
+      setGameState(newState);
+    });
   };
 
   const handleCardClick = (card: number) => {
@@ -217,13 +244,13 @@ function CpuPlayContent() {
             </div>
         </div>
         
-        <div className="hud-center">
+          <div className="hud-center">
             <Timer
-              turnSeconds={gameRef.current?.config.turnSeconds || null}
-              isActive={gameState.currentPlayer === 0}
+              turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
+              isActive={gameState.currentPlayer === 0 && gameState.phase === "AwaitMove"}
               onTimeout={handleTimeout}
             />
-        </div>
+          </div>
         
         <div className="hud-right">
           <button

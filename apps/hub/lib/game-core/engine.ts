@@ -14,7 +14,7 @@ import {
     shouldStartNewRound,
     updateCardCounts
 } from './rules';
-import { ActionResult, GameConfig, GameState, GameView, Move } from './types';
+import { ActionResult, GameConfig, GamePhase, GameState, GameView, Move } from './types';
 
 export function createInitialState(config: GameConfig, rng: SeededRng): GameState {
   const deck = rng.shuffle(createDeck());
@@ -40,12 +40,18 @@ export function createInitialState(config: GameConfig, rng: SeededRng): GameStat
     isGameOver: false,
     gameOverPlayers: [],
     remainingCards: deck.slice(config.players * config.initialCards),
-    cardCounts: initializeCardCounts()
+    cardCounts: initializeCardCounts(),
+    phase: "AwaitMove" as GamePhase
   };
 }
 
 export function applyMove(state: GameState, move: Move, config: GameConfig, rng: SeededRng): ActionResult {
   const { player, card } = move;
+  
+  // フェーズチェック
+  if (state.phase !== "AwaitMove") {
+    return { success: false, newState: state, message: 'Invalid phase for move' };
+  }
   
   // バリデーション
   if (player !== state.currentPlayer) {
@@ -88,6 +94,7 @@ export function applyMove(state: GameState, move: Move, config: GameConfig, rng:
   
   // トリックが完了したかチェック
   if (isTrickComplete(newState.trickCards, config.players, newState.firstPlayer)) {
+    newState.phase = "ResolvingTrick";
     return endTrick(newState, config, rng);
   }
   
@@ -104,6 +111,7 @@ export function endTrick(state: GameState, config: GameConfig, rng: SeededRng): 
   
   // 最終トリックかチェック
   if (shouldStartNewRound(newState)) {
+    newState.phase = "RoundEnd";
     return finalRound(newState, config, rng);
   }
   
@@ -111,6 +119,7 @@ export function endTrick(state: GameState, config: GameConfig, rng: SeededRng): 
   newState.currentTrick++;
   newState.fieldCard = null;
   newState.trickCards = [];
+  newState.phase = "AwaitMove";
   
   return { success: true, newState };
 }
@@ -129,6 +138,7 @@ export function finalRound(state: GameState, config: GameConfig, rng: SeededRng)
   if (isGameOver(newState, config)) {
     newState.isGameOver = true;
     newState.gameOverPlayers = getGameOverPlayers(newState, config);
+    newState.phase = "GameEnd";
     return { success: true, newState };
   }
   
@@ -159,6 +169,7 @@ export function startNewRound(state: GameState, config: GameConfig, rng: SeededR
   newState.currentPlayer = newState.firstPlayer;
   newState.remainingCards = deck.slice(config.players * config.initialCards);
   newState.cardCounts = initializeCardCounts();
+  newState.phase = "AwaitMove";
   
   return { success: true, newState };
 }
@@ -203,4 +214,23 @@ export function getSharedGraveyard(state: GameState): number[] {
 
 export function getPlayerGraveyard(state: GameState, playerIndex: number): number[] {
   return state.players[playerIndex]?.graveyard || [];
+}
+
+/**
+ * 実効ターン時間を計算（最小ペース制御）
+ */
+export function getEffectiveTurnSeconds(config: GameConfig): number | null {
+  if (config.turnSeconds === null) return null;
+  
+  const minTurnMs = config.minTurnMs || 500;
+  const minTurnSeconds = minTurnMs / 1000;
+  
+  return Math.max(minTurnSeconds, config.turnSeconds);
+}
+
+/**
+ * 最小解決時間を取得
+ */
+export function getMinResolveMs(config: GameConfig): number {
+  return config.minResolveMs || 600;
 }

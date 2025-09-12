@@ -8,9 +8,12 @@ import {
     finalRound,
     GameConfig,
     GameState,
+    getEffectiveTurnSeconds,
+    getMinResolveMs,
     Move,
     SeededRng
 } from '@/lib/game-core';
+import { delay, runAnimation } from '@/lib/animQueue';
 import { getProfile } from '@/lib/profile';
 import { getRoom } from '@/lib/roomMock';
 import { useParams, useRouter } from 'next/navigation';
@@ -52,7 +55,9 @@ function FriendPlayContent() {
       turnSeconds: room.limit,
       maxCucumbers: room.cucumber,
       initialCards: 7,
-      cpuLevel: 'easy' // フレンド対戦ではCPUレベルは関係ない
+      cpuLevel: 'easy', // フレンド対戦ではCPUレベルは関係ない
+      minTurnMs: 500,
+      minResolveMs: 600
     };
     
     // ゲーム状態を初期化
@@ -62,31 +67,73 @@ function FriendPlayContent() {
     gameRef.current = { config, rng };
   }, [roomCode, router]);
 
-  const handleCardClick = (card: number) => {
+  const handleCardClick = async (card: number) => {
     if (!gameState || gameOver || gameState.currentPlayer !== 0 || isCardLocked) return;
     
-    // カードをロックして連続出しを防止
-    setIsCardLocked(true);
-    
-    const move: Move = { player: 0, card, timestamp: Date.now() };
-    const result = applyMove(gameState, move, gameRef.current!.config, gameRef.current!.rng);
-    
-    if (result.success) {
-      setGameState(result.newState);
-      
-      // ゲーム終了チェック
-      if (result.newState.isGameOver) {
-        setGameOver(true);
+    await runAnimation(async () => {
+      // フェーズチェック
+      if (gameState.phase !== "AwaitMove") {
+        console.warn('Move attempted during invalid phase:', gameState.phase);
+        return;
       }
       
-      // 2秒後にカードロックを解除（次のプレイヤーのターンに移行するため）
-      setTimeout(() => {
+      // カードをロックして連続出しを防止
+      setIsCardLocked(true);
+      
+      const move: Move = { player: 0, card, timestamp: Date.now() };
+      const result = applyMove(gameState, move, gameRef.current!.config, gameRef.current!.rng);
+      
+      if (result.success) {
+        let newState = result.newState;
+        setGameState(newState);
+        
+        // 最小ターン時間の待機
+        const minTurnMs = gameRef.current!.config.minTurnMs || 500;
+        await delay(minTurnMs);
+        
+        // トリック解決の処理
+        if (newState.phase === "ResolvingTrick") {
+          const trickResult = endTrick(newState, gameRef.current!.config, gameRef.current!.rng);
+          if (trickResult.success) {
+            newState = trickResult.newState;
+            
+            // 解決時間の待機
+            const minResolveMs = getMinResolveMs(gameRef.current!.config);
+            await delay(minResolveMs);
+            
+            // 最終トリック処理
+            if (newState.phase === "RoundEnd") {
+              const finalResult = finalRound(newState, gameRef.current!.config, gameRef.current!.rng);
+              if (finalResult.success) {
+                newState = finalResult.newState;
+                
+                if (newState.phase === "GameEnd") {
+                  setGameOver(true);
+                  setGameState(newState);
+                  setIsCardLocked(false);
+                  return;
+                }
+              }
+            }
+          }
+          
+          setGameState(newState);
+        }
+        
+        // ゲーム終了チェック
+        if (newState.isGameOver) {
+          setGameOver(true);
+        }
+        
+        // カードロック解除
+        setTimeout(() => {
+          setIsCardLocked(false);
+        }, 500);
+      } else {
+        // 失敗した場合はすぐにロックを解除
         setIsCardLocked(false);
-      }, 2000);
-    } else {
-      // 失敗した場合はすぐにロックを解除
-      setIsCardLocked(false);
-    }
+      }
+    });
   };
 
   const handleTimeout = () => {
@@ -124,8 +171,8 @@ function FriendPlayContent() {
           
           <div className="hud-center">
             <Timer
-              turnSeconds={gameRef.current?.config.turnSeconds || null}
-              isActive={gameState.currentPlayer === 0}
+              turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
+              isActive={gameState.currentPlayer === 0 && gameState.phase === "AwaitMove"}
               onTimeout={handleTimeout}
             />
           </div>
