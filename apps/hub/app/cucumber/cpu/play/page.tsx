@@ -58,10 +58,7 @@ function CpuPlayContent() {
       const saveData = {
         gameRef: {
           ...gameRef.current,
-          rng: {
-            seed: gameRef.current.rng.seed,
-            state: gameRef.current.rng.state
-          }
+          rng: gameRef.current.rng.getState()
         },
         gameState,
         gameOver,
@@ -91,9 +88,13 @@ function CpuPlayContent() {
         
         if (savedGameRef && savedGameState) {
           console.log('[Game] Restoring saved game state');
+          const rng = new SeededRng();
+          if (savedGameRef.rng) {
+            rng.setState(savedGameRef.rng);
+          }
           gameRef.current = {
             ...savedGameRef,
-            rng: new SeededRng(savedGameRef.rng.seed, savedGameRef.rng.state)
+            rng
           };
           setGameState(savedGameState);
           setGameOver(savedGameOver || false);

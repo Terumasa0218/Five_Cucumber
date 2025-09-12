@@ -41,10 +41,7 @@ function FriendPlayContent() {
       const saveData = {
         gameRef: {
           ...gameRef.current,
-          rng: {
-            seed: gameRef.current.rng.seed,
-            state: gameRef.current.rng.state
-          }
+          rng: gameRef.current.rng.getState()
         },
         gameState,
         gameOver,
@@ -64,6 +61,34 @@ function FriendPlayContent() {
     if (!nickname) {
       router.push(`/setup?returnTo=/friend/play/${roomCode}`);
       return;
+    }
+    
+    // 保存されたゲーム状態を復元を試みる
+    const gameStateKey = `friend-game-state-${roomCode}`;
+    try {
+      const savedGameData = localStorage.getItem(gameStateKey);
+      if (savedGameData) {
+        const { gameRef: savedGameRef, gameState: savedGameState, gameOver: savedGameOver, roomInfo: savedRoomInfo } = JSON.parse(savedGameData);
+        
+        if (savedGameRef && savedGameState) {
+          console.log('[Friend Game] Restoring saved game state for room:', roomCode);
+          const rng = new SeededRng();
+          if (savedGameRef.rng) {
+            rng.setState(savedGameRef.rng);
+          }
+          gameRef.current = {
+            ...savedGameRef,
+            rng
+          };
+          setGameState(savedGameState);
+          setGameOver(savedGameOver || false);
+          setRoomInfo(savedRoomInfo);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('[Friend Game] Failed to restore saved state:', error);
+      localStorage.removeItem(gameStateKey);
     }
     
     // APIからルーム情報を取得
