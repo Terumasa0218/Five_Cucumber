@@ -4,7 +4,25 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
   try {
-    const body: CreateRoomRequest = await req.json();
+    // リクエストボディの取得と検証
+    let body: CreateRoomRequest;
+    try {
+      const text = await req.text();
+      console.log('[API] Raw request body:', text);
+      
+      if (!text || text.trim() === '') {
+        throw new Error('Empty request body');
+      }
+      
+      body = JSON.parse(text);
+    } catch (parseError) {
+      console.error('[API] JSON parse error:', parseError);
+      return NextResponse.json(
+        { ok: false, reason: 'invalid-json', detail: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+    
     const { roomSize, nickname, turnSeconds, maxCucumbers } = body;
 
     // バリデーション

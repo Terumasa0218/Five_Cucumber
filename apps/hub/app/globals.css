@@ -513,17 +513,26 @@ body {
 
 /* レイヤー順序を固定 */
 #oval-inner { position: absolute; inset: 0; z-index: 20; }
-#seats { position: absolute; inset: 0; z-index: 15; pointer-events: none; }
+#seats { 
+  position: absolute; 
+  top: 0; 
+  left: 0; 
+  right: 0; 
+  bottom: 140px; /* 手札エリアを避けるため下部マージンを設定 */
+  z-index: 15; 
+  pointer-events: none; 
+}
 #hand-dock { 
   position: absolute; 
   left: 0; 
   right: 0; 
-  bottom: calc(8px + env(safe-area-inset-bottom, 0));
+  bottom: calc(12px + env(safe-area-inset-bottom, 0));
   z-index: 30; 
   display: flex; 
   flex-direction: column; 
   align-items: center; 
-  gap: 0.35rem; 
+  gap: 0.5rem; 
+  min-height: 120px; /* 手札エリアの最小高さを確保 */
 }
 
 /* 場と墓地（内側楕円の内側に収める） */

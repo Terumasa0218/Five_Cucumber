@@ -31,6 +31,31 @@ function FriendPlayContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
   const gameRef = useRef<{ config: GameConfig; rng: SeededRng } | null>(null);
+  
+  // ゲーム状態を保存
+  const saveGameState = () => {
+    if (!gameRef.current || !gameState || !roomCode) return;
+    
+    try {
+      const gameStateKey = `friend-game-state-${roomCode}`;
+      const saveData = {
+        gameRef: {
+          ...gameRef.current,
+          rng: {
+            seed: gameRef.current.rng.seed,
+            state: gameRef.current.rng.state
+          }
+        },
+        gameState,
+        gameOver,
+        roomInfo
+      };
+      localStorage.setItem(gameStateKey, JSON.stringify(saveData));
+      console.log('[Friend Game] State saved for room:', roomCode);
+    } catch (error) {
+      console.warn('[Friend Game] Failed to save state:', error);
+    }
+  };
 
   useEffect(() => {
     document.title = `フレンド対戦 ${roomCode} | Five Cucumber`;
@@ -82,6 +107,13 @@ function FriendPlayContent() {
     
     fetchRoom();
   }, [roomCode, router]);
+  
+  // ゲーム状態変更時の自動保存
+  useEffect(() => {
+    if (gameState) {
+      saveGameState();
+    }
+  }, [gameState, gameOver, roomInfo]);
 
   const handleCardClick = async (card: number) => {
     if (!gameState || gameOver || gameState.currentPlayer !== 0 || isCardLocked || isSubmitting) return;

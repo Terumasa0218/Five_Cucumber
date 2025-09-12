@@ -39,6 +39,40 @@ function CpuPlayContent() {
   const [showAllHands, setShowAllHands] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
+  
+  // ゲーム状態の保存キー
+  const getGameStateKey = (params: URLSearchParams) => {
+    const players = params.get('players') || '4';
+    const turnSeconds = params.get('turnSeconds') || '15';
+    const maxCucumbers = params.get('maxCucumbers') || '6';
+    const cpuLevel = params.get('cpuLevel') || 'normal';
+    return `cpu-game-state-${players}-${turnSeconds}-${maxCucumbers}-${cpuLevel}`;
+  };
+  
+  // ゲーム状態を保存
+  const saveGameState = () => {
+    if (!gameRef.current || !gameState) return;
+    
+    try {
+      const gameStateKey = getGameStateKey(searchParams);
+      const saveData = {
+        gameRef: {
+          ...gameRef.current,
+          rng: {
+            seed: gameRef.current.rng.seed,
+            state: gameRef.current.rng.state
+          }
+        },
+        gameState,
+        gameOver,
+        gameOverData
+      };
+      localStorage.setItem(gameStateKey, JSON.stringify(saveData));
+      console.log('[Game] State saved');
+    } catch (error) {
+      console.warn('[Game] Failed to save state:', error);
+    }
+  };
 
   useEffect(() => {
     document.title = 'CPU対戦 | Five Cucumber';
@@ -47,7 +81,33 @@ function CpuPlayContent() {
     const showAllHandsParam = searchParams.get('showAllHands');
     setShowAllHands(showAllHandsParam === 'true');
     
-    // テーブルを作成
+    const gameStateKey = getGameStateKey(searchParams);
+    
+    // 保存されたゲーム状態を復元を試みる
+    try {
+      const savedGameData = localStorage.getItem(gameStateKey);
+      if (savedGameData) {
+        const { gameRef: savedGameRef, gameState: savedGameState, gameOver: savedGameOver, gameOverData: savedGameOverData } = JSON.parse(savedGameData);
+        
+        if (savedGameRef && savedGameState) {
+          console.log('[Game] Restoring saved game state');
+          gameRef.current = {
+            ...savedGameRef,
+            rng: new SeededRng(savedGameRef.rng.seed, savedGameRef.rng.state)
+          };
+          setGameState(savedGameState);
+          setGameOver(savedGameOver || false);
+          setGameOverData(savedGameOverData || []);
+          return;
+        }
+      }
+    } catch (error) {
+      console.warn('[Game] Failed to restore saved state:', error);
+      localStorage.removeItem(gameStateKey);
+    }
+    
+    // 新しいゲームを開始
+    console.log('[Game] Starting new game');
     const table = createCpuTableFromUrlParams(searchParams);
     const rng = new SeededRng(table.config.seed);
     
@@ -75,6 +135,13 @@ function CpuPlayContent() {
       // クリーンアップ
     };
   }, [searchParams]);
+  
+  // ゲーム状態変更時の自動保存
+  useEffect(() => {
+    if (gameState) {
+      saveGameState();
+    }
+  }, [gameState, gameOver, gameOverData]);
 
   const startGame = async () => {
     if (!gameRef.current) return;
