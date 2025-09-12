@@ -1,5 +1,5 @@
 'use client';
-import { getProfile } from '@/lib/profile';
+import { getNickname } from '@/utils/user';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -7,12 +7,12 @@ import { useEffect, useState } from 'react';
 /** 最小限のヘッダー（固定・最小限） */
 export default function Header(){
   const pathname = usePathname();
-  const [profile, setProfile] = useState(getProfile());
+  const [nickname, setNickname] = useState<string | null>(getNickname());
   
   useEffect(() => {
     // プロフィール変更を監視
     const handleStorageChange = () => {
-      setProfile(getProfile());
+      setNickname(getNickname());
     };
     
     window.addEventListener('storage', handleStorageChange);
@@ -29,7 +29,7 @@ export default function Header(){
 
         {/* 右：ユーザー名表示 */}
         <div className="text-sm text-gray-600">
-          {profile?.nickname || 'ゲスト'}
+          {nickname || '未設定'}
         </div>
       </div>
     </header>

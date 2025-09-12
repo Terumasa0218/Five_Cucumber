@@ -1,4 +1,4 @@
-import { createRoom } from '@/lib/roomSystem';
+import { createRoom } from '@/lib/roomSystemServer';
 import { CreateRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
   } catch (error) {
     console.error('Room creation error:', error);
     return NextResponse.json(
-      { ok: false, reason: 'server-error' },
+      { ok: false, reason: 'server-error', detail: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

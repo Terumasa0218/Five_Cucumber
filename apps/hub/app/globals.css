@@ -408,7 +408,7 @@ html, body {
 }
 
 body {
-  background-image: url('/assets/bg-home.png');
+  background-image: url('/images/bg-home-04.png');
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -422,7 +422,7 @@ body {
 
 .page-game {
   min-height: 100dvh;
-  background: url("/assets/bg-game.png") center/cover no-repeat fixed;
+  background: url("/images/bg-game-05.png") center/cover no-repeat fixed;
 }
 
 /* レイヤー管理 */
@@ -444,9 +444,9 @@ body {
 
 /* ページ背景 */
 .page-game, .page-home, .page-arena { min-height: 100dvh; }
-.page-game { background: url("/assets/bg-game.png") center/cover no-repeat fixed; }
-.page-home { background: url("/assets/bg-home.png") center/cover no-repeat fixed; }
-.page-arena { background: url("/assets/bg-arena.png") center/cover no-repeat fixed; }
+.page-game { background: url("/images/bg-game-05.png") center/cover no-repeat fixed; }
+.page-home { background: url("/images/bg-home-04.png") center/cover no-repeat fixed; }
+.page-arena { background: url("/images/bg-board-08.png") center/cover no-repeat fixed; }
 
 /* 設定画面の選択状態 */
 .opt {
@@ -729,13 +729,22 @@ body {
 }
 
 .card.disabled {
+  pointer-events: none;
+  filter: grayscale(100%);
   opacity: 0.5;
+  transform: none !important;
   cursor: not-allowed;
   background: linear-gradient(135deg, #ccc, #bbb);
 }
 
 .card.disabled .card-number {
   color: #666;
+}
+
+/* 手番ハイライト */
+.seat.turn {
+  box-shadow: 0 0 0 3px #ffe08a, 0 0 12px #ffdf70;
+  transition: box-shadow 0.15s ease;
 }
 
 .card.current-card {

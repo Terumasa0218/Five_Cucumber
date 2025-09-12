@@ -37,6 +37,8 @@ function CpuPlayContent() {
   const [gameOverData, setGameOverData] = useState<{ player: number; count: number }[]>([]);
   const [isCardLocked, setIsCardLocked] = useState(false);
   const [showAllHands, setShowAllHands] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lockedCardId, setLockedCardId] = useState<number | null>(null);
 
   useEffect(() => {
     document.title = 'CPU対戦 | Five Cucumber';
@@ -126,17 +128,17 @@ function CpuPlayContent() {
       // フェーズチェック
       if (state.phase !== "AwaitMove") {
         console.warn('Move attempted during invalid phase:', state.phase);
-        return;
-      }
-      
+      return;
+    }
+    
       const move: Move = { player, card, timestamp: Date.now() };
       
       const result = applyMove(state, move, config, rng);
       if (!result.success) {
         console.error('Invalid move:', result.message);
-        return;
-      }
-      
+      return;
+    }
+
       let newState = result.newState;
       
       // 状態更新（カード移動アニメーション用の猶予）
@@ -171,40 +173,52 @@ function CpuPlayContent() {
                 setGameOver(true);
                 gameRef.current!.state = newState;
                 setGameState(newState);
-                return;
-              }
-              
+      return;
+    }
+    
               // 次のラウンド
               const roundResult = startNewRound(newState, config, rng);
               if (roundResult.success) {
                 newState = roundResult.newState;
-              }
-            }
           }
         }
       }
-      
+    }
+  }
+
       gameRef.current!.state = newState;
       setGameState(newState);
     });
   };
 
   const handleCardClick = (card: number) => {
-    if (!gameRef.current || isCardLocked) return;
+    if (!gameRef.current || isCardLocked || isSubmitting) return;
     
     const { state, humanController } = gameRef.current;
     
-    if (state.currentPlayer === 0) {
-      // カードをロックして連続出しを防止
+    if (state.currentPlayer === 0 && state.phase === 'AwaitMove') {
+      // カードを即座にロック
+      setIsSubmitting(true);
+      setLockedCardId(card);
       setIsCardLocked(true);
       
-      humanController.playCard(card);
-      playMove(0, card);
-      
-      // 2秒後にカードロックを解除
-      setTimeout(() => {
+      try {
+        humanController.playCard(card);
+        playMove(0, card);
+        
+        // 2秒後にカードロックを解除
+    setTimeout(() => {
+          setIsCardLocked(false);
+          setIsSubmitting(false);
+          setLockedCardId(null);
+        }, 2000);
+      } catch (error) {
+        // エラー時は状態をリセット
+        setIsSubmitting(false);
+        setLockedCardId(null);
         setIsCardLocked(false);
-      }, 2000);
+        console.error('Card play error:', error);
+      }
     }
   };
 
@@ -241,16 +255,16 @@ function CpuPlayContent() {
         <div className="hud-left">
             <div className="round-indicator" id="roundInfo">
               第{gameState.currentRound}回戦 / 第{gameState.currentTrick}トリック
-            </div>
+          </div>
         </div>
         
-          <div className="hud-center">
+        <div className="hud-center">
             <Timer
               turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
               isActive={gameState.currentPlayer === 0 && gameState.phase === "AwaitMove"}
               onTimeout={handleTimeout}
             />
-          </div>
+        </div>
         
         <div className="hud-right">
           <button
@@ -269,6 +283,8 @@ function CpuPlayContent() {
           onCardClick={handleCardClick}
           className={isCardLocked ? 'cards-locked' : ''}
           showAllHands={showAllHands}
+          isSubmitting={isSubmitting}
+          lockedCardId={lockedCardId}
         />
       </div>
 

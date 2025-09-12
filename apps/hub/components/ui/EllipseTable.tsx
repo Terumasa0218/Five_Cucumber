@@ -11,9 +11,11 @@ interface EllipseTableProps {
   onCardClick?: (card: number) => void;
   className?: string;
   showAllHands?: boolean; // デバッグ用：全員の手札を表示
+  isSubmitting?: boolean; // 送信中フラグ
+  lockedCardId?: number | null; // ロックされたカードID
 }
 
-export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, className = '', showAllHands = false }: EllipseTableProps) {
+export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, className = '', showAllHands = false, isSubmitting = false, lockedCardId = null }: EllipseTableProps) {
   const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C', 'CPU-D', 'CPU-E'];
   const mySeatIndex = 0; // プレイヤーは常に0番
   
@@ -74,12 +76,15 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
 
       {/* 楕円座席（外枠と内枠の間の帯） */}
       <section id="seats" className={`players-${config.players}`}>
-        {state.players.map((player, i) => (
-          <div
-            key={i}
-            className="seat"
-            data-active={state.currentPlayer === i}
-          >
+        {state.players.map((player, i) => {
+          const isTurn = i === currentPlayerIndex;
+          
+          return (
+            <div
+              key={i}
+              className={`seat ${isTurn ? 'turn' : ''}`}
+              data-active={state.currentPlayer === i}
+            >
             <div className="content">
               <div className="player-name">{getPlayerName(i)}</div>
               <div className="player-stats">
@@ -108,8 +113,9 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
                 </div>
               )}
             </div>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </section>
 
       {/* 自分の手札と名前（下辺） */}
@@ -120,14 +126,33 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
             const isPlayable = state.fieldCard === null || card >= state.fieldCard;
             const isMinCard = card === Math.min(...state.players[0].hand);
             const isDiscard = !isPlayable && isMinCard;
+            const isMyTurn = currentPlayerIndex === 0;
             
-            const isLocked = className?.includes('cards-locked');
+            // カードが送信中またはロックされているかチェック
+            const isCardLocked = lockedCardId === card;
+            const isAllLocked = isSubmitting || className?.includes('cards-locked');
+            const isDisabled = !isMyTurn || isAllLocked || isCardLocked || state.phase !== 'AwaitMove';
+            
+            const handleCardClick = (e: React.MouseEvent) => {
+              e.preventDefault();
+              if (isDisabled || isSubmitting || !isMyTurn) return;
+              onCardClick?.(card);
+            };
             
             return (
               <div
                 key={`${card}-${index}`}
-                className={`card ${isPlayable && !isLocked ? 'playable' : isDiscard && !isLocked ? 'discard' : 'disabled'} ${isLocked ? 'locked' : ''}`}
-                onClick={() => !isLocked && onCardClick?.(card)}
+                className={`card ${
+                  isCardLocked ? 'disabled locked' :
+                  isDisabled ? 'disabled' :
+                  isPlayable ? 'playable' : 
+                  isDiscard ? 'discard' : 'disabled'
+                }`}
+                onClick={handleCardClick}
+                onPointerDown={handleCardClick}
+                style={{ pointerEvents: isDisabled ? 'none' : 'auto' }}
+                aria-disabled={isDisabled}
+                disabled={isDisabled}
               >
                 <div className="card-number">{card}</div>
                 <div className="cucumber-icons">

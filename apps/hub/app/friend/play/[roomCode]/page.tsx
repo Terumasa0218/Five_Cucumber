@@ -29,6 +29,8 @@ function FriendPlayContent() {
   const [gameOver, setGameOver] = useState(false);
   const [roomInfo, setRoomInfo] = useState<any>(null);
   const [isCardLocked, setIsCardLocked] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lockedCardId, setLockedCardId] = useState<number | null>(null);
   const gameRef = useRef<{ config: GameConfig; rng: SeededRng } | null>(null);
 
   useEffect(() => {
@@ -68,12 +70,18 @@ function FriendPlayContent() {
   }, [roomCode, router]);
 
   const handleCardClick = async (card: number) => {
-    if (!gameState || gameOver || gameState.currentPlayer !== 0 || isCardLocked) return;
+    if (!gameState || gameOver || gameState.currentPlayer !== 0 || isCardLocked || isSubmitting) return;
+    
+    // カードを即座にロック
+    setIsSubmitting(true);
+    setLockedCardId(card);
     
     await runAnimation(async () => {
       // フェーズチェック
       if (gameState.phase !== "AwaitMove") {
         console.warn('Move attempted during invalid phase:', gameState.phase);
+        setIsSubmitting(false);
+        setLockedCardId(null);
         return;
       }
       
@@ -128,10 +136,14 @@ function FriendPlayContent() {
         // カードロック解除
         setTimeout(() => {
           setIsCardLocked(false);
+          setIsSubmitting(false);
+          setLockedCardId(null);
         }, 500);
       } else {
         // 失敗した場合はすぐにロックを解除
         setIsCardLocked(false);
+        setIsSubmitting(false);
+        setLockedCardId(null);
       }
     });
   };
@@ -188,6 +200,8 @@ function FriendPlayContent() {
           currentPlayerIndex={gameState.currentPlayer}
           onCardClick={handleCardClick}
           className={isCardLocked ? 'cards-locked' : ''}
+          isSubmitting={isSubmitting}
+          lockedCardId={lockedCardId}
         />
         
         {/* 参加者一覧 */}
