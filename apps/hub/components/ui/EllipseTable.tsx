@@ -19,6 +19,19 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
   const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C', 'CPU-D', 'CPU-E'];
   const mySeatIndex = 0; // プレイヤーは常に0番
   
+  // デバッグログ（開発時のみ）
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[EllipseTable Debug]', {
+        currentPlayerIndex,
+        stateCurrentPlayer: state.currentPlayer,
+        phase: state.phase,
+        mySeatIndex,
+        isMyTurn: currentPlayerIndex === mySeatIndex
+      });
+    }
+  }, [currentPlayerIndex, state.currentPlayer, state.phase]);
+  
   // フレンド対戦の場合は参加者名を使用
   const getPlayerName = (index: number) => {
     if (index === 0) return 'あなた';
@@ -152,7 +165,6 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
                 onPointerDown={handleCardClick}
                 style={{ pointerEvents: isDisabled ? 'none' : 'auto' }}
                 aria-disabled={isDisabled}
-                disabled={isDisabled}
               >
                 <div className="card-number">{card}</div>
                 <div className="cucumber-icons">

@@ -1,4 +1,4 @@
-import { createRoom } from '@/lib/roomSystemServer';
+import { createRoom } from '@/lib/roomSystemUnified';
 import { CreateRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 

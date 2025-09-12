@@ -14,7 +14,6 @@ import {
     Move,
     SeededRng
 } from '@/lib/game-core';
-import { getRoom } from '@/lib/roomSystem';
 import { getNickname } from '@/utils/user';
 import { useParams, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
@@ -36,37 +35,52 @@ function FriendPlayContent() {
   useEffect(() => {
     document.title = `フレンド対戦 ${roomCode} | Five Cucumber`;
     
-    // ルーム情報を取得
-    const room = getRoom(roomCode);
-    if (!room) {
-      router.push('/friend/join');
-      return;
-    }
-    
-    setRoomInfo(room);
-    
     const nickname = getNickname();
     if (!nickname) {
       router.push(`/setup?returnTo=/friend/play/${roomCode}`);
       return;
     }
     
-    // ゲーム設定を作成（ルーム設定を使用）
-    const config: GameConfig = {
-      players: room.size,
-      turnSeconds: room.turnSeconds === 0 ? null : room.turnSeconds,
-      maxCucumbers: room.maxCucumbers,
-      initialCards: 7,
-      cpuLevel: 'easy', // フレンド対戦ではCPUレベルは関係ない
-      minTurnMs: 500,
-      minResolveMs: 600
+    // APIからルーム情報を取得
+    const fetchRoom = async () => {
+      try {
+        const res = await fetch(`/api/friend/room/${roomCode}`);
+        
+        if (!res.ok) {
+          router.push('/friend/join');
+          return;
+        }
+        
+        const data = await res.json();
+        if (data.ok && data.room) {
+          setRoomInfo(data.room);
+          
+          // ゲーム設定を作成（ルーム設定を使用）
+          const config: GameConfig = {
+            players: data.room.size,
+            turnSeconds: data.room.turnSeconds === 0 ? null : data.room.turnSeconds,
+            maxCucumbers: data.room.maxCucumbers,
+            initialCards: 7,
+            cpuLevel: 'easy', // フレンド対戦ではCPUレベルは関係ない
+            minTurnMs: 500,
+            minResolveMs: 600
+          };
+          
+          // ゲーム状態を初期化
+          const rng = new SeededRng(Date.now());
+          const initialState = createInitialState(config, rng);
+          setGameState(initialState);
+          gameRef.current = { config, rng };
+        } else {
+          router.push('/friend/join');
+        }
+      } catch (err) {
+        console.error('Room fetch error:', err);
+        router.push('/friend/join');
+      }
     };
     
-    // ゲーム状態を初期化
-    const rng = new SeededRng(Date.now());
-    const initialState = createInitialState(config, rng);
-    setGameState(initialState);
-    gameRef.current = { config, rng };
+    fetchRoom();
   }, [roomCode, router]);
 
   const handleCardClick = async (card: number) => {

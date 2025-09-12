@@ -1,6 +1,6 @@
 'use client';
 
-import { getRoom, leaveRoom, updateRoomStatus } from "@/lib/roomSystem";
+import { leaveRoom, updateRoomStatus } from "@/lib/roomSystemUnified";
 import { Room } from "@/types/room";
 import { getNickname } from "@/utils/user";
 import Link from "next/link";
@@ -27,30 +27,51 @@ export default function RoomWaitingPage() {
     
     setNickname(currentNickname);
     
-    // ルーム情報を取得
-    const roomData = getRoom(roomId);
-    if (!roomData) {
-      setError('ルームが見つかりません');
-      return;
-    }
+    // APIからルーム情報を取得
+    const fetchRoom = async () => {
+      try {
+        const res = await fetch(`/api/friend/room/${roomId}`);
+        
+        if (!res.ok) {
+          if (res.status === 404) {
+            setError('ルームが見つかりません');
+          } else {
+            setError('ルーム情報の取得に失敗しました');
+          }
+          return;
+        }
+        
+        const data = await res.json();
+        if (data.ok && data.room) {
+          setRoom(data.room);
+          
+          // 現在のユーザーがルームにいるかチェック
+          const isParticipating = data.room.seats.some((seat: any) => seat?.nickname === currentNickname);
+          setIsInRoom(isParticipating);
+        } else {
+          setError('ルーム情報の取得に失敗しました');
+        }
+      } catch (err) {
+        console.error('Room fetch error:', err);
+        setError('ネットワークエラーが発生しました');
+      }
+    };
     
-    setRoom(roomData);
-    
-    // 現在のユーザーがルームにいるかチェック
-    const isParticipating = roomData.seats.some(seat => seat?.nickname === currentNickname);
-    setIsInRoom(isParticipating);
+    fetchRoom();
   }, [roomId, router]);
 
-  const handleLeaveRoom = () => {
+  const handleLeaveRoom = async () => {
     if (!nickname || !room) return;
     
-    if (leaveRoom(roomId, nickname)) {
-      // ルーム情報を更新
-      const updatedRoom = getRoom(roomId);
-      if (updatedRoom) {
-        setRoom(updatedRoom);
-        setIsInRoom(false);
+    try {
+      // APIで退出処理（実装が必要）
+      if (leaveRoom(roomId, nickname)) {
+        // 成功時はホームに戻る
+        router.push('/friend');
       }
+    } catch (err) {
+      console.error('Leave room error:', err);
+      setError('退出に失敗しました');
     }
   };
 

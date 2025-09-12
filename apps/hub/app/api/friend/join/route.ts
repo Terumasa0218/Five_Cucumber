@@ -1,4 +1,4 @@
-import { joinRoom } from '@/lib/roomSystemServer';
+import { joinRoom } from '@/lib/roomSystemUnified';
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 
