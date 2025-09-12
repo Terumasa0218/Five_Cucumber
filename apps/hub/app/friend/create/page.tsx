@@ -30,7 +30,7 @@ export default function FriendCreatePage() {
   };
 
   return (
-    <main className="min-h-screen w-full pt-20">
+    <main className="page-home min-h-screen w-full pt-20">
       <div className="container mx-auto px-4">
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-8">ルーム作成</h1>
@@ -40,49 +40,52 @@ export default function FriendCreatePage() {
               {/* 人数 */}
               <div>
                 <label className="block text-sm font-medium mb-2">人数</label>
-                <select
-                  value={settings.size}
-                  onChange={(e) => handleSettingChange('size', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value={2}>2人</option>
-                  <option value={3}>3人</option>
-                  <option value={4}>4人</option>
-                  <option value={5}>5人</option>
-                  <option value={6}>6人</option>
-                </select>
+                <div className="grid grid-cols-3 gap-2">
+                  {[2, 3, 4, 5, 6].map(num => (
+                    <button
+                      key={num}
+                      onClick={() => handleSettingChange('size', num)}
+                      className={`opt ${settings.size === num ? 'selected' : ''}`}
+                      aria-pressed={settings.size === num}
+                    >
+                      {num}人
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* きゅうり数 */}
               <div>
                 <label className="block text-sm font-medium mb-2">きゅうり数</label>
-                <select
-                  value={settings.cucumber}
-                  onChange={(e) => handleSettingChange('cucumber', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value={3}>3本</option>
-                  <option value={4}>4本</option>
-                  <option value={5}>5本</option>
-                  <option value={6}>6本</option>
-                  <option value={7}>7本</option>
-                </select>
+                <div className="grid grid-cols-3 gap-2">
+                  {[3, 4, 5, 6, 7].map(num => (
+                    <button
+                      key={num}
+                      onClick={() => handleSettingChange('cucumber', num)}
+                      className={`opt ${settings.cucumber === num ? 'selected' : ''}`}
+                      aria-pressed={settings.cucumber === num}
+                    >
+                      {num}本
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* 制限時間 */}
               <div>
                 <label className="block text-sm font-medium mb-2">制限時間（秒）</label>
-                <select
-                  value={settings.limit}
-                  onChange={(e) => handleSettingChange('limit', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value={10}>10秒</option>
-                  <option value={15}>15秒</option>
-                  <option value={20}>20秒</option>
-                  <option value={30}>30秒</option>
-                  <option value={60}>60秒</option>
-                </select>
+                <div className="grid grid-cols-3 gap-2">
+                  {[10, 15, 20, 30, 60].map(num => (
+                    <button
+                      key={num}
+                      onClick={() => handleSettingChange('limit', num)}
+                      className={`opt ${settings.limit === num ? 'selected' : ''}`}
+                      aria-pressed={settings.limit === num}
+                    >
+                      {num}秒
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <button

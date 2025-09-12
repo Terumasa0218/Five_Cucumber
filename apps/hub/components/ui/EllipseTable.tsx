@@ -1,8 +1,8 @@
 // 楕円卓レイアウト用テーブルコンポーネント
 
-import { useEffect } from 'react';
 import { GameConfig, GameState } from '@/lib/game-core/types';
 import { layoutSeatsEllipse } from '@/lib/layoutEllipse';
+import { useEffect } from 'react';
 
 interface EllipseTableProps {
   state: GameState;
@@ -15,6 +15,12 @@ interface EllipseTableProps {
 export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, className = '' }: EllipseTableProps) {
   const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C', 'CPU-D', 'CPU-E'];
   const mySeatIndex = 0; // プレイヤーは常に0番
+  
+  // フレンド対戦の場合は参加者名を使用
+  const getPlayerName = (index: number) => {
+    if (index === 0) return 'あなた';
+    return playerNames[index] || `プレイヤー${index + 1}`;
+  };
 
   // 楕円配置の更新
   useEffect(() => {
@@ -67,7 +73,7 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
             data-active={state.currentPlayer === i}
           >
             <div className="content">
-              <div className="player-name">{playerNames[i]}</div>
+              <div className="player-name">{getPlayerName(i)}</div>
               <div className="player-stats">
                 <div className="cucumber-count">
                   🥒 <span>{player.cucumbers}</span>
@@ -90,7 +96,7 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
 
       {/* 自分の手札と名前（下辺） */}
       <section id="hand-dock" aria-label="自分の手札">
-        <div className="me-name">{playerNames[0]}</div>
+        <div className="me-name">{getPlayerName(0)}</div>
         <div className="hand">
           {state.players[0]?.hand.map((card, index) => (
             <div

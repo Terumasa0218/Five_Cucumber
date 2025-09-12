@@ -36,7 +36,7 @@ export default function CpuSettings() {
   };
 
   return (
-    <main className="min-h-screen w-full pt-20">
+    <main className="page-home min-h-screen w-full pt-20">
       <div className="container mx-auto px-4 max-w-2xl">
         {/* 見出し */}
         <div className="text-center mb-8">

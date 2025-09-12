@@ -571,6 +571,53 @@ body {
   #grave { width: 22vw; right: calc(50% - 44vw); }
 }
 
+/* ルーム情報表示 */
+.room-info {
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 0.25rem;
+}
+
+/* 参加者一覧 */
+.participants-info {
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  background: var(--panel-bg);
+  border: 1.5px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 1rem;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  z-index: 25;
+}
+
+.participants-info h3 {
+  color: white;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.participants-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.participant {
+  color: white;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.participant.current-player {
+  background: rgba(255, 210, 122, 0.3);
+  border: 1px solid rgba(255, 210, 122, 0.5);
+}
+
 /* 楕円卓用の追加スタイル */
 .player-name {
   color: white;

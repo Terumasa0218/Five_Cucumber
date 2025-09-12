@@ -129,7 +129,7 @@ function SetupForm() {
   };
 
   return (
-    <main className="min-h-screen grid place-items-center bg-transparent">
+    <main className="page-home min-h-screen grid place-items-center bg-transparent">
       <div className="max-w-md w-[min(92vw,560px)] bg-transparent">
         <h1 className="text-2xl font-bold mb-6 text-center text-white">プレイヤー設定</h1>
         

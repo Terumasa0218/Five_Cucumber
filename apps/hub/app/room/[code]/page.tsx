@@ -53,18 +53,14 @@ export default function RoomPage() {
 
   const handleStartGame = () => {
     if (room && room.participants.length === room.size) {
-      // ダミー対戦開始
-      alert('対戦開始！');
-      // 実際の実装ではゲーム画面に遷移
-      setTimeout(() => {
-        router.push('/friend');
-      }, 2000);
+      // フレンド対戦画面に遷移
+      router.push(`/friend/play/${roomCode}`);
     }
   };
 
   if (!room) {
     return (
-      <main className="min-h-screen w-full pt-20">
+      <main className="page-home min-h-screen w-full pt-20">
         <div className="container mx-auto px-4 text-center">
           <p>ルームが見つかりません</p>
         </div>
@@ -75,7 +71,7 @@ export default function RoomPage() {
   const isFull = room.participants.length === room.size;
 
   return (
-    <main className="min-h-screen w-full pt-20">
+    <main className="page-home min-h-screen w-full pt-20">
       <div className="container mx-auto px-4">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-8">

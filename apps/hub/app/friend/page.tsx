@@ -9,7 +9,7 @@ export default function FriendPage() {
   }, []);
 
   return (
-    <main className="min-h-screen w-full pt-20">
+    <main className="page-home min-h-screen w-full pt-20">
       <div className="container mx-auto px-4">
         {/* ヘッダー */}
         <div className="flex justify-between items-center mb-8">

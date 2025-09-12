@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://five-cucumber-hub.vercel.app'),
   title: {
     default: 'Five Cucumber – 5本のきゅうり',
     template: '%s | Five Cucumber'
