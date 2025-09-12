@@ -539,6 +539,7 @@ body {
 #oval-inner {
   display: grid; 
   place-items: center;
+  transform: translateY(-60px); /* 場全体を上に移動 */
 }
 
 #field {

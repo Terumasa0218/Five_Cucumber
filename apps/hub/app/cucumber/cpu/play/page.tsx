@@ -149,30 +149,48 @@ function CpuPlayContent() {
     
     const { state, config, controllers, rng, humanController } = gameRef.current;
     
-    // 最初のプレイヤーがCPUの場合は自動プレイ
+    // 最初のプレイヤーがCPUの場合は自動プレイ（少し待つ）
     if (state.currentPlayer !== 0) {
-      setTimeout(() => playCpuTurn(), 1000);
+      setTimeout(() => playCpuTurn(), 2000);
     }
   };
 
   const playCpuTurn = async () => {
-    if (!gameRef.current) return;
+    if (!gameRef.current || gameOver) return;
     
     const { state, config, controllers, rng } = gameRef.current;
     const currentPlayer = state.currentPlayer;
     
     if (currentPlayer === 0) return; // 人間のターン
+    if (state.phase !== "AwaitMove") return; // 適切なフェーズでない
     
     const controller = controllers[currentPlayer];
     const view = createGameView(state, config, currentPlayer);
     
     try {
       const move = await controller.onYourTurn(view);
-      if (move !== null) {
+      if (move !== null && typeof move === 'number') {
+        console.log(`[CPU ${currentPlayer}] Playing card:`, move);
         await playMove(currentPlayer, move);
+      } else {
+        console.warn(`[CPU ${currentPlayer}] No valid move returned:`, move);
+        // フォールバック：最初の有効なカードを出す
+        const hand = state.players[currentPlayer]?.hand;
+        if (hand && hand.length > 0) {
+          const fallbackMove = hand[0];
+          console.log(`[CPU ${currentPlayer}] Using fallback move:`, fallbackMove);
+          await playMove(currentPlayer, fallbackMove);
+        }
       }
     } catch (error) {
-      console.error('CPU turn error:', error);
+      console.error(`[CPU ${currentPlayer}] Turn error:`, error);
+      // エラー時のフォールバック処理
+      const hand = state.players[currentPlayer]?.hand;
+      if (hand && hand.length > 0) {
+        const fallbackMove = hand[0];
+        console.log(`[CPU ${currentPlayer}] Error fallback move:`, fallbackMove);
+        await playMove(currentPlayer, fallbackMove);
+      }
     }
   };
 
@@ -180,32 +198,35 @@ function CpuPlayContent() {
   useEffect(() => {
     if (!gameState || gameState.currentPlayer === 0 || gameOver || gameState.phase !== "AwaitMove") return;
     
+    // CPUの思考時間を長めに設定（1.5〜3秒のランダム）
+    const thinkingTime = 1500 + Math.random() * 1500;
     const timer = setTimeout(() => {
       playCpuTurn();
-    }, 1000);
+    }, thinkingTime);
     
     return () => clearTimeout(timer);
   }, [gameState?.currentPlayer, gameState?.phase, gameOver]);
 
   const playMove = async (player: number, card: number) => {
-    if (!gameRef.current) return;
+    if (!gameRef.current || gameOver) return;
     
-    await runAnimation(async () => {
-      const { state, config, controllers, rng } = gameRef.current!;
-      
-      // フェーズチェック
-      if (state.phase !== "AwaitMove") {
-        console.warn('Move attempted during invalid phase:', state.phase);
-      return;
-    }
-    
-      const move: Move = { player, card, timestamp: Date.now() };
-      
-      const result = applyMove(state, move, config, rng);
-      if (!result.success) {
-        console.error('Invalid move:', result.message);
-      return;
-    }
+    try {
+      await runAnimation(async () => {
+        const { state, config, controllers, rng } = gameRef.current!;
+        
+        // フェーズチェック
+        if (state.phase !== "AwaitMove") {
+          console.warn('Move attempted during invalid phase:', state.phase);
+          return;
+        }
+        
+        const move: Move = { player, card, timestamp: Date.now() };
+        
+        const result = applyMove(state, move, config, rng);
+        if (!result.success) {
+          console.error('Invalid move:', result.message || 'Unknown error');
+          return;
+        }
 
       let newState = result.newState;
       
@@ -254,9 +275,19 @@ function CpuPlayContent() {
     }
   }
 
-      gameRef.current!.state = newState;
-      setGameState(newState);
-    });
+        gameRef.current!.state = newState;
+        setGameState(newState);
+      });
+    } catch (error) {
+      console.error('Error in playMove:', error);
+      // エラーが発生した場合、ゲームが止まらないように次のプレイヤーに進む
+      if (gameRef.current && !gameOver) {
+        const { state } = gameRef.current;
+        if (state.phase === "AwaitMove" && state.currentPlayer !== 0) {
+          setTimeout(() => playCpuTurn(), 1000);
+        }
+      }
+    }
   };
 
   const handleCardClick = (card: number) => {
