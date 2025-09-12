@@ -1,6 +1,6 @@
 'use client';
 
-import { useI18n } from '@/providers/I18nProvider';
+import { useI18n } from '@/hooks/useI18n';
 import { useEffect, useState } from 'react';
 
 export function PresenceBadge() {
@@ -27,7 +27,7 @@ export function PresenceBadge() {
     <div className={`presence-badge ${isConnected ? 'presence-badge--connected' : 'presence-badge--disconnected'}`}>
       <div className="presence-badge__indicator" />
       <span className="presence-badge__text">
-        {t('label.online')}: {onlineCount}
+        オンライン: {onlineCount}
       </span>
     </div>
   );

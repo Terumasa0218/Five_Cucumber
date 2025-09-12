@@ -1,6 +1,6 @@
 'use client';
 
-import { useI18n } from '@/providers/I18nProvider';
+import { useI18n } from '@/hooks/useI18n';
 
 export interface GameTileProps {
   game: {
@@ -35,7 +35,7 @@ export function GameTile({ game, playerCount, onPlay }: GameTileProps) {
       <div className="game-tile__details">
         <div className="game-tile__players">
           <span className="game-tile__player-count">
-            {game.minPlayers}-{game.maxPlayers} {t('label.players')}
+            {game.minPlayers}-{game.maxPlayers}人
           </span>
         </div>
 
@@ -59,7 +59,7 @@ export function GameTile({ game, playerCount, onPlay }: GameTileProps) {
           onClick={onPlay}
           disabled={!isPlayable}
         >
-          {isPlayable ? t('btn.playOnline') : 'Not available'}
+          {isPlayable ? 'プレイ' : 'Not available'}
         </button>
       </div>
     </div>
