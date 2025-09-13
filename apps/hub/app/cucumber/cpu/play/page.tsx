@@ -163,9 +163,9 @@ function CpuPlayContent() {
     
     const { state, config, controllers, rng, humanController } = gameRef.current;
     
-    // 最初のプレイヤーがCPUの場合は自動プレイ（少し待つ）
+    // 最初のプレイヤーがCPUの場合は自動プレイ（ゆっくり待つ）
     if (state.currentPlayer !== 0) {
-      setTimeout(() => playCpuTurn(), 2000);
+      setTimeout(() => playCpuTurn(), 4000);
     }
   };
 
@@ -240,10 +240,16 @@ function CpuPlayContent() {
   useEffect(() => {
     if (!gameState || gameState.currentPlayer === 0 || gameOver || gameState.phase !== "AwaitMove") return;
     
-    // CPUの思考時間を長めに設定（1.5〜3秒のランダム）
-    const thinkingTime = 1500 + Math.random() * 1500;
+    // CPUの思考時間をさらに長めに設定（3〜6秒のランダム）
+    const thinkingTime = 3000 + Math.random() * 3000;
     const timer = setTimeout(() => {
-      playCpuTurn();
+      if (gameRef.current && !gameOver) {
+        const currentState = gameRef.current.state;
+        // 再度状態確認してからCPUターンを実行
+        if (currentState.currentPlayer !== 0 && currentState.phase === "AwaitMove") {
+          playCpuTurn();
+        }
+      }
     }, thinkingTime);
     
     return () => clearTimeout(timer);
@@ -343,12 +349,12 @@ function CpuPlayContent() {
           setGameState({...state});
         }
         
-        // CPUターンが必要な場合は継続
+        // CPUターンが必要な場合は継続（より長い待機時間）
         if (state.phase === "AwaitMove" && state.currentPlayer !== 0) {
-    setTimeout(() => {
+          setTimeout(() => {
             console.log('[Recovery] Resuming CPU turn after error');
             playCpuTurn();
-          }, 1500);
+          }, 3000);
         }
       }
     }
@@ -422,11 +428,13 @@ function CpuPlayContent() {
         </div>
         
         <div className="hud-center">
+          {gameState.currentPlayer === 0 && gameState.phase === "AwaitMove" && (
             <Timer
               turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
-              isActive={gameState.currentPlayer === 0 && gameState.phase === "AwaitMove"}
+              isActive={true}
               onTimeout={handleTimeout}
             />
+          )}
         </div>
         
         <div className="hud-right">

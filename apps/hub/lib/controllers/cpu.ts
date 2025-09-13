@@ -29,8 +29,8 @@ export class CpuController extends BaseController {
     const legalMoves = getLegalMoves(view.state, this.playerIndex);
     if (legalMoves.length === 0) return null;
 
-    // 思考演出のため少し待機
-    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+    // 思考演出のためゆっくり待機
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
     switch (this.cpuConfig.level) {
       case 'easy':
