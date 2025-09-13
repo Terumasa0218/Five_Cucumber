@@ -84,28 +84,40 @@ function CpuPlayContent() {
     // 保存されたゲーム状態を復元を試みる
     try {
       const savedGameData = localStorage.getItem(gameStateKey);
-      if (savedGameData) {
-        const { gameRef: savedGameRef, gameState: savedGameState, gameOver: savedGameOver, gameOverData: savedGameOverData } = JSON.parse(savedGameData);
+      if (savedGameData && savedGameData.trim()) {
+        const parsedData = JSON.parse(savedGameData);
+        const { gameRef: savedGameRef, gameState: savedGameState, gameOver: savedGameOver, gameOverData: savedGameOverData } = parsedData;
         
-        if (savedGameRef && savedGameState) {
-          console.log('[Game] Restoring saved game state');
+        // 復元データの検証
+        if (savedGameRef && savedGameState && 
+            savedGameState.players && Array.isArray(savedGameState.players) &&
+            typeof savedGameState.currentPlayer === 'number' &&
+            typeof savedGameState.phase === 'string') {
+          
+          console.log('[Game] Restoring validated saved game state');
           
           // 新しいテーブル設定を作成（復元用）
           const table = createCpuTableFromUrlParams(searchParams);
           const rng = new SeededRng();
-          if (savedGameRef.rng) {
-            rng.setState(savedGameRef.rng);
+          
+          // RNG状態の復元（安全に）
+          try {
+            if (savedGameRef.rng && typeof savedGameRef.rng === 'object') {
+              rng.setState(savedGameRef.rng);
+            }
+          } catch (rngError) {
+            console.warn('[Game] Failed to restore RNG state:', rngError);
           }
           
           // 最小ペース制御の設定
           table.config.minTurnMs = 500;
           table.config.minResolveMs = 600;
           
-          // ゲーム参照を再構築（コントローラーを含む）
+          // ゲーム参照を安全に再構築
           gameRef.current = {
             state: savedGameState,
             config: table.config,
-            controllers: table.controllers, // 新しく作成されたコントローラーを使用
+            controllers: table.controllers,
             rng,
             humanController: table.humanController
           };
@@ -113,12 +125,22 @@ function CpuPlayContent() {
           setGameState(savedGameState);
           setGameOver(savedGameOver || false);
           setGameOverData(savedGameOverData || []);
+          
+          console.log('[Game] Game state restored successfully');
           return;
+        } else {
+          console.warn('[Game] Invalid saved game data structure');
+          localStorage.removeItem(gameStateKey);
         }
       }
     } catch (error) {
       console.warn('[Game] Failed to restore saved state:', error);
-      localStorage.removeItem(gameStateKey);
+      // 破損したデータを削除
+      try {
+        localStorage.removeItem(gameStateKey);
+      } catch (cleanupError) {
+        console.error('[Game] Failed to cleanup corrupted data:', cleanupError);
+      }
     }
     
     // 新しいゲームを開始
@@ -238,124 +260,205 @@ function CpuPlayContent() {
 
   // CPU手番の処理をuseEffectで分離
   useEffect(() => {
-    if (!gameState || gameState.currentPlayer === 0 || gameOver || gameState.phase !== "AwaitMove") return;
+    // 早期リターンでHooksの条件呼び出しを防ぐ
+    if (!gameState) return;
+    if (gameState.currentPlayer === 0) return;
+    if (gameOver) return;
+    if (gameState.phase !== "AwaitMove") return;
     
     // CPUの思考時間をさらに長めに設定（3〜6秒のランダム）
     const thinkingTime = 3000 + Math.random() * 3000;
     const timer = setTimeout(() => {
-      if (gameRef.current && !gameOver) {
-        const currentState = gameRef.current.state;
-        // 再度状態確認してからCPUターンを実行
-        if (currentState.currentPlayer !== 0 && currentState.phase === "AwaitMove") {
-          playCpuTurn();
-        }
+      // 実行時点での最新状態を再確認
+      if (!gameRef.current) return;
+      if (gameOver) return;
+      
+      const currentState = gameRef.current.state;
+      if (currentState.currentPlayer !== 0 && currentState.phase === "AwaitMove") {
+        playCpuTurn().catch(error => {
+          console.error('[CPU Turn Error]:', error);
+        });
       }
     }, thinkingTime);
     
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+    };
   }, [gameState?.currentPlayer, gameState?.phase, gameOver]);
 
   const playMove = async (player: number, card: number) => {
-    if (!gameRef.current || gameOver) return;
+    // 基本的な前提条件チェック
+    if (!gameRef.current) {
+      console.warn('[PlayMove] No game reference');
+      return;
+    }
+    if (gameOver) {
+      console.warn('[PlayMove] Game is over');
+      return;
+    }
     
     try {
       await runAnimation(async () => {
-        const { state, config, controllers, rng } = gameRef.current!;
+        // 実行時点での最新状態を取得
+        if (!gameRef.current) {
+          console.error('[PlayMove] Game reference lost during execution');
+          return;
+        }
         
-        // フェーズと現在プレイヤーの厳密チェック
+        const { state, config, controllers, rng } = gameRef.current;
+        
+        // 厳密な状態チェック
         if (state.phase !== "AwaitMove") {
-          console.warn(`Move attempted during invalid phase: ${state.phase}`);
+          console.warn(`[PlayMove] Invalid phase: ${state.phase}`);
           return;
         }
         
         if (state.currentPlayer !== player) {
-          console.warn(`Move attempted by wrong player: ${player}, expected: ${state.currentPlayer}`);
+          console.warn(`[PlayMove] Wrong player: ${player}, expected: ${state.currentPlayer}`);
+          return;
+        }
+        
+        // 手札の存在確認
+        const playerHand = state.players[player]?.hand;
+        if (!playerHand || !playerHand.includes(card)) {
+          console.error(`[PlayMove] Card ${card} not in player ${player} hand:`, playerHand);
           return;
         }
         
         const move: Move = { player, card, timestamp: Date.now() };
-        console.log(`[PlayMove] Player ${player} playing card ${card}, Phase: ${state.phase}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[PlayMove] Player ${player} playing card ${card}, Phase: ${state.phase}`);
+        }
         
         const result = applyMove(state, move, config, rng);
         if (!result.success) {
-          console.error(`Invalid move by player ${player}:`, result.message || 'Unknown error');
-          console.error(`Hand:`, state.players[player]?.hand, `Field card:`, state.fieldCard);
-      return;
-    }
+          console.error(`[PlayMove] Invalid move by player ${player}:`, result.message || 'Unknown error');
+          console.error(`[PlayMove] Hand:`, playerHand, `Field card:`, state.fieldCard);
+          return;
+        }
 
-      let newState = result.newState;
-      
-      // 状態更新（カード移動アニメーション用の猶予）
-      gameRef.current!.state = newState;
-      setGameState(newState);
-      
-      // 最小ターン時間の待機
-      const minTurnMs = config.minTurnMs || 500;
-      await delay(minTurnMs);
-      
-      // トリック解決フェーズの処理
-      if (newState.phase === "ResolvingTrick") {
-        const trickResult = endTrick(newState, config, rng);
-        if (trickResult.success) {
-          newState = trickResult.newState;
-          
-          // 解決時間の待機
-          const minResolveMs = getMinResolveMs(config);
-          await delay(minResolveMs);
-          
-          // 最終トリック処理
-          if (newState.phase === "RoundEnd") {
-            const finalResult = finalRound(newState, config, rng);
-            if (finalResult.success) {
-              newState = finalResult.newState;
-              
-              if (newState.phase === "GameEnd") {
-                setGameOverData(newState.gameOverPlayers.map(p => ({ 
-                  player: p, 
-                  count: newState.players[p].cucumbers 
-                })));
-                setGameOver(true);
-                gameRef.current!.state = newState;
-                setGameState(newState);
-      return;
-    }
-    
-              // 次のラウンド
-              const roundResult = startNewRound(newState, config, rng);
-              if (roundResult.success) {
-                newState = roundResult.newState;
+        let newState = result.newState;
+        
+        // 状態更新（同期的に実行）
+        if (!gameRef.current) {
+          console.error('[PlayMove] Game reference lost during state update');
+          return;
+        }
+        
+        gameRef.current.state = newState;
+        setGameState(newState);
+        
+        // 最小ターン時間の待機
+        const minTurnMs = config.minTurnMs || 500;
+        await delay(minTurnMs);
+        
+        // トリック解決フェーズの処理
+        if (newState.phase === "ResolvingTrick") {
+          const trickResult = endTrick(newState, config, rng);
+          if (trickResult.success) {
+            newState = trickResult.newState;
+            
+            // 解決時間の待機
+            const minResolveMs = getMinResolveMs(config);
+            await delay(minResolveMs);
+            
+            // 最終トリック処理
+            if (newState.phase === "RoundEnd") {
+              const finalResult = finalRound(newState, config, rng);
+              if (finalResult.success) {
+                newState = finalResult.newState;
+                
+                if (newState.phase === "GameEnd") {
+                  // ゲーム終了処理
+                  setGameOverData(newState.gameOverPlayers.map(p => ({ 
+                    player: p, 
+                    count: newState.players[p].cucumbers 
+                  })));
+                  setGameOver(true);
+                  if (gameRef.current) {
+                    gameRef.current.state = newState;
+                  }
+                  setGameState(newState);
+                  return;
+                }
+                
+                // 次のラウンド
+                const roundResult = startNewRound(newState, config, rng);
+                if (roundResult.success) {
+                  newState = roundResult.newState;
+                }
+              }
+            }
           }
         }
-      }
-    }
-  }
-
-        gameRef.current!.state = newState;
-        setGameState(newState);
+        
+        // 最終的な状態更新
+        if (gameRef.current) {
+          gameRef.current.state = newState;
+          setGameState(newState);
+        }
       });
     } catch (error) {
-      console.error(`Error in playMove for player ${player}:`, error);
+      console.error(`[PlayMove] Critical error for player ${player}:`, error);
       
-      // エラーが発生した場合の復旧処理
-      if (gameRef.current && !gameOver) {
-        const { state, config, rng } = gameRef.current;
-        console.log(`[Recovery] Current state - Player: ${state.currentPlayer}, Phase: ${state.phase}`);
-        
-        // フェーズがおかしい場合は AwaitMove に戻す
-        if (state.phase !== "AwaitMove" && state.phase !== "GameEnd") {
-          console.log('[Recovery] Resetting phase to AwaitMove');
-          state.phase = "AwaitMove";
-          gameRef.current.state = state;
-          setGameState({...state});
+      // 包括的なエラー復旧処理
+      try {
+        if (!gameRef.current) {
+          console.error('[Recovery] No game reference available');
+          return;
         }
         
-        // CPUターンが必要な場合は継続（より長い待機時間）
-        if (state.phase === "AwaitMove" && state.currentPlayer !== 0) {
+        if (gameOver) {
+          console.log('[Recovery] Game is over, no recovery needed');
+          return;
+        }
+        
+        const { state, config } = gameRef.current;
+        console.log(`[Recovery] Attempting recovery - Player: ${state.currentPlayer}, Phase: ${state.phase}`);
+        
+        // 状態の整合性チェックと修正
+        let recoveredState = { ...state };
+        let needsRecovery = false;
+        
+        // フェーズの修正
+        if (recoveredState.phase !== "AwaitMove" && recoveredState.phase !== "GameEnd") {
+          console.log(`[Recovery] Invalid phase ${recoveredState.phase}, resetting to AwaitMove`);
+          recoveredState.phase = "AwaitMove";
+          needsRecovery = true;
+        }
+        
+        // プレイヤーインデックスの修正
+        if (recoveredState.currentPlayer < 0 || recoveredState.currentPlayer >= config.players) {
+          console.log(`[Recovery] Invalid currentPlayer ${recoveredState.currentPlayer}, resetting to 0`);
+          recoveredState.currentPlayer = 0;
+          needsRecovery = true;
+        }
+        
+        // 状態を復旧
+        if (needsRecovery) {
+          gameRef.current.state = recoveredState;
+          setGameState(recoveredState);
+          console.log('[Recovery] State recovered successfully');
+        }
+        
+        // CPUターンの継続判定
+        if (recoveredState.phase === "AwaitMove" && recoveredState.currentPlayer !== 0) {
+          console.log('[Recovery] Scheduling CPU turn continuation');
           setTimeout(() => {
-            console.log('[Recovery] Resuming CPU turn after error');
-            playCpuTurn();
-          }, 3000);
+            if (gameRef.current && !gameOver) {
+              const currentState = gameRef.current.state;
+              if (currentState.phase === "AwaitMove" && currentState.currentPlayer !== 0) {
+                console.log('[Recovery] Executing CPU turn continuation');
+                playCpuTurn().catch(recoveryError => {
+                  console.error('[Recovery] Failed to continue CPU turn:', recoveryError);
+                });
+              }
+            }
+          }, 4000); // 4秒待機で確実に復旧
         }
+        
+      } catch (recoveryError) {
+        console.error('[Recovery] Recovery process failed:', recoveryError);
       }
     }
   };
