@@ -88,11 +88,31 @@ function CpuPlayContent() {
         const parsedData = JSON.parse(savedGameData);
         const { gameRef: savedGameRef, gameState: savedGameState, gameOver: savedGameOver, gameOverData: savedGameOverData } = parsedData;
         
-        // 復元データの検証
+        // 復元データの詳細検証
         if (savedGameRef && savedGameState && 
             savedGameState.players && Array.isArray(savedGameState.players) &&
             typeof savedGameState.currentPlayer === 'number' &&
             typeof savedGameState.phase === 'string') {
+          
+          // さらに詳細な検証
+          const playersParam = parseInt(searchParams.get('players') || '4');
+          const isValidCurrentPlayer = savedGameState.currentPlayer >= 0 && savedGameState.currentPlayer < playersParam;
+          const isValidPhase = ['AwaitMove', 'ResolvingTrick', 'RoundEnd', 'GameEnd'].includes(savedGameState.phase);
+          const hasValidPlayers = savedGameState.players.length === playersParam;
+          
+          if (!isValidCurrentPlayer) {
+            console.warn(`[Game] Invalid currentPlayer in saved state: ${savedGameState.currentPlayer}, expected 0-${playersParam-1}`);
+            localStorage.removeItem(gameStateKey);
+            // 新しいゲームを開始
+          } else if (!isValidPhase) {
+            console.warn(`[Game] Invalid phase in saved state: ${savedGameState.phase}`);
+            localStorage.removeItem(gameStateKey);
+            // 新しいゲームを開始
+          } else if (!hasValidPlayers) {
+            console.warn(`[Game] Invalid players count in saved state: ${savedGameState.players.length}, expected ${playersParam}`);
+            localStorage.removeItem(gameStateKey);
+            // 新しいゲームを開始
+          } else {
           
           console.log('[Game] Restoring validated saved game state');
           
@@ -126,8 +146,9 @@ function CpuPlayContent() {
           setGameOver(savedGameOver || false);
           setGameOverData(savedGameOverData || []);
           
-          console.log('[Game] Game state restored successfully');
-          return;
+            console.log('[Game] Game state restored successfully');
+            return;
+          }
         } else {
           console.warn('[Game] Invalid saved game data structure');
           localStorage.removeItem(gameStateKey);
@@ -192,17 +213,38 @@ function CpuPlayContent() {
   };
 
   const playCpuTurn = async () => {
-    if (!gameRef.current || gameOver) return;
+    if (!gameRef.current) {
+      console.warn('[CPU Turn] No game reference');
+      return;
+    }
+    if (gameOver) {
+      console.warn('[CPU Turn] Game is over');
+      return;
+    }
     
     const { state, config, controllers, rng } = gameRef.current;
     const currentPlayer = state.currentPlayer;
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[CPU Turn] Current player: ${currentPlayer}, Phase: ${state.phase}, GameOver: ${gameOver}`);
+    // 詳細な状態ログ
+    console.log(`[CPU Turn] Starting - Player: ${currentPlayer}, Phase: ${state.phase}, Round: ${state.currentRound}, Trick: ${state.currentTrick}`);
+    console.log(`[CPU Turn] Trick cards: ${state.trickCards.length}/${config.players}, GameOver: ${gameOver}`);
+    
+    // 厳密な前提条件チェック
+    if (currentPlayer === 0) {
+      console.log('[CPU Turn] Human player turn, skipping');
+      return;
     }
     
-    if (currentPlayer === 0) return; // 人間のターン
-    if (state.phase !== "AwaitMove") return; // 適切なフェーズでない
+    if (state.phase !== "AwaitMove") {
+      console.warn(`[CPU Turn] Invalid phase: ${state.phase}`);
+      return;
+    }
+    
+    // プレイヤー番号の妥当性チェック
+    if (currentPlayer < 0 || currentPlayer >= config.players) {
+      console.error(`[CPU Turn] Invalid currentPlayer: ${currentPlayer}, valid range: 0-${config.players - 1}`);
+      return;
+    }
     
     const controller = controllers[currentPlayer];
     if (!controller) {
@@ -261,10 +303,36 @@ function CpuPlayContent() {
   // CPU手番の処理をuseEffectで分離
   useEffect(() => {
     // 早期リターンでHooksの条件呼び出しを防ぐ
-    if (!gameState) return;
-    if (gameState.currentPlayer === 0) return;
-    if (gameOver) return;
-    if (gameState.phase !== "AwaitMove") return;
+    if (!gameState) {
+      console.log('[useEffect] No game state');
+      return;
+    }
+    if (gameState.currentPlayer === 0) {
+      console.log('[useEffect] Human player turn');
+      return;
+    }
+    if (gameOver) {
+      console.log('[useEffect] Game is over');
+      return;
+    }
+    if (gameState.phase !== "AwaitMove") {
+      console.log(`[useEffect] Invalid phase: ${gameState.phase}`);
+      return;
+    }
+    
+    // 追加の妥当性チェック
+    if (!gameRef.current) {
+      console.warn('[useEffect] No game reference');
+      return;
+    }
+    
+    const config = gameRef.current.config;
+    if (gameState.currentPlayer < 0 || gameState.currentPlayer >= config.players) {
+      console.error(`[useEffect] Invalid currentPlayer: ${gameState.currentPlayer}`);
+      return;
+    }
+    
+    console.log(`[useEffect] Scheduling CPU turn for player ${gameState.currentPlayer}`);
     
     // CPUの思考時間をさらに長めに設定（3〜6秒のランダム）
     const thinkingTime = 3000 + Math.random() * 3000;
@@ -313,9 +381,25 @@ function CpuPlayContent() {
           return;
         }
         
+        // プレイヤー番号の詳細検証
         if (state.currentPlayer !== player) {
-          console.warn(`[PlayMove] Wrong player: ${player}, expected: ${state.currentPlayer}`);
-          return;
+          console.error(`[PlayMove] Player mismatch detected:`);
+          console.error(`  - Requested player: ${player}`);
+          console.error(`  - Current player: ${state.currentPlayer}`);
+          console.error(`  - Game phase: ${state.phase}`);
+          console.error(`  - Trick cards: ${state.trickCards.length}`);
+          console.error(`  - Round: ${state.currentRound}, Trick: ${state.currentTrick}`);
+          
+          // 状態修正を試みる
+          if (state.phase === "AwaitMove" && player >= 0 && player < config.players) {
+            console.log(`[PlayMove] Attempting state correction: setting currentPlayer to ${player}`);
+            state.currentPlayer = player;
+            gameRef.current.state = state;
+            setGameState({ ...state });
+          } else {
+            console.warn(`[PlayMove] Cannot correct state - invalid player: ${player}`);
+            return;
+          }
         }
         
         // 手札の存在確認
