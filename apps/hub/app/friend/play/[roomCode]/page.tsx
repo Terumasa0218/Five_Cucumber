@@ -126,6 +126,7 @@ function FriendPlayContent() {
     
     const nickname = getNickname();
     if (!nickname) {
+      console.warn('[Friend Game] No nickname found, redirecting to setup');
       router.push(`/setup?returnTo=/friend/play/${roomCode}`);
       return;
     }
@@ -190,14 +191,17 @@ function FriendPlayContent() {
     // APIからルーム情報を取得
     const fetchRoom = async () => {
       try {
+        console.log(`[Friend Game] Fetching room data for ${roomCode}`);
         const res = await fetch(`/api/friend/room/${roomCode}`);
         
         if (!res.ok) {
+          console.error(`[Friend Game] API error: ${res.status} ${res.statusText}`);
           router.push('/friend/join');
           return;
         }
         
         const data = await res.json();
+        console.log('[Friend Game] Room data received:', data);
         if (data.ok && data.room) {
           setRoomInfo(data.room);
           

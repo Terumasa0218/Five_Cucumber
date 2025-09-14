@@ -89,8 +89,8 @@ export default function FriendJoinPage() {
                     setRoomCode(e.target.value);
                     setError(null);
                   }}
-                  placeholder="5桁のルーム番号を入力"
-                  maxLength={5}
+                  placeholder="6桁のルーム番号を入力"
+                  maxLength={6}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {error && (

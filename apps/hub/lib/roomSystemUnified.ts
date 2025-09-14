@@ -49,7 +49,7 @@ function saveRoomsToStorage(rooms: Map<string, Room>): void {
 }
 
 /**
- * 4-6桁のルームIDを生成
+ * 6桁のルームIDを生成
  */
 function generateRoomId(): string {
   const rooms = getRoomsStorage();
@@ -57,7 +57,7 @@ function generateRoomId(): string {
   let attempts = 0;
   
   do {
-    id = Math.floor(1000 + Math.random() * 900000).toString(); // 4-6桁
+    id = Math.floor(100000 + Math.random() * 900000).toString(); // 6桁固定 (100000-999999)
     attempts++;
     if (attempts > 100) {
       throw new Error('Failed to generate unique room ID');
