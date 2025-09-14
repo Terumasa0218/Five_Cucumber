@@ -80,7 +80,9 @@ jspm_packages/
 
 # Gatsby files
 .cache/
+# public (but include important assets)
 public
+!apps/hub/public/images/
 
 # Storybook build outputs
 .out

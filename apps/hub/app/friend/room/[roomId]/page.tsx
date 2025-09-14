@@ -15,6 +15,7 @@ export default function RoomWaitingPage() {
   const [nickname, setNickname] = useState<string | null>(null);
   const [isInRoom, setIsInRoom] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     document.title = `ルーム ${roomId} | Five Cucumber`;
@@ -38,6 +39,7 @@ export default function RoomWaitingPage() {
           } else {
             setError('ルーム情報の取得に失敗しました');
           }
+          setIsLoading(false);
           return;
         }
         
@@ -48,16 +50,26 @@ export default function RoomWaitingPage() {
           // 現在のユーザーがルームにいるかチェック
           const isParticipating = data.room.seats.some((seat: any) => seat?.nickname === currentNickname);
           setIsInRoom(isParticipating);
+          setError(null); // エラーをクリア
         } else {
           setError('ルーム情報の取得に失敗しました');
         }
       } catch (err) {
         console.error('Room fetch error:', err);
         setError('ネットワークエラーが発生しました');
+      } finally {
+        setIsLoading(false);
       }
     };
     
     fetchRoom();
+    
+    // リアルタイム更新のためのポーリング
+    const pollInterval = setInterval(fetchRoom, 3000); // 3秒ごとに更新
+    
+    return () => {
+      clearInterval(pollInterval);
+    };
   }, [roomId, router]);
 
   const handleLeaveRoom = async () => {
@@ -120,14 +132,14 @@ export default function RoomWaitingPage() {
     );
   }
 
-  if (!room || !nickname) {
+  if (isLoading || !room || !nickname) {
     return (
       <main className="page-home min-h-screen w-full pt-20 relative">
         {/* 背景オーバーレイ */}
         <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
         
         <div className="container mx-auto px-4 text-center relative z-10">
-          <p className="text-white text-xl">読み込み中...</p>
+          <p className="text-white text-xl">{isLoading ? '読み込み中...' : 'ルーム情報を取得中...'}</p>
         </div>
       </main>
     );
