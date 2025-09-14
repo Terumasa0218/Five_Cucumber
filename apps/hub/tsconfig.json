@@ -26,6 +26,9 @@
   ],
   "exclude": [
     "node_modules",
-    ".next"
+    ".next",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "tests/**/*"
   ]
 }
