@@ -219,6 +219,7 @@ function FriendPlayContent() {
           // ゲーム状態を初期化
           const rng = new SeededRng(Date.now());
           const initialState = createInitialState(config, rng);
+          console.log('[Friend Game] Initial game state created:', initialState);
           setGameState(initialState);
           gameRef.current = { config, rng };
         } else {
