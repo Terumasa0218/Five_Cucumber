@@ -50,7 +50,7 @@ function CpuPlayContent() {
     return `cpu-game-state-${players}-${turnSeconds}-${maxCucumbers}-${cpuLevel}`;
   };
   
-  // ゲーム状態を保存
+  // ゲーム状態を保存（リロード時の復元用のみ）
   const saveGameState = () => {
     if (!gameRef.current || !gameState) return;
     
@@ -63,12 +63,24 @@ function CpuPlayContent() {
         },
         gameState,
         gameOver,
-        gameOverData
+        gameOverData,
+        timestamp: Date.now() // タイムスタンプを追加
       };
       localStorage.setItem(gameStateKey, JSON.stringify(saveData));
-      console.log('[Game] State saved');
+      console.log('[Game] State saved for reload recovery');
     } catch (error) {
       console.warn('[Game] Failed to save state:', error);
+    }
+  };
+  
+  // CPU対戦のセーブデータをクリア（新規開始用）
+  const clearCpuGameState = () => {
+    try {
+      const gameStateKey = getGameStateKey(searchParams);
+      localStorage.removeItem(gameStateKey);
+      console.log('[Game] CPU game state cleared for fresh start');
+    } catch (error) {
+      console.warn('[Game] Failed to clear CPU game state:', error);
     }
   };
 
@@ -79,88 +91,101 @@ function CpuPlayContent() {
     const showAllHandsParam = searchParams.get('showAllHands');
     setShowAllHands(showAllHandsParam === 'true');
     
+    // リファラーをチェックして新規開始かリロード復元かを判定
+    const isFromHome = document.referrer.includes('/home') || document.referrer.includes('/cpu/settings') || !document.referrer;
     const gameStateKey = getGameStateKey(searchParams);
     
-    // 保存されたゲーム状態を復元を試みる
-    try {
-      const savedGameData = localStorage.getItem(gameStateKey);
-      if (savedGameData && savedGameData.trim()) {
-        const parsedData = JSON.parse(savedGameData);
-        const { gameRef: savedGameRef, gameState: savedGameState, gameOver: savedGameOver, gameOverData: savedGameOverData } = parsedData;
-        
-        // 復元データの詳細検証
-        if (savedGameRef && savedGameState && 
-            savedGameState.players && Array.isArray(savedGameState.players) &&
-            typeof savedGameState.currentPlayer === 'number' &&
-            typeof savedGameState.phase === 'string') {
-          
-          // さらに詳細な検証
-          const playersParam = parseInt(searchParams.get('players') || '4');
-          const isValidCurrentPlayer = savedGameState.currentPlayer >= 0 && savedGameState.currentPlayer < playersParam;
-          const isValidPhase = ['AwaitMove', 'ResolvingTrick', 'RoundEnd', 'GameEnd'].includes(savedGameState.phase);
-          const hasValidPlayers = savedGameState.players.length === playersParam;
-          
-          if (!isValidCurrentPlayer) {
-            console.warn(`[Game] Invalid currentPlayer in saved state: ${savedGameState.currentPlayer}, expected 0-${playersParam-1}`);
-            localStorage.removeItem(gameStateKey);
-            // 新しいゲームを開始
-          } else if (!isValidPhase) {
-            console.warn(`[Game] Invalid phase in saved state: ${savedGameState.phase}`);
-            localStorage.removeItem(gameStateKey);
-            // 新しいゲームを開始
-          } else if (!hasValidPlayers) {
-            console.warn(`[Game] Invalid players count in saved state: ${savedGameState.players.length}, expected ${playersParam}`);
-            localStorage.removeItem(gameStateKey);
-            // 新しいゲームを開始
-          } else {
-          
-          console.log('[Game] Restoring validated saved game state');
-          
-          // 新しいテーブル設定を作成（復元用）
-          const table = createCpuTableFromUrlParams(searchParams);
-          const rng = new SeededRng();
-          
-          // RNG状態の復元（安全に）
-          try {
-            if (savedGameRef.rng && typeof savedGameRef.rng === 'object') {
-              rng.setState(savedGameRef.rng);
-            }
-          } catch (rngError) {
-            console.warn('[Game] Failed to restore RNG state:', rngError);
-          }
-          
-          // 最小ペース制御の設定
-          table.config.minTurnMs = 500;
-          table.config.minResolveMs = 600;
-          
-          // ゲーム参照を安全に再構築
-          gameRef.current = {
-            state: savedGameState,
-            config: table.config,
-            controllers: table.controllers,
-            rng,
-            humanController: table.humanController
-          };
-          
-          setGameState(savedGameState);
-          setGameOver(savedGameOver || false);
-          setGameOverData(savedGameOverData || []);
-          
-            console.log('[Game] Game state restored successfully');
-            return;
-          }
-        } else {
-          console.warn('[Game] Invalid saved game data structure');
-          localStorage.removeItem(gameStateKey);
-        }
-      }
-    } catch (error) {
-      console.warn('[Game] Failed to restore saved state:', error);
-      // 破損したデータを削除
+    // ホームから来た場合は常に新規ゲーム開始
+    if (isFromHome) {
+      console.log('[Game] Starting fresh game (from home/settings)');
+      clearCpuGameState();
+    } else {
+      console.log('[Game] Attempting to restore game state (from reload)');
+    }
+    
+    // 保存されたゲーム状態を復元を試みる（リロード時のみ）
+    if (!isFromHome) {
       try {
-        localStorage.removeItem(gameStateKey);
-      } catch (cleanupError) {
-        console.error('[Game] Failed to cleanup corrupted data:', cleanupError);
+        const savedGameData = localStorage.getItem(gameStateKey);
+        if (savedGameData && savedGameData.trim()) {
+          const parsedData = JSON.parse(savedGameData);
+          const { gameRef: savedGameRef, gameState: savedGameState, gameOver: savedGameOver, gameOverData: savedGameOverData, timestamp } = parsedData;
+          
+          // タイムスタンプチェック（5分以内のデータのみ復元）
+          const now = Date.now();
+          const maxAge = 5 * 60 * 1000; // 5分
+          if (timestamp && (now - timestamp) > maxAge) {
+            console.log('[Game] Saved data too old, starting fresh game');
+            localStorage.removeItem(gameStateKey);
+          } else if (savedGameRef && savedGameState && 
+              savedGameState.players && Array.isArray(savedGameState.players) &&
+              typeof savedGameState.currentPlayer === 'number' &&
+              typeof savedGameState.phase === 'string') {
+            
+            // さらに詳細な検証
+            const playersParam = parseInt(searchParams.get('players') || '4');
+            const isValidCurrentPlayer = savedGameState.currentPlayer >= 0 && savedGameState.currentPlayer < playersParam;
+            const isValidPhase = ['AwaitMove', 'ResolvingTrick', 'RoundEnd', 'GameEnd'].includes(savedGameState.phase);
+            const hasValidPlayers = savedGameState.players.length === playersParam;
+            
+            if (!isValidCurrentPlayer) {
+              console.warn(`[Game] Invalid currentPlayer in saved state: ${savedGameState.currentPlayer}, expected 0-${playersParam-1}`);
+              localStorage.removeItem(gameStateKey);
+            } else if (!isValidPhase) {
+              console.warn(`[Game] Invalid phase in saved state: ${savedGameState.phase}`);
+              localStorage.removeItem(gameStateKey);
+            } else if (!hasValidPlayers) {
+              console.warn(`[Game] Invalid players count in saved state: ${savedGameState.players.length}, expected ${playersParam}`);
+              localStorage.removeItem(gameStateKey);
+            } else {
+              console.log('[Game] Restoring validated saved game state');
+              
+              // 新しいテーブル設定を作成（復元用）
+              const table = createCpuTableFromUrlParams(searchParams);
+              const rng = new SeededRng();
+              
+              // RNG状態の復元（安全に）
+              try {
+                if (savedGameRef.rng && typeof savedGameRef.rng === 'object') {
+                  rng.setState(savedGameRef.rng);
+                }
+              } catch (rngError) {
+                console.warn('[Game] Failed to restore RNG state:', rngError);
+              }
+              
+              // 最小ペース制御の設定
+              table.config.minTurnMs = 500;
+              table.config.minResolveMs = 600;
+              
+              // ゲーム参照を安全に再構築
+              gameRef.current = {
+                state: savedGameState,
+                config: table.config,
+                controllers: table.controllers,
+                rng,
+                humanController: table.humanController
+              };
+              
+              setGameState(savedGameState);
+              setGameOver(savedGameOver || false);
+              setGameOverData(savedGameOverData || []);
+              
+              console.log('[Game] Game state restored successfully');
+              return;
+            }
+          } else {
+            console.warn('[Game] Invalid saved game data structure');
+            localStorage.removeItem(gameStateKey);
+          }
+        }
+      } catch (error) {
+        console.warn('[Game] Failed to restore saved state:', error);
+        // 破損したデータを削除
+        try {
+          localStorage.removeItem(gameStateKey);
+        } catch (cleanupError) {
+          console.error('[Game] Failed to cleanup corrupted data:', cleanupError);
+        }
       }
     }
     
@@ -378,9 +403,9 @@ function CpuPlayContent() {
         // 厳密な状態チェック
         if (state.phase !== "AwaitMove") {
           console.warn(`[PlayMove] Invalid phase: ${state.phase}`);
-          return;
-        }
-        
+      return;
+    }
+
         // プレイヤー番号の詳細検証
         if (state.currentPlayer !== player) {
           console.error(`[PlayMove] Player mismatch detected:`);
@@ -396,7 +421,7 @@ function CpuPlayContent() {
             state.currentPlayer = player;
             gameRef.current.state = state;
             setGameState({ ...state });
-          } else {
+      } else {
             console.warn(`[PlayMove] Cannot correct state - invalid player: ${player}`);
             return;
           }
@@ -426,9 +451,9 @@ function CpuPlayContent() {
         // 状態更新（同期的に実行）
         if (!gameRef.current) {
           console.error('[PlayMove] Game reference lost during state update');
-          return;
-        }
-        
+      return;
+    }
+    
         gameRef.current.state = newState;
         setGameState(newState);
         
@@ -470,12 +495,12 @@ function CpuPlayContent() {
                 const roundResult = startNewRound(newState, config, rng);
                 if (roundResult.success) {
                   newState = roundResult.newState;
-                }
-              }
-            }
           }
         }
-        
+      }
+    }
+  }
+
         // 最終的な状態更新
         if (gameRef.current) {
           gameRef.current.state = newState;
@@ -494,9 +519,9 @@ function CpuPlayContent() {
         
         if (gameOver) {
           console.log('[Recovery] Game is over, no recovery needed');
-          return;
-        }
-        
+      return;
+    }
+
         const { state, config } = gameRef.current;
         console.log(`[Recovery] Attempting recovery - Player: ${state.currentPlayer}, Phase: ${state.phase}`);
         

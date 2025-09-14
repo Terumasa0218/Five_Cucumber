@@ -33,6 +33,12 @@ function FriendPlayContent() {
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
   const gameRef = useRef<{ config: GameConfig; rng: SeededRng } | null>(null);
   
+  // 切断対策システム
+  const [disconnectedPlayers, setDisconnectedPlayers] = useState<Set<number>>(new Set());
+  const [cpuReplacedPlayers, setCpuReplacedPlayers] = useState<Set<number>>(new Set());
+  const disconnectTimers = useRef<Map<number, NodeJS.Timeout>>(new Map());
+  const lastActivityTime = useRef<number>(Date.now());
+  
   // ゲーム状態を保存
   const saveGameState = () => {
     if (!gameRef.current || !gameState || !roomCode) return;
@@ -46,13 +52,73 @@ function FriendPlayContent() {
         },
         gameState,
         gameOver,
-        roomInfo
+        roomInfo,
+        disconnectedPlayers: Array.from(disconnectedPlayers),
+        cpuReplacedPlayers: Array.from(cpuReplacedPlayers),
+        timestamp: Date.now()
       };
       localStorage.setItem(gameStateKey, JSON.stringify(saveData));
       console.log('[Friend Game] State saved for room:', roomCode);
     } catch (error) {
       console.warn('[Friend Game] Failed to save state:', error);
     }
+  };
+  
+  // プレイヤーの切断を検知
+  const handlePlayerDisconnect = (playerIndex: number) => {
+    if (disconnectedPlayers.has(playerIndex)) return;
+    
+    console.log(`[Disconnect] Player ${playerIndex} disconnected`);
+    setDisconnectedPlayers(prev => new Set([...prev, playerIndex]));
+    
+    // 45秒後にCPUに置換
+    const timer = setTimeout(() => {
+      if (!cpuReplacedPlayers.has(playerIndex)) {
+        console.log(`[Disconnect] Replacing player ${playerIndex} with CPU`);
+        setCpuReplacedPlayers(prev => new Set([...prev, playerIndex]));
+        disconnectTimers.current.delete(playerIndex);
+      }
+    }, 45000); // 45秒
+    
+    disconnectTimers.current.set(playerIndex, timer);
+  };
+  
+  // プレイヤーの復帰を処理
+  const handlePlayerReconnect = (playerIndex: number) => {
+    if (!disconnectedPlayers.has(playerIndex)) return;
+    
+    console.log(`[Reconnect] Player ${playerIndex} reconnected`);
+    
+    // 切断タイマーをクリア
+    const timer = disconnectTimers.current.get(playerIndex);
+    if (timer) {
+      clearTimeout(timer);
+      disconnectTimers.current.delete(playerIndex);
+    }
+    
+    // 切断状態を解除
+    setDisconnectedPlayers(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(playerIndex);
+      return newSet;
+    });
+    
+    // CPU置換も解除（まだCPUに置換されていない場合）
+    if (!cpuReplacedPlayers.has(playerIndex)) {
+      console.log(`[Reconnect] Player ${playerIndex} reconnected before CPU replacement`);
+    } else {
+      console.log(`[Reconnect] Player ${playerIndex} reconnected, removing CPU replacement`);
+      setCpuReplacedPlayers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(playerIndex);
+        return newSet;
+      });
+    }
+  };
+  
+  // アクティビティを記録
+  const recordActivity = () => {
+    lastActivityTime.current = Date.now();
   };
 
   useEffect(() => {
@@ -66,31 +132,60 @@ function FriendPlayContent() {
     
     // 保存されたゲーム状態を復元を試みる
     const gameStateKey = `friend-game-state-${roomCode}`;
-    try {
-      const savedGameData = localStorage.getItem(gameStateKey);
-      if (savedGameData) {
-        const { gameRef: savedGameRef, gameState: savedGameState, gameOver: savedGameOver, roomInfo: savedRoomInfo } = JSON.parse(savedGameData);
-        
-        if (savedGameRef && savedGameState) {
-          console.log('[Friend Game] Restoring saved game state for room:', roomCode);
-          const rng = new SeededRng();
-          if (savedGameRef.rng) {
-            rng.setState(savedGameRef.rng);
+        try {
+          const savedGameData = localStorage.getItem(gameStateKey);
+          if (savedGameData) {
+            const { 
+              gameRef: savedGameRef, 
+              gameState: savedGameState, 
+              gameOver: savedGameOver, 
+              roomInfo: savedRoomInfo,
+              disconnectedPlayers: savedDisconnectedPlayers,
+              cpuReplacedPlayers: savedCpuReplacedPlayers,
+              timestamp
+            } = JSON.parse(savedGameData);
+            
+            // タイムスタンプチェック（10分以内のデータのみ復元）
+            const now = Date.now();
+            const maxAge = 10 * 60 * 1000; // 10分
+            if (timestamp && (now - timestamp) > maxAge) {
+              console.log('[Friend Game] Saved data too old, starting fresh');
+              localStorage.removeItem(gameStateKey);
+            } else if (savedGameRef && savedGameState) {
+              console.log('[Friend Game] Restoring saved game state for room:', roomCode);
+              const rng = new SeededRng();
+              if (savedGameRef.rng) {
+                rng.setState(savedGameRef.rng);
+              }
+              gameRef.current = {
+                ...savedGameRef,
+                rng
+              };
+              setGameState(savedGameState);
+              setGameOver(savedGameOver || false);
+              setRoomInfo(savedRoomInfo);
+              
+              // 切断情報も復元
+              if (savedDisconnectedPlayers) {
+                setDisconnectedPlayers(new Set(savedDisconnectedPlayers));
+              }
+              if (savedCpuReplacedPlayers) {
+                setCpuReplacedPlayers(new Set(savedCpuReplacedPlayers));
+              }
+              
+              // 自分が復帰した場合の処理
+              const myPlayerIndex = 0; // 仮定：プレイヤー0が自分
+              if (savedDisconnectedPlayers && savedDisconnectedPlayers.includes(myPlayerIndex)) {
+                handlePlayerReconnect(myPlayerIndex);
+              }
+              
+              return;
+            }
           }
-          gameRef.current = {
-            ...savedGameRef,
-            rng
-          };
-          setGameState(savedGameState);
-          setGameOver(savedGameOver || false);
-          setRoomInfo(savedRoomInfo);
-          return;
+        } catch (error) {
+          console.warn('[Friend Game] Failed to restore saved state:', error);
+          localStorage.removeItem(gameStateKey);
         }
-      }
-    } catch (error) {
-      console.warn('[Friend Game] Failed to restore saved state:', error);
-      localStorage.removeItem(gameStateKey);
-    }
     
     // APIからルーム情報を取得
     const fetchRoom = async () => {
@@ -143,6 +238,9 @@ function FriendPlayContent() {
 
   const handleCardClick = async (card: number) => {
     if (!gameState || gameOver || gameState.currentPlayer !== 0 || isCardLocked || isSubmitting) return;
+    
+    // アクティビティを記録
+    recordActivity();
     
     // カードを即座にロック
     setIsSubmitting(true);
@@ -275,6 +373,22 @@ function FriendPlayContent() {
           isSubmitting={isSubmitting}
           lockedCardId={lockedCardId}
         />
+        
+        {/* 切断状態の表示 */}
+        {(disconnectedPlayers.size > 0 || cpuReplacedPlayers.size > 0) && (
+          <div className="disconnect-status">
+            {Array.from(disconnectedPlayers).map(playerIndex => (
+              <div key={`disconnect-${playerIndex}`} className="disconnect-notice">
+                プレイヤー {playerIndex + 1} が切断中... (45秒でCPU置換)
+              </div>
+            ))}
+            {Array.from(cpuReplacedPlayers).map(playerIndex => (
+              <div key={`cpu-${playerIndex}`} className="cpu-notice">
+                プレイヤー {playerIndex + 1} はCPUが代行中
+              </div>
+            ))}
+          </div>
+        )}
         
         {/* 参加者一覧 */}
         {roomInfo && (
