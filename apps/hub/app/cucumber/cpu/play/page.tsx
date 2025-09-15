@@ -52,7 +52,7 @@ function CpuPlayContent() {
   };
   
   // ゲーム状態を保存（リロード時の復元用のみ）
-  const saveGameState = () => {
+  let saveGameState = () => {
     if (!gameRef.current || !gameState) return;
     
     // CPU処理中は保存をスキップ
