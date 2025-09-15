@@ -164,10 +164,10 @@ export default function CpuSettings() {
         {/* 戻るボタン */}
         <div className="mt-4 text-center">
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push('/home')}
             className="text-gray-600 hover:text-gray-800"
           >
-            ← 戻る
+            ← ホームに戻る
           </button>
         </div>
       </div>
