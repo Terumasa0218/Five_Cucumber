@@ -55,6 +55,11 @@ function CpuPlayContent() {
   const saveGameState = () => {
     if (!gameRef.current || !gameState) return;
     
+    // CPU処理中は保存をスキップ
+    if (cpuTurnTimerRef.current) {
+      return;
+    }
+    
     try {
       const gameStateKey = getGameStateKey(searchParams);
       const saveData = {
@@ -220,9 +225,10 @@ function CpuPlayContent() {
     };
   }, [searchParams]);
   
-  // ゲーム状態変更時の自動保存
+  // ゲーム状態変更時の自動保存（CPU処理中は除外）
   useEffect(() => {
-    if (gameState) {
+    if (gameState && !cpuTurnTimerRef.current) {
+      // CPU思考中でない場合のみ保存
       saveGameState();
     }
   }, [gameState, gameOver, gameOverData]);
@@ -364,12 +370,13 @@ function CpuPlayContent() {
     
     console.log(`[useEffect] Scheduling CPU turn for player ${gameState.currentPlayer}`);
     
-    // CPUの思考時間を適度に設定（2〜4秒のランダム）
-    const thinkingTime = 2000 + Math.random() * 2000;
+    // CPUの思考時間を適度に設定（1.5〜3秒のランダム、短縮）
+    const thinkingTime = 1500 + Math.random() * 1500;
     cpuTurnTimerRef.current = setTimeout(() => {
       // 実行時点での最新状態を再確認
       if (!gameRef.current || gameOver) {
         console.warn('[CPU Turn] Game state changed, skipping turn');
+        cpuTurnTimerRef.current = null;
         return;
       }
       
@@ -378,14 +385,21 @@ function CpuPlayContent() {
       if (currentState.currentPlayer === gameState.currentPlayer && 
           currentState.phase === "AwaitMove" && 
           currentState.currentPlayer !== 0) {
+        // CPU処理開始前に状態保存を一時停止
+        const originalSaveGameState = saveGameState;
+        saveGameState = () => {}; // 一時的に無効化
+        
         playCpuTurn().catch(error => {
           console.error('[CPU Turn Error]:', error);
+        }).finally(() => {
+          // CPU処理完了後に状態保存を復元
+          saveGameState = originalSaveGameState;
+          cpuTurnTimerRef.current = null;
         });
       } else {
         console.warn(`[CPU Turn] State mismatch - skipping turn for player ${gameState.currentPlayer}`);
+        cpuTurnTimerRef.current = null;
       }
-      
-      cpuTurnTimerRef.current = null;
     }, thinkingTime);
     
     return () => {
