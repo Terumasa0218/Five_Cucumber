@@ -58,44 +58,57 @@ function FriendPlayContent() {
   // ルーム情報を取得
   const fetchRoomConfig = async () => {
     try {
+      console.log('[Friend Game] Fetching room config for:', roomCode);
       const res = await fetch(`/api/friend/room/${roomCode}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.ok && data.room) {
-          setRoomConfig({
-            size: data.room.size,
-            turnSeconds: data.room.turnSeconds,
-            maxCucumbers: data.room.maxCucumbers,
-            seats: data.room.seats
-          });
-          
-          // 現在のプレイヤーのインデックスを設定（ニックネーム基準）
-          const nickname = getNickname();
-          console.log('[Friend Game] Current nickname:', nickname);
-          console.log('[Friend Game] Room seats:', data.room.seats);
-          
-          if (nickname && data.room.seats) {
-            const playerIndex = data.room.seats.findIndex((seat: any) => seat?.nickname === nickname);
-            console.log('[Friend Game] Found player index:', playerIndex);
-            
-            if (playerIndex >= 0) {
-              setCurrentPlayerIndex(playerIndex);
-              console.log('[Friend Game] Set current player index to:', playerIndex);
-            } else {
-              console.warn('[Friend Game] Player not found in room seats, defaulting to index 0');
-              setCurrentPlayerIndex(0);
-            }
-          } else {
-            console.warn('[Friend Game] No nickname or seats found');
-            setCurrentPlayerIndex(0);
-          }
-          
-          return data.room;
+      
+      if (!res.ok) {
+        if (res.status === 404) {
+          console.error('[Friend Game] Room not found:', roomCode);
+          throw new Error(`Room ${roomCode} not found`);
         }
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
-      throw new Error('Failed to fetch room config');
+      
+      const data = await res.json();
+      if (!data.ok || !data.room) {
+        throw new Error('Invalid room data received');
+      }
+      
+      console.log('[Friend Game] Room data received:', data.room);
+      
+      setRoomConfig({
+        size: data.room.size,
+        turnSeconds: data.room.turnSeconds,
+        maxCucumbers: data.room.maxCucumbers,
+        seats: data.room.seats
+      });
+      
+      // 現在のプレイヤーのインデックスを設定（ニックネーム基準）
+      const nickname = getNickname();
+      console.log('[Friend Game] Current nickname:', nickname);
+      console.log('[Friend Game] Room seats:', data.room.seats);
+      
+      if (nickname && data.room.seats) {
+        const playerIndex = data.room.seats.findIndex((seat: any) => seat?.nickname === nickname);
+        console.log('[Friend Game] Found player index:', playerIndex);
+        
+        if (playerIndex >= 0) {
+          setCurrentPlayerIndex(playerIndex);
+          console.log('[Friend Game] Set current player index to:', playerIndex);
+        } else {
+          console.error('[Friend Game] Player not found in room seats!');
+          console.error('[Friend Game] Available seats:', data.room.seats.map((s: any, i: number) => `${i}: ${s?.nickname || 'empty'}`));
+          throw new Error(`Player ${nickname} not found in room ${roomCode}`);
+        }
+      } else {
+        throw new Error('No nickname or seats found');
+      }
+      
+      return data.room;
     } catch (error) {
       console.error('[Friend Game] Failed to fetch room config:', error);
+      // エラー時はホームにリダイレクト
+      router.push('/home');
       return null;
     }
   };
@@ -103,10 +116,28 @@ function FriendPlayContent() {
   // ゲーム開始
   const startGame = async () => {
     try {
+      console.log('[Friend Game] Starting game initialization...');
+      
       // まずルーム情報を取得
       const room = await fetchRoomConfig();
       if (!room) {
         console.error('[Friend Game] Cannot start game without room config');
+        return;
+      }
+
+      // ルームの状態をチェック
+      if (room.status !== 'playing') {
+        console.error('[Friend Game] Room is not in playing status:', room.status);
+        router.push(`/friend/room/${roomCode}`);
+        return;
+      }
+
+      // プレイヤーがルームに参加しているかチェック
+      const nickname = getNickname();
+      const isPlayerInRoom = room.seats.some((seat: any) => seat?.nickname === nickname);
+      if (!isPlayerInRoom) {
+        console.error('[Friend Game] Player not in room, redirecting to room page');
+        router.push(`/friend/room/${roomCode}`);
         return;
       }
 
@@ -123,8 +154,6 @@ function FriendPlayContent() {
       const rng = new SeededRng(config.seed);
       const state = createInitialState(config, rng);
       
-      // プレイヤー名は roomConfig.seats から取得するため、ここでは設定不要
-      
       // コントローラー設定（全プレイヤーが人間）
       const controllers = Array(room.size).fill(null).map(() => ({ type: 'human' }));
       
@@ -133,12 +162,13 @@ function FriendPlayContent() {
       setGameOver(false);
       setIsGameInitialized(true);
       
-      console.log(`[Friend Game] Started with ${room.size} players`);
+      console.log(`[Friend Game] Successfully started with ${room.size} players`);
       console.log(`[Friend Game] Turn seconds: ${config.turnSeconds}, Max cucumbers: ${config.maxCucumbers}`);
       console.log(`[Friend Game] Current player index: ${currentPlayerIndex}`);
       console.log(`[Friend Game] All players are human, no CPU replacement needed`);
     } catch (error) {
       console.error('[Friend Game] Failed to start game:', error);
+      router.push('/home');
     }
   };
 
@@ -275,8 +305,10 @@ function FriendPlayContent() {
 
   // ゲーム開始
   useEffect(() => {
-    startGame();
-  }, []);
+    if (roomCode) {
+      startGame();
+    }
+  }, [roomCode]);
 
   // タイマー管理
   useEffect(() => {
@@ -299,8 +331,13 @@ function FriendPlayContent() {
     return (
       <BattleLayout>
         <div className="game-container">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-            Loading...
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column' }}>
+            <div style={{ color: 'white', fontSize: '18px', marginBottom: '20px' }}>
+              ゲームを読み込み中...
+            </div>
+            <div style={{ color: 'white', fontSize: '14px', opacity: 0.8 }}>
+              ルーム: {roomCode}
+            </div>
           </div>
         </div>
       </BattleLayout>

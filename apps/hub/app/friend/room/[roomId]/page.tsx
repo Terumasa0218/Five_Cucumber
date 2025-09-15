@@ -65,7 +65,7 @@ export default function RoomWaitingPage() {
     fetchRoom();
     
     // リアルタイム更新のためのポーリング
-    const pollInterval = setInterval(fetchRoom, 1000); // 1秒ごとに更新
+    const pollInterval = setInterval(fetchRoom, 2000); // 2秒ごとに更新（負荷軽減）
     
     return () => {
       clearInterval(pollInterval);
