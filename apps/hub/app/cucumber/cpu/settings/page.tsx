@@ -37,11 +37,11 @@ export default function CpuSettings() {
   };
 
   return (
-    <main className="page-home min-h-screen w-full pt-20 no-scroll">
+    <main className="page-home h-screen w-full pt-20 overflow-auto">
       <div className="container mx-auto px-4 max-w-2xl">
         {/* 見出し */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4">
+          <h1 className="sr-only" aria-label="CPU対戦設定">
             CPU対戦設定
           </h1>
           <p className="text-lg text-gray-600">
@@ -53,8 +53,9 @@ export default function CpuSettings() {
         <div className="space-y-8">
           {/* 対戦人数 */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold mb-4">対戦人数</h3>
-            <div className="grid grid-cols-3 gap-3">
+            <h3 className="text-xl font-semibold mb-4 text-center">対戦人数</h3>
+            <div className="flex justify-center">
+              <div className="grid grid-cols-3 gap-3 max-w-md">
               {[2, 3, 4, 5, 6].map(num => (
                 <button
                   key={num}
@@ -65,6 +66,7 @@ export default function CpuSettings() {
                   {num}人
                 </button>
               ))}
+              </div>
             </div>
           </div>
 

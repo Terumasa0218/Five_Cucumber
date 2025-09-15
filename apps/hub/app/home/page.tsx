@@ -45,14 +45,14 @@ export default function Home() {
   }, [t]);
 
   return (
-    <main className="page-home min-h-screen w-full flex items-center justify-center relative">
+    <main className="page-home h-screen w-full flex items-center justify-center relative overflow-auto">
       {/* 背景オーバーレイ */}
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm"></div>
       
       <div className="relative z-10 container mx-auto px-4 max-w-4xl">
         {/* 中央コンテンツ */}
         <div className="text-center mb-12 bg-white/90 backdrop-blur-md rounded-3xl p-8 shadow-2xl border border-white/20">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 text-gray-800 drop-shadow-sm">
+          <h1 className="sr-only" aria-label={t('homeTitle')}>
             {t('homeTitle')}
           </h1>
           <p className="text-lg md:text-xl text-gray-700 mb-4 font-medium">

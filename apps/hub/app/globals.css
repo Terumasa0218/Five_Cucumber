@@ -464,11 +464,11 @@ header{ background: transparent !important; box-shadow: none !important; backdro
 }
 
 /* === 固定背景レイヤシステム === */
-html, body { 
-  min-height: 100%; 
+html, body, #__next { 
+  height: 100svh;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* 固定背景レイヤ（最背面） */
@@ -586,10 +586,12 @@ body[data-bg="battle"]::before {
 }
 
 .opt.selected {
-  background: linear-gradient(#2f6b46, #1e5b3f);
+  background: linear-gradient(135deg, #2f6b46, #1e5b3f);
   color: #fff;
-  border-color: var(--gold);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+  border: 3px solid var(--gold);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  font-weight: 700;
+  transform: scale(1.05);
 }
 
 .opt:focus-visible {

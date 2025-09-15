@@ -49,7 +49,7 @@ export default function FriendJoinPage() {
             setError('ルーム番号が違います');
             break;
           case 409:
-            setError('部屋が満員です');
+            setError('この部屋はすでに定員です');
             break;
           case 410:
             setError('部屋の有効期限が切れました');

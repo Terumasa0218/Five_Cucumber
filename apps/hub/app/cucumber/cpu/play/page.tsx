@@ -431,6 +431,12 @@ function CpuPlayContent() {
       setLockedCardId(card);
       setIsCardLocked(true);
       
+      // カードアニメーション
+      const cardElement = document.querySelector(`[data-card="${card}"]`);
+      if (cardElement) {
+        cardElement.classList.add('card-slide-to-field');
+      }
+      
       try {
         await playMove(0, card);
 

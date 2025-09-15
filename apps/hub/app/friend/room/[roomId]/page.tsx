@@ -175,6 +175,18 @@ export default function RoomWaitingPage() {
         </div>
 
         <div className="max-w-2xl mx-auto">
+          {/* 対戦中表示 */}
+          {room.status === 'playing' && (
+            <div className="mb-6 p-4 bg-blue-100 border-l-4 border-blue-500 rounded">
+              <p className="text-blue-800 font-semibold text-center">
+                🎮 現在対戦中です
+              </p>
+              <p className="text-blue-600 text-sm text-center mt-1">
+                対戦終了まで新規参加はできません
+              </p>
+            </div>
+          )}
+          
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             {/* ルーム情報 */}
             <div className="mb-6">
