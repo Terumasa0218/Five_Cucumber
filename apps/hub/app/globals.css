@@ -601,8 +601,8 @@ body[data-bg="battle"]::before {
 
 /* CPU設定ページ専用スタイル */
 .settings-page {
-  height: 100svh;
-  overflow: hidden;
+  min-height: 100svh;
+  overflow-y: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -613,7 +613,8 @@ body[data-bg="battle"]::before {
   width: 100%;
   max-width: 960px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: 2rem 1.5rem;
+  min-height: auto;
 }
 
 .settings-subtitle {
@@ -683,7 +684,8 @@ body[data-bg="battle"]::before {
 
 .settings-actions {
   text-align: center;
-  margin-top: 2rem;
+  margin-top: 3rem;
+  margin-bottom: 2rem;
 }
 
 .settings-start-btn {
