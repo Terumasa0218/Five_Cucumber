@@ -284,6 +284,12 @@ function CpuPlayContent() {
       console.log(`[CPU ${currentPlayer}] Hand:`, hand, 'Legal moves:', legalMoves, 'Field card:', state.fieldCard);
     }
     
+    // 合法手がない場合はスキップ
+    if (legalMoves.length === 0) {
+      console.warn(`[CPU ${currentPlayer}] No legal moves available`);
+      return;
+    }
+    
     const view = createGameView(state, config, currentPlayer);
     
     try {
@@ -309,20 +315,16 @@ function CpuPlayContent() {
     } else {
         console.warn(`[CPU ${currentPlayer}] No valid move returned:`, move);
         // フォールバック：最初の合法手を出す
-        if (legalMoves.length > 0) {
-          const fallbackMove = legalMoves[0];
-          console.log(`[CPU ${currentPlayer}] Using fallback legal move:`, fallbackMove);
-          await playMove(currentPlayer, fallbackMove);
-        }
+        const fallbackMove = legalMoves[0];
+        console.log(`[CPU ${currentPlayer}] Using fallback legal move:`, fallbackMove);
+        await playMove(currentPlayer, fallbackMove);
       }
     } catch (error) {
       console.error(`[CPU ${currentPlayer}] Turn error:`, error);
       // エラー時のフォールバック処理
-      if (legalMoves.length > 0) {
-        const fallbackMove = legalMoves[0];
-        console.log(`[CPU ${currentPlayer}] Error fallback legal move:`, fallbackMove);
-        await playMove(currentPlayer, fallbackMove);
-      }
+      const fallbackMove = legalMoves[0];
+      console.log(`[CPU ${currentPlayer}] Error fallback legal move:`, fallbackMove);
+      await playMove(currentPlayer, fallbackMove);
     }
   };
 
@@ -334,44 +336,42 @@ function CpuPlayContent() {
       cpuTurnTimerRef.current = null;
     }
     
-    // 早期リターンでHooksの条件呼び出しを防ぐ
-    if (!gameState) {
-      console.log('[useEffect] No game state');
-      return;
-    }
-    if (gameState.currentPlayer === 0) {
-      console.log('[useEffect] Human player turn');
-      return;
-    }
-    if (gameOver) {
-      console.log('[useEffect] Game is over');
-      return;
-    }
-    if (gameState.phase !== "AwaitMove") {
-      console.log(`[useEffect] Invalid phase: ${gameState.phase}`);
-      return;
-    }
+    // 条件チェックを統合してHooksの条件呼び出しを防ぐ
+    const shouldScheduleCpuTurn = gameState && 
+      gameState.currentPlayer !== 0 && 
+      !gameOver && 
+      gameState.phase === "AwaitMove" &&
+      gameRef.current &&
+      gameState.currentPlayer >= 0 && 
+      gameState.currentPlayer < (gameRef.current.config?.players || 4);
     
-    // 追加の妥当性チェック
-    if (!gameRef.current) {
-      console.warn('[useEffect] No game reference');
-      return;
-    }
-    
-    const config = gameRef.current.config;
-    if (gameState.currentPlayer < 0 || gameState.currentPlayer >= config.players) {
-      console.error(`[useEffect] Invalid currentPlayer: ${gameState.currentPlayer}`);
+    if (!shouldScheduleCpuTurn) {
+      if (!gameState) {
+        console.log('[useEffect] No game state');
+      } else if (gameState.currentPlayer === 0) {
+        console.log('[useEffect] Human player turn');
+      } else if (gameOver) {
+        console.log('[useEffect] Game is over');
+      } else if (gameState.phase !== "AwaitMove") {
+        console.log(`[useEffect] Invalid phase: ${gameState.phase}`);
+      } else if (!gameRef.current) {
+        console.warn('[useEffect] No game reference');
+      } else {
+        console.error(`[useEffect] Invalid currentPlayer: ${gameState.currentPlayer}`);
+      }
       return;
     }
     
     console.log(`[useEffect] Scheduling CPU turn for player ${gameState.currentPlayer}`);
     
-    // CPUの思考時間を適度に設定（1.5〜3秒のランダム）
-    const thinkingTime = 1500 + Math.random() * 1500;
+    // CPUの思考時間を適度に設定（2〜4秒のランダム）
+    const thinkingTime = 2000 + Math.random() * 2000;
     cpuTurnTimerRef.current = setTimeout(() => {
       // 実行時点での最新状態を再確認
-      if (!gameRef.current) return;
-      if (gameOver) return;
+      if (!gameRef.current || gameOver) {
+        console.warn('[CPU Turn] Game state changed, skipping turn');
+        return;
+      }
       
       // gameStateと一致するかチェック
       const currentState = gameRef.current.state;
@@ -432,8 +432,12 @@ function CpuPlayContent() {
           console.error(`  - Trick cards: ${state.trickCards.length}`);
           console.error(`  - Round: ${state.currentRound}, Trick: ${state.currentTrick}`);
           
-          // プレイヤーミスマッチは修正せず、スキップして次のターンに進む
-          console.warn(`[PlayMove] Skipping invalid player move: ${player} (current: ${state.currentPlayer})`);
+          // プレイヤーミスマッチの場合は状態を修正して続行
+          console.warn(`[PlayMove] Correcting player mismatch: ${player} -> ${state.currentPlayer}`);
+          // 状態を修正して正しいプレイヤーで続行
+          const correctedState = { ...state, currentPlayer: player };
+          gameRef.current.state = correctedState;
+          setGameState(correctedState);
           return;
         }
         
@@ -577,6 +581,7 @@ function CpuPlayContent() {
         // CPUターンの継続判定
         if (recoveredState.phase === "AwaitMove" && recoveredState.currentPlayer !== 0) {
           console.log('[Recovery] Scheduling CPU turn continuation');
+          // より短い待機時間で復旧を試行
           setTimeout(() => {
             if (gameRef.current && !gameOver) {
               const currentState = gameRef.current.state;
@@ -584,10 +589,13 @@ function CpuPlayContent() {
                 console.log('[Recovery] Executing CPU turn continuation');
                 playCpuTurn().catch(recoveryError => {
                   console.error('[Recovery] Failed to continue CPU turn:', recoveryError);
+                  // 復旧失敗時はゲームをリセット
+                  console.log('[Recovery] Resetting game due to recovery failure');
+                  router.push('/cucumber/cpu/settings');
                 });
               }
             }
-          }, 4000); // 4秒待機で確実に復旧
+          }, 2000); // 2秒待機で迅速な復旧
         }
         
       } catch (recoveryError) {
