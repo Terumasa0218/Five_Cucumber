@@ -247,10 +247,12 @@ function CpuPlayContent() {
   const playCpuTurn = async () => {
     if (!gameRef.current) {
       console.warn('[CPU Turn] No game reference');
+      cpuTurnTimerRef.current = null;
       return;
     }
     if (gameOver) {
       console.warn('[CPU Turn] Game is over');
+      cpuTurnTimerRef.current = null;
       return;
     }
     
@@ -264,23 +266,27 @@ function CpuPlayContent() {
     // 厳密な前提条件チェック
     if (currentPlayer === 0) {
       console.log('[CPU Turn] Human player turn, skipping');
+      cpuTurnTimerRef.current = null;
       return;
     }
     
     if (state.phase !== "AwaitMove") {
       console.warn(`[CPU Turn] Invalid phase: ${state.phase}`);
+      cpuTurnTimerRef.current = null;
       return;
     }
     
     // プレイヤー番号の妥当性チェック
     if (currentPlayer < 0 || currentPlayer >= config.players) {
       console.error(`[CPU Turn] Invalid currentPlayer: ${currentPlayer}, valid range: 0-${config.players - 1}`);
+      cpuTurnTimerRef.current = null;
       return;
     }
     
     const controller = controllers[currentPlayer];
     if (!controller) {
       console.error(`[CPU ${currentPlayer}] Controller not found!`);
+      cpuTurnTimerRef.current = null;
       return;
     }
     
@@ -293,6 +299,7 @@ function CpuPlayContent() {
     // 合法手がない場合はスキップ
     if (legalMoves.length === 0) {
       console.warn(`[CPU ${currentPlayer}] No legal moves available`);
+      cpuTurnTimerRef.current = null;
       return;
     }
     
@@ -314,16 +321,19 @@ function CpuPlayContent() {
             console.log(`[CPU ${currentPlayer}] Using first legal move:`, fallbackMove);
             await playMove(currentPlayer, fallbackMove);
           }
+          cpuTurnTimerRef.current = null;
           return;
         }
         
         await playMove(currentPlayer, move);
+        cpuTurnTimerRef.current = null;
     } else {
         console.warn(`[CPU ${currentPlayer}] No valid move returned:`, move);
         // フォールバック：最初の合法手を出す
         const fallbackMove = legalMoves[0];
         console.log(`[CPU ${currentPlayer}] Using fallback legal move:`, fallbackMove);
         await playMove(currentPlayer, fallbackMove);
+        cpuTurnTimerRef.current = null;
       }
     } catch (error) {
       console.error(`[CPU ${currentPlayer}] Turn error:`, error);
@@ -331,6 +341,7 @@ function CpuPlayContent() {
       const fallbackMove = legalMoves[0];
       console.log(`[CPU ${currentPlayer}] Error fallback legal move:`, fallbackMove);
       await playMove(currentPlayer, fallbackMove);
+      cpuTurnTimerRef.current = null;
     }
   };
 
@@ -395,6 +406,7 @@ function CpuPlayContent() {
           // CPU処理完了後に状態保存を復元
           saveGameState = originalSaveGameState;
           cpuTurnTimerRef.current = null;
+          console.log(`[CPU Turn] Completed for player ${currentState.currentPlayer}`);
         });
       } else {
         console.warn(`[CPU Turn] State mismatch - skipping turn for player ${gameState.currentPlayer}`);
