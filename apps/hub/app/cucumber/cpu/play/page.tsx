@@ -40,6 +40,7 @@ function CpuPlayContent() {
   const [showAllHands, setShowAllHands] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
+  const cpuTurnTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // ゲーム状態の保存キー
   const getGameStateKey = (params: URLSearchParams) => {
@@ -327,6 +328,12 @@ function CpuPlayContent() {
 
   // CPU手番の処理をuseEffectで分離
   useEffect(() => {
+    // 既存のタイマーをクリア
+    if (cpuTurnTimerRef.current) {
+      clearTimeout(cpuTurnTimerRef.current);
+      cpuTurnTimerRef.current = null;
+    }
+    
     // 早期リターンでHooksの条件呼び出しを防ぐ
     if (!gameState) {
       console.log('[useEffect] No game state');
@@ -359,23 +366,33 @@ function CpuPlayContent() {
     
     console.log(`[useEffect] Scheduling CPU turn for player ${gameState.currentPlayer}`);
     
-    // CPUの思考時間をさらに長めに設定（3〜6秒のランダム）
-    const thinkingTime = 3000 + Math.random() * 3000;
-    const timer = setTimeout(() => {
+    // CPUの思考時間を適度に設定（1.5〜3秒のランダム）
+    const thinkingTime = 1500 + Math.random() * 1500;
+    cpuTurnTimerRef.current = setTimeout(() => {
       // 実行時点での最新状態を再確認
       if (!gameRef.current) return;
       if (gameOver) return;
       
+      // gameStateと一致するかチェック
       const currentState = gameRef.current.state;
-      if (currentState.currentPlayer !== 0 && currentState.phase === "AwaitMove") {
+      if (currentState.currentPlayer === gameState.currentPlayer && 
+          currentState.phase === "AwaitMove" && 
+          currentState.currentPlayer !== 0) {
         playCpuTurn().catch(error => {
           console.error('[CPU Turn Error]:', error);
         });
+      } else {
+        console.warn(`[CPU Turn] State mismatch - skipping turn for player ${gameState.currentPlayer}`);
       }
+      
+      cpuTurnTimerRef.current = null;
     }, thinkingTime);
     
     return () => {
-      clearTimeout(timer);
+      if (cpuTurnTimerRef.current) {
+        clearTimeout(cpuTurnTimerRef.current);
+        cpuTurnTimerRef.current = null;
+      }
     };
   }, [gameState?.currentPlayer, gameState?.phase, gameOver]);
 
@@ -415,16 +432,9 @@ function CpuPlayContent() {
           console.error(`  - Trick cards: ${state.trickCards.length}`);
           console.error(`  - Round: ${state.currentRound}, Trick: ${state.currentTrick}`);
           
-          // 状態修正を試みる
-          if (state.phase === "AwaitMove" && player >= 0 && player < config.players) {
-            console.log(`[PlayMove] Attempting state correction: setting currentPlayer to ${player}`);
-            state.currentPlayer = player;
-            gameRef.current.state = state;
-            setGameState({ ...state });
-      } else {
-            console.warn(`[PlayMove] Cannot correct state - invalid player: ${player}`);
-            return;
-          }
+          // プレイヤーミスマッチは修正せず、スキップして次のターンに進む
+          console.warn(`[PlayMove] Skipping invalid player move: ${player} (current: ${state.currentPlayer})`);
+          return;
         }
         
         // 手札の存在確認
@@ -543,11 +553,25 @@ function CpuPlayContent() {
           needsRecovery = true;
         }
         
+        // トリック状態の整合性チェック
+        if (recoveredState.trickCards.length >= config.players) {
+          console.log(`[Recovery] Trick complete but not resolved, clearing trick cards`);
+          recoveredState.trickCards = [];
+          recoveredState.fieldCard = null;
+          needsRecovery = true;
+        }
+        
         // 状態を復旧
         if (needsRecovery) {
           gameRef.current.state = recoveredState;
           setGameState(recoveredState);
           console.log('[Recovery] State recovered successfully');
+          
+          // CPUタイマーをクリアして再スケジュール
+          if (cpuTurnTimerRef.current) {
+            clearTimeout(cpuTurnTimerRef.current);
+            cpuTurnTimerRef.current = null;
+          }
         }
         
         // CPUターンの継続判定
