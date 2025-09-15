@@ -370,8 +370,8 @@ function CpuPlayContent() {
     
     console.log(`[useEffect] Scheduling CPU turn for player ${gameState.currentPlayer}`);
     
-    // CPUの思考時間を適度に設定（1.5〜3秒のランダム、短縮）
-    const thinkingTime = 1500 + Math.random() * 1500;
+    // CPUの思考時間を適度に設定（2〜4秒のランダム）
+    const thinkingTime = 2000 + Math.random() * 2000;
     cpuTurnTimerRef.current = setTimeout(() => {
       // 実行時点での最新状態を再確認
       if (!gameRef.current || gameOver) {
