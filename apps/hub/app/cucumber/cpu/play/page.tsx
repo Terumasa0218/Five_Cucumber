@@ -36,7 +36,6 @@ function CpuPlayContent() {
   const [gameOver, setGameOver] = useState(false);
   const [gameOverData, setGameOverData] = useState<{ player: number; count: number }[]>([]);
   const [isCardLocked, setIsCardLocked] = useState(false);
-  const [showAllHands, setShowAllHands] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
   const cpuTurnTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -88,9 +87,6 @@ function CpuPlayContent() {
   useEffect(() => {
     document.title = 'CPU対戦 | Five Cucumber';
     
-    // デバッグモードの設定
-    const showAllHandsParam = searchParams.get('showAllHands');
-    setShowAllHands(showAllHandsParam === 'true');
     
     // リファラーをチェックして新規開始かリロード復元かを判定
     const isFromHome = document.referrer.includes('/home') || document.referrer.includes('/cpu/settings') || !document.referrer;
@@ -240,7 +236,7 @@ function CpuPlayContent() {
       if (move !== null && typeof move === 'number' && legalMoves.includes(move)) {
         console.log(`[CPU] Playing move: ${move}`);
         await playMove(currentPlayer, move);
-      } else {
+    } else {
         // フォールバック: 最初の合法手
         const fallbackMove = legalMoves[0];
         console.log(`[CPU] Using fallback move: ${fallbackMove}`);
@@ -282,9 +278,9 @@ function CpuPlayContent() {
         // 状態チェック
         if (state.phase !== "AwaitMove") {
           console.warn(`[PlayMove] Invalid phase: ${state.phase}`);
-          return;
-        }
-        
+      return;
+    }
+
         // プレイヤー番号の検証
         if (state.currentPlayer !== player) {
           console.warn(`[PlayMove] Player mismatch: requested ${player}, current ${state.currentPlayer}`);
@@ -302,18 +298,18 @@ function CpuPlayContent() {
         const legalMoves = getLegalMoves(state, player);
         if (!legalMoves.includes(card)) {
           console.error(`[PlayMove] Card ${card} is not legal for player ${player}`);
-          return;
-        }
-        
+      return;
+    }
+
         // カードをプレイ
         const move: Move = { player, card, timestamp: Date.now() };
         const result = applyMove(state, move, config, rng);
         
         if (!result.success) {
           console.error(`[PlayMove] Failed to apply move:`, result.message);
-          return;
-        }
-        
+      return;
+    }
+    
         let newState = result.newState;
         console.log(`[PlayMove] Move applied successfully, new phase: ${newState.phase}`);
         
@@ -345,11 +341,15 @@ function CpuPlayContent() {
                 setGameState(newState);
                 console.log(`[PlayMove] Final round processed, new phase: ${newState.phase}`);
                 
+                // キュウリ付与の確認ログ
+                console.log('[PlayMove] Player cucumber counts after final round:', 
+                  newState.players.map((p, index) => `Player ${index}: ${p.cucumbers} cucumbers`));
+                
                 if (newState.phase === "GameEnd") {
                   console.log('[PlayMove] Game ended');
                   setGameOver(true);
                   setGameOverData(newState.players.map((p, index) => ({ player: index, count: p.cucumbers })));
-                } else {
+        } else {
                   // 新しいラウンド開始
                   const roundResult = startNewRound(newState, config, rng);
                   if (roundResult.success) {
@@ -357,17 +357,17 @@ function CpuPlayContent() {
                     gameRef.current.state = newState;
                     setGameState(newState);
                     console.log('[PlayMove] New round started');
-                  }
-                }
-              }
-            }
           }
+        }
+      }
+    }
+  }
         }
         
         console.log(`[PlayMove] Move completed - Player: ${player}, Card: ${card}`);
         
         // プレイヤー0（人間）のターン後、次のCPUターンをスケジューリング
-        if (player === 0) {
+    if (player === 0) {
           setTimeout(() => {
             if (gameRef.current && !gameOver) {
               const { state } = gameRef.current;
@@ -414,8 +414,8 @@ function CpuPlayContent() {
       
       try {
         await playMove(0, card);
-        
-        setTimeout(() => {
+
+    setTimeout(() => {
           setIsCardLocked(false);
           setIsSubmitting(false);
           setLockedCardId(null);
@@ -451,9 +451,7 @@ function CpuPlayContent() {
     }
   };
 
-  const handleRestart = () => {
-    setGameOver(false);
-    setGameOverData([]);
+  const handleInterrupt = () => {
     router.push('/cucumber/cpu/settings');
   };
 
@@ -470,25 +468,24 @@ function CpuPlayContent() {
       <div className="game-root">
         <div className="game-container">
         <header className="hud layer-hud">
-          <div className="hud-left">
+        <div className="hud-left">
             <div className="round-indicator" id="roundInfo">
               第{gameState.currentRound}回戦 / 第{gameState.currentTrick}トリック
-            </div>
-            <div className="game-title">5本のき、テス</div>
           </div>
-          
-          <div className="hud-center">
+        </div>
+        
+        <div className="hud-center">
             <Timer
               turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
               isActive={gameState.currentPlayer === 0 && gameState.phase === "AwaitMove"}
               onTimeout={handleTimeout}
             />
-          </div>
-          
-          <div className="hud-right">
-            <button onClick={handleRestart} className="btn">再開</button>
+        </div>
+        
+        <div className="hud-right">
+            <button onClick={handleInterrupt} className="btn">中断</button>
             <button onClick={handleBackToHome} className="btn">ホーム</button>
-          </div>
+        </div>
         </header>
 
         <EllipseTable
@@ -501,25 +498,7 @@ function CpuPlayContent() {
           lockedCardId={lockedCardId}
         />
         
-        {/* デバッグ情報 */}
-        {showAllHands && (
-          <div className="debug-info">
-            <h3>デバッグ情報</h3>
-            <div className="debug-content">
-              <p>現在のプレイヤー: {gameState.currentPlayer}</p>
-              <p>フェーズ: {gameState.phase}</p>
-              <p>場のカード: {gameState.fieldCard || 'なし'}</p>
-              <p>トリックカード数: {gameState.trickCards.length}</p>
-              {gameState.players.map((player, index) => (
-                <div key={index}>
-                  <p>プレイヤー{index}: 手札{player.hand.length}枚, キュウリ{player.cucumbers}個</p>
-                  {showAllHands && <p>手札: {player.hand.join(', ')}</p>}
-                </div>
-              ))}
-            </div>
           </div>
-        )}
-        </div>
       </div>
 
       {gameOver && (
@@ -530,10 +509,10 @@ function CpuPlayContent() {
               {gameOverData.map((data, index) => (
                 <div key={index} className="score-item">
                   プレイヤー{data.player}: {data.count}個のキュウリ
-                </div>
+            </div>
               ))}
             </div>
-            <button onClick={handleRestart} className="btn">新しいゲーム</button>
+            <button onClick={handleInterrupt} className="btn">新しいゲーム</button>
             <button onClick={handleBackToHome} className="btn">ホームに戻る</button>
           </div>
         </div>
