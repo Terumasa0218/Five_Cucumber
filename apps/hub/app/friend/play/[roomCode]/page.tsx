@@ -71,14 +71,17 @@ function FriendPlayContent() {
     console.log(`[Disconnect] Player ${playerIndex} disconnected`);
     setDisconnectedPlayers(prev => new Set([...prev, playerIndex]));
     
-    // 45秒後にCPUに置換
+    // 30秒後にCPUに置換（短縮）
     const timer = setTimeout(() => {
       if (!cpuReplacedPlayers.has(playerIndex)) {
         console.log(`[Disconnect] Replacing player ${playerIndex} with CPU`);
         setCpuReplacedPlayers(prev => new Set([...prev, playerIndex]));
         disconnectTimers.current.delete(playerIndex);
+        
+        // CPU置換後、ゲーム状態を保存
+        saveGameState();
       }
-    }, 45000); // 45秒
+    }, 30000); // 30秒に短縮
     
     disconnectTimers.current.set(playerIndex, timer);
   };
@@ -326,13 +329,22 @@ function FriendPlayContent() {
   const handleTimeout = () => {
     if (!gameState || gameOver || gameState.currentPlayer !== 0) return;
     
-    // 最小の合法カードを自動選択
-    const legalMoves = gameState.players[0].hand.filter(card => 
-      card === Math.min(...gameState.players[0].hand)
-    );
-    
+    // 制限時間切れ時のランダムカード選択
+    const legalMoves = getLegalMoves(gameState, 0);
     if (legalMoves.length > 0) {
-      handleCardClick(legalMoves[0]);
+      // ランダムにカードを選択
+      const randomIndex = Math.floor(Math.random() * legalMoves.length);
+      const selectedCard = legalMoves[randomIndex];
+      console.log(`[Friend Timeout] Auto-selecting random card: ${selectedCard} from legal moves:`, legalMoves);
+      handleCardClick(selectedCard);
+    } else {
+      // 合法手がない場合は最小カードを選択
+      const hand = gameState.players[0].hand;
+      if (hand.length > 0) {
+        const minCard = Math.min(...hand);
+        console.log(`[Friend Timeout] No legal moves, selecting minimum card: ${minCard}`);
+        handleCardClick(minCard);
+      }
     }
   };
 
@@ -384,7 +396,7 @@ function FriendPlayContent() {
           <div className="disconnect-status">
             {Array.from(disconnectedPlayers).map(playerIndex => (
               <div key={`disconnect-${playerIndex}`} className="disconnect-notice">
-                プレイヤー {playerIndex + 1} が切断中... (45秒でCPU置換)
+                プレイヤー {playerIndex + 1} が切断中... (30秒でCPU置換)
               </div>
             ))}
             {Array.from(cpuReplacedPlayers).map(playerIndex => (

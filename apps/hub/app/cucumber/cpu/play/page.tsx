@@ -666,11 +666,22 @@ function CpuPlayContent() {
   const handleTimeout = () => {
     if (!gameRef.current || gameState?.currentPlayer !== 0) return;
     
-    // 自動プレイ
-    const legalMoves = gameState.players[0].hand;
+    // 制限時間切れ時のランダムカード選択
+    const legalMoves = getLegalMoves(gameState, 0);
     if (legalMoves.length > 0) {
-      const minCard = Math.min(...legalMoves);
-      handleCardClick(minCard);
+      // ランダムにカードを選択
+      const randomIndex = Math.floor(Math.random() * legalMoves.length);
+      const selectedCard = legalMoves[randomIndex];
+      console.log(`[Timeout] Auto-selecting random card: ${selectedCard} from legal moves:`, legalMoves);
+      handleCardClick(selectedCard);
+    } else {
+      // 合法手がない場合は最小カードを選択
+      const hand = gameState.players[0].hand;
+      if (hand.length > 0) {
+        const minCard = Math.min(...hand);
+        console.log(`[Timeout] No legal moves, selecting minimum card: ${minCard}`);
+        handleCardClick(minCard);
+      }
     }
   };
 
