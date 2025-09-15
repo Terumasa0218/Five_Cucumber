@@ -20,7 +20,7 @@ import {
 } from '@/lib/game-core';
 import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import './game.css';
 
 function CpuPlayContent() {
@@ -52,7 +52,7 @@ function CpuPlayContent() {
   };
   
   // ゲーム状態を保存（リロード時の復元用のみ）
-  let saveGameState = () => {
+  const saveGameState = useCallback(() => {
     if (!gameRef.current || !gameState) return;
     
     // CPU処理中は保存をスキップ
@@ -77,7 +77,7 @@ function CpuPlayContent() {
     } catch (error) {
       console.warn('[Game] Failed to save state:', error);
     }
-  };
+  }, [gameState, gameOver, gameOverData, searchParams]);
   
   // CPU対戦のセーブデータをクリア（新規開始用）
   const clearCpuGameState = () => {
@@ -231,7 +231,7 @@ function CpuPlayContent() {
       // CPU思考中でない場合のみ保存
       saveGameState();
     }
-  }, [gameState, gameOver, gameOverData]);
+  }, [gameState, gameOver, gameOverData, saveGameState]);
 
   const startGame = async () => {
     if (!gameRef.current) return;
@@ -396,15 +396,11 @@ function CpuPlayContent() {
       if (currentState.currentPlayer === gameState.currentPlayer && 
           currentState.phase === "AwaitMove" && 
           currentState.currentPlayer !== 0) {
-        // CPU処理開始前に状態保存を一時停止
-        const originalSaveGameState = saveGameState;
-        saveGameState = () => {}; // 一時的に無効化
-        
+        // CPU処理実行（状態保存は既にCPU処理中はスキップされる）
         playCpuTurn().catch(error => {
           console.error('[CPU Turn Error]:', error);
         }).finally(() => {
-          // CPU処理完了後に状態保存を復元
-          saveGameState = originalSaveGameState;
+          // CPU処理完了
           cpuTurnTimerRef.current = null;
           console.log(`[CPU Turn] Completed for player ${currentState.currentPlayer}`);
         });
@@ -503,9 +499,11 @@ function CpuPlayContent() {
         
         // トリック解決フェーズの処理
         if (newState.phase === "ResolvingTrick") {
+          console.log('[PlayMove] Resolving trick...');
           const trickResult = endTrick(newState, config, rng);
           if (trickResult.success) {
             newState = trickResult.newState;
+            console.log('[PlayMove] Trick resolved, new phase:', newState.phase);
             
             // 解決時間の待機
             const minResolveMs = getMinResolveMs(config);
@@ -513,12 +511,15 @@ function CpuPlayContent() {
             
             // 最終トリック処理
             if (newState.phase === "RoundEnd") {
+              console.log('[PlayMove] Round ended, processing final round...');
               const finalResult = finalRound(newState, config, rng);
               if (finalResult.success) {
                 newState = finalResult.newState;
+                console.log('[PlayMove] Final round processed, new phase:', newState.phase);
                 
                 if (newState.phase === "GameEnd") {
                   // ゲーム終了処理
+                  console.log('[PlayMove] Game ended');
                   setGameOverData(newState.gameOverPlayers.map(p => ({ 
                     player: p, 
                     count: newState.players[p].cucumbers 
@@ -535,11 +536,12 @@ function CpuPlayContent() {
                 const roundResult = startNewRound(newState, config, rng);
                 if (roundResult.success) {
                   newState = roundResult.newState;
+                  console.log('[PlayMove] New round started, new phase:', newState.phase);
+                }
+              }
+            }
           }
         }
-      }
-    }
-  }
 
         // 最終的な状態更新
         if (gameRef.current) {
