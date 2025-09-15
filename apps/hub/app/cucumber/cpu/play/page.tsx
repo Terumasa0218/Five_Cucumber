@@ -1,5 +1,6 @@
 'use client';
 
+import BattleLayout from '@/components/BattleLayout';
 import { EllipseTable, Timer } from '@/components/ui';
 import { delay, runAnimation } from '@/lib/animQueue';
 import {
@@ -460,12 +461,19 @@ function CpuPlayContent() {
   };
 
   if (!gameState) {
-    return <div className="game-root">Loading...</div>;
+    return (
+      <BattleLayout>
+        <div className="game-container">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+            Loading...
+          </div>
+        </div>
+      </BattleLayout>
+    );
   }
 
   return (
-    <div className="page-arena">
-      <div className="game-root">
+    <BattleLayout>
         <div className="game-container">
         <header className="hud layer-hud">
         <div className="hud-left">
@@ -497,9 +505,6 @@ function CpuPlayContent() {
           isSubmitting={isSubmitting}
           lockedCardId={lockedCardId}
         />
-        
-          </div>
-      </div>
 
       {gameOver && (
         <div className="game-over">
@@ -517,7 +522,8 @@ function CpuPlayContent() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </BattleLayout>
   );
 }
 

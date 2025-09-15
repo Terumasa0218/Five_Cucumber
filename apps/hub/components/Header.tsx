@@ -20,7 +20,7 @@ export default function Header(){
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-transparent border-b border-gray-200/50 backdrop-blur-sm">
       <div className="container mx-auto px-4 flex items-center justify-between py-4">
         {/* 左：タイトル */}
         <Link href="/home" className="text-xl font-bold text-gray-800 hover:text-blue-600">

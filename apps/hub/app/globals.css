@@ -463,22 +463,43 @@ header{ background: transparent !important; box-shadow: none !important; backdro
   }
 }
 
-/* === 背景設定 === */
+/* === 固定背景レイヤシステム === */
 html, body { 
   min-height: 100%; 
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
-/* デフォルト背景（ホーム用） */
-body {
-  background: none;
+/* 固定背景レイヤ（最背面） */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
-/* 特定ページでの背景オーバーライド */
-.page-game body,
-.page-arena body {
-  background: none !important;
+/* ホーム背景 */
+body[data-bg="home"]::before {
+  background-image: url("/images/home1.png");
+  background-position: center top;
+}
+
+/* 対戦背景 */
+body[data-bg="battle"]::before {
+  background-image: url("/images/battle1.png");
+  background-position: center center;
+}
+
+/* スクロール禁止 */
+.no-scroll {
+  overflow: hidden !important;
 }
 
 /* レイヤー管理 */
@@ -498,23 +519,60 @@ body {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
-/* ページ背景 */
+/* ページ背景（背景はbody::beforeに集約） */
 .page-game, .page-home, .page-arena { 
   min-height: 100dvh; 
   position: relative;
+  background: none !important;
 }
 
-.page-game { 
-  background: url("/images/home1.png") center/cover no-repeat fixed;
+/* 対戦用レイアウト */
+.battle-root {
+  width: 100vw;
+  height: 100svh;
+  position: relative;
+  overflow: hidden;
 }
 
-.page-arena { 
-  background: url("/images/battle1.png") center/cover no-repeat fixed;
+.battle-stage {
+  width: 1280px;
+  height: 720px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  transition: transform 0.3s ease;
 }
 
-/* ホーム画面は home1.png を使用 */
-.page-home {
-  background: url("/images/home1.png") center/cover no-repeat fixed;
+.battle-rotate-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  z-index: 9999;
+  backdrop-filter: blur(10px);
+}
+
+.hide-when-portrait {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+@media (orientation: portrait) {
+  .hide-when-portrait {
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 /* 設定画面の選択状態 */

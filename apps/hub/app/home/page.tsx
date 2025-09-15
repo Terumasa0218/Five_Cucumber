@@ -13,6 +13,9 @@ export default function Home() {
   useEffect(() => {
     document.title = `${t('homeTitle')} | Five Cucumber`;
     
+    // ホーム背景を設定
+    document.body.setAttribute('data-bg', 'home');
+    
     // ニックネームを取得
     setNickname(getNickname());
     
@@ -32,7 +35,11 @@ export default function Home() {
     };
     
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      // ホームページを離れる時に背景属性をクリア
+      document.body.removeAttribute('data-bg');
+    };
   }, [t]);
 
   return (
