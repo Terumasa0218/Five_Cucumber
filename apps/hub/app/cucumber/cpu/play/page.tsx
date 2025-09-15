@@ -43,13 +43,13 @@ function CpuPlayContent() {
   const cpuTurnTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   // ゲーム状態の保存キー
-  const getGameStateKey = (params: URLSearchParams) => {
+  const getGameStateKey = useCallback((params: URLSearchParams) => {
     const players = params.get('players') || '4';
     const turnSeconds = params.get('turnSeconds') || '15';
     const maxCucumbers = params.get('maxCucumbers') || '6';
     const cpuLevel = params.get('cpuLevel') || 'normal';
     return `cpu-game-state-${players}-${turnSeconds}-${maxCucumbers}-${cpuLevel}`;
-  };
+  }, []);
   
   // ゲーム状態を保存（リロード時の復元用のみ）
   const saveGameState = useCallback(() => {
@@ -77,7 +77,7 @@ function CpuPlayContent() {
     } catch (error) {
       console.warn('[Game] Failed to save state:', error);
     }
-  }, [gameState, gameOver, gameOverData, searchParams]);
+  }, [gameState, gameOver, gameOverData, searchParams, getGameStateKey]);
   
   // CPU対戦のセーブデータをクリア（新規開始用）
   const clearCpuGameState = () => {
@@ -184,7 +184,7 @@ function CpuPlayContent() {
             localStorage.removeItem(gameStateKey);
           }
         }
-      } catch (error) {
+    } catch (error) {
         console.warn('[Game] Failed to restore saved state:', error);
         // 破損したデータを削除
         try {
@@ -322,12 +322,12 @@ function CpuPlayContent() {
             await playMove(currentPlayer, fallbackMove);
           }
           cpuTurnTimerRef.current = null;
-          return;
-        }
-        
+      return;
+    }
+
         await playMove(currentPlayer, move);
         cpuTurnTimerRef.current = null;
-    } else {
+      } else {
         console.warn(`[CPU ${currentPlayer}] No valid move returned:`, move);
         // フォールバック：最初の合法手を出す
         const fallbackMove = legalMoves[0];
@@ -404,7 +404,7 @@ function CpuPlayContent() {
           cpuTurnTimerRef.current = null;
           console.log(`[CPU Turn] Completed for player ${currentState.currentPlayer}`);
         });
-      } else {
+        } else {
         console.warn(`[CPU Turn] State mismatch - skipping turn for player ${gameState.currentPlayer}`);
         cpuTurnTimerRef.current = null;
       }
@@ -434,9 +434,9 @@ function CpuPlayContent() {
         // 実行時点での最新状態を取得
         if (!gameRef.current) {
           console.error('[PlayMove] Game reference lost during execution');
-          return;
-        }
-        
+      return;
+    }
+    
         const { state, config, controllers, rng } = gameRef.current;
         
         // 厳密な状態チェック
@@ -489,7 +489,7 @@ function CpuPlayContent() {
           console.error('[PlayMove] Game reference lost during state update');
       return;
     }
-    
+
         gameRef.current.state = newState;
         setGameState(newState);
         
@@ -610,7 +610,7 @@ function CpuPlayContent() {
         if (recoveredState.phase === "AwaitMove" && recoveredState.currentPlayer !== 0) {
           console.log('[Recovery] Scheduling CPU turn continuation');
           // より短い待機時間で復旧を試行
-          setTimeout(() => {
+    setTimeout(() => {
             if (gameRef.current && !gameOver) {
               const currentState = gameRef.current.state;
               if (currentState.phase === "AwaitMove" && currentState.currentPlayer !== 0) {
