@@ -2,7 +2,7 @@
 
 import BattleLayout from '@/components/BattleLayout';
 import { EllipseTable, Timer } from '@/components/ui';
-import { delay, runAnimation } from '@/lib/animQueue';
+import { delay } from '@/lib/animQueue';
 import {
     applyMove,
     createInitialState,
@@ -35,10 +35,12 @@ function FriendPlayContent() {
   const [cpuReplacedPlayers, setCpuReplacedPlayers] = useState<Set<number>>(new Set());
   const [isPageVisible, setIsPageVisible] = useState(true);
   const [disconnectStartTime, setDisconnectStartTime] = useState<number | null>(null);
+  const [isGameInitialized, setIsGameInitialized] = useState(false);
   const [roomConfig, setRoomConfig] = useState<{
     size: number;
     turnSeconds: number;
     maxCucumbers: number;
+    seats: any[];
   } | null>(null);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
   
@@ -63,14 +65,29 @@ function FriendPlayContent() {
           setRoomConfig({
             size: data.room.size,
             turnSeconds: data.room.turnSeconds,
-            maxCucumbers: data.room.maxCucumbers
+            maxCucumbers: data.room.maxCucumbers,
+            seats: data.room.seats
           });
           
           // 現在のプレイヤーのインデックスを設定（ニックネーム基準）
           const nickname = getNickname();
+          console.log('[Friend Game] Current nickname:', nickname);
+          console.log('[Friend Game] Room seats:', data.room.seats);
+          
           if (nickname && data.room.seats) {
             const playerIndex = data.room.seats.findIndex((seat: any) => seat?.nickname === nickname);
-            setCurrentPlayerIndex(playerIndex >= 0 ? playerIndex : 0);
+            console.log('[Friend Game] Found player index:', playerIndex);
+            
+            if (playerIndex >= 0) {
+              setCurrentPlayerIndex(playerIndex);
+              console.log('[Friend Game] Set current player index to:', playerIndex);
+            } else {
+              console.warn('[Friend Game] Player not found in room seats, defaulting to index 0');
+              setCurrentPlayerIndex(0);
+            }
+          } else {
+            console.warn('[Friend Game] No nickname or seats found');
+            setCurrentPlayerIndex(0);
           }
           
           return data.room;
@@ -106,16 +123,20 @@ function FriendPlayContent() {
       const rng = new SeededRng(config.seed);
       const state = createInitialState(config, rng);
       
+      // プレイヤー名は roomConfig.seats から取得するため、ここでは設定不要
+      
       // コントローラー設定（全プレイヤーが人間）
       const controllers = Array(room.size).fill(null).map(() => ({ type: 'human' }));
       
       gameRef.current = { state, config, controllers, rng };
       setGameState(state);
       setGameOver(false);
+      setIsGameInitialized(true);
       
       console.log(`[Friend Game] Started with ${room.size} players`);
       console.log(`[Friend Game] Turn seconds: ${config.turnSeconds}, Max cucumbers: ${config.maxCucumbers}`);
       console.log(`[Friend Game] Current player index: ${currentPlayerIndex}`);
+      console.log(`[Friend Game] All players are human, no CPU replacement needed`);
     } catch (error) {
       console.error('[Friend Game] Failed to start game:', error);
     }
@@ -215,14 +236,19 @@ function FriendPlayContent() {
       const isVisible = !document.hidden;
       setIsPageVisible(isVisible);
       
+      // ゲームが初期化されていない場合は切断検知しない
+      if (!isGameInitialized) {
+        return;
+      }
+      
       if (!isVisible && !disconnectStartTime) {
         // ページが非表示になった時刻を記録
         setDisconnectStartTime(Date.now());
-        console.log('[Friend] Player disconnected - starting 45s timer');
+        console.log(`[Friend] Player ${currentPlayerIndex} disconnected - starting 45s timer`);
       } else if (isVisible && disconnectStartTime) {
         // ページが再表示された場合、切断タイマーをリセット
         setDisconnectStartTime(null);
-        console.log('[Friend] Player reconnected - canceling disconnect timer');
+        console.log(`[Friend] Player ${currentPlayerIndex} reconnected - canceling disconnect timer`);
       }
     };
 
@@ -231,11 +257,11 @@ function FriendPlayContent() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [disconnectStartTime]);
+  }, [disconnectStartTime, isGameInitialized, currentPlayerIndex]);
 
   // 切断タイマーの管理
   useEffect(() => {
-    if (disconnectStartTime) {
+    if (disconnectStartTime && isGameInitialized) {
       const timer = setTimeout(() => {
         // 45秒経過後、CPUに置き換え
         console.log(`[Friend] 45 seconds elapsed - replacing player ${currentPlayerIndex} with CPU`);
@@ -245,7 +271,7 @@ function FriendPlayContent() {
 
       return () => clearTimeout(timer);
     }
-  }, [disconnectStartTime, currentPlayerIndex]);
+  }, [disconnectStartTime, currentPlayerIndex, isGameInitialized]);
 
   // ゲーム開始
   useEffect(() => {
@@ -318,9 +344,22 @@ function FriendPlayContent() {
         />
         
         {/* 切断状態の表示 */}
-        {(disconnectedPlayers.size > 0 || cpuReplacedPlayers.size > 0) && (
+        {cpuReplacedPlayers.size > 0 && (
           <div className="disconnect-notice">
             <p>一部のプレイヤーが切断されました。CPUに置き換えられました。</p>
+            <p>プレイヤー: {Array.from(cpuReplacedPlayers).map(index => 
+              roomConfig?.seats[index]?.nickname || `プレイヤー${index + 1}`
+            ).join(', ')}</p>
+          </div>
+        )}
+        
+        {/* デバッグ情報 */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="debug-info" style={{ position: 'fixed', top: '10px', right: '10px', background: 'rgba(0,0,0,0.8)', color: 'white', padding: '10px', fontSize: '12px' }}>
+            <div>Current Player Index: {currentPlayerIndex}</div>
+            <div>Game Current Player: {gameState?.currentPlayer}</div>
+            <div>Is My Turn: {gameState?.currentPlayer === currentPlayerIndex ? 'Yes' : 'No'}</div>
+            <div>Game Initialized: {isGameInitialized ? 'Yes' : 'No'}</div>
           </div>
         )}
         
