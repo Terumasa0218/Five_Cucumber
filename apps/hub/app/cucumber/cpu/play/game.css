@@ -2,7 +2,7 @@
 .game-root {
   position: relative;
   min-height: 100vh;
-  background: url("/images/bg-game-05.png") center/cover no-repeat fixed;
+  background: url("/images/battle1.png") center/cover no-repeat fixed;
   z-index: 0; /* レイヤー背景 */
 }
 
