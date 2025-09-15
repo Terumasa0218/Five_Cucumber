@@ -391,11 +391,15 @@ function CpuPlayContent() {
         return;
       }
       
-      // gameStateと一致するかチェック
+      // より柔軟な状態チェック
       const currentState = gameRef.current.state;
-      if (currentState.currentPlayer === gameState.currentPlayer && 
-          currentState.phase === "AwaitMove" && 
-          currentState.currentPlayer !== 0) {
+      if (currentState.phase === "AwaitMove" && 
+          currentState.currentPlayer !== 0 &&
+          currentState.currentPlayer >= 0 &&
+          currentState.currentPlayer < (gameRef.current.config?.players || 4)) {
+        
+        console.log(`[CPU Turn] Executing for player ${currentState.currentPlayer} (scheduled for ${gameState.currentPlayer})`);
+        
         // CPU処理実行（状態保存は既にCPU処理中はスキップされる）
         playCpuTurn().catch(error => {
           console.error('[CPU Turn Error]:', error);
@@ -404,8 +408,8 @@ function CpuPlayContent() {
           cpuTurnTimerRef.current = null;
           console.log(`[CPU Turn] Completed for player ${currentState.currentPlayer}`);
         });
-        } else {
-        console.warn(`[CPU Turn] State mismatch - skipping turn for player ${gameState.currentPlayer}`);
+      } else {
+        console.warn(`[CPU Turn] State mismatch - skipping turn. Current: ${currentState.currentPlayer}, Phase: ${currentState.phase}`);
         cpuTurnTimerRef.current = null;
       }
     }, thinkingTime);
@@ -454,12 +458,72 @@ function CpuPlayContent() {
           console.error(`  - Trick cards: ${state.trickCards.length}`);
           console.error(`  - Round: ${state.currentRound}, Trick: ${state.currentTrick}`);
           
-          // プレイヤーミスマッチの場合は状態を修正して続行
+          // プレイヤーミスマッチの場合は正しいプレイヤーで続行
           console.warn(`[PlayMove] Correcting player mismatch: ${player} -> ${state.currentPlayer}`);
-          // 状態を修正して正しいプレイヤーで続行
-          const correctedState = { ...state, currentPlayer: player };
-          gameRef.current.state = correctedState;
-          setGameState(correctedState);
+          // 正しいプレイヤー番号で処理を続行（returnしない）
+          const correctPlayer = state.currentPlayer;
+          
+          // 手札の存在確認（修正されたプレイヤー番号で）
+          const playerHand = state.players[correctPlayer]?.hand;
+          if (!playerHand || !playerHand.includes(card)) {
+            console.error(`[PlayMove] Card ${card} not found in player ${correctPlayer} hand:`, playerHand);
+            return;
+          }
+          
+          // 合法手の確認
+          const legalMoves = getLegalMoves(state, correctPlayer);
+          if (!legalMoves.includes(card)) {
+            console.error(`[PlayMove] Card ${card} is not legal for player ${correctPlayer}. Legal moves:`, legalMoves);
+            return;
+          }
+          
+          // 正しいプレイヤーでカードをプレイ
+          const move: Move = { player: correctPlayer, card, timestamp: Date.now() };
+          const moveResult = applyMove(state, move, config, rng);
+          if (!moveResult.success) {
+            console.error(`[PlayMove] Failed to apply move:`, moveResult.message);
+            return;
+          }
+          
+          let newState = moveResult.newState;
+          console.log(`[PlayMove] Card ${card} played by player ${correctPlayer}, new phase:`, newState.phase);
+          
+          // トリック解決フェーズの処理
+          if (newState.phase === "ResolvingTrick") {
+            console.log('[PlayMove] Resolving trick...');
+            const trickResult = endTrick(newState, config, rng);
+            if (trickResult.success) {
+              newState = trickResult.newState;
+              console.log('[PlayMove] Trick resolved, new phase:', newState.phase);
+              
+              // ラウンド終了の処理
+              if (newState.phase === "RoundEnd") {
+                console.log('[PlayMove] Round ended, processing final round...');
+                const finalResult = finalRound(newState, config, rng);
+                if (finalResult.success) {
+                  newState = finalResult.newState;
+                  console.log('[PlayMove] Final round processed, new phase:', newState.phase);
+                  
+                  if (newState.phase === "GameEnd") {
+                    console.log('[PlayMove] Game ended');
+                    setGameOver(true);
+                    setGameOverData(newState.players.map((p, index) => ({ player: index, count: p.cucumbers })));
+                  }
+                  
+                  // 新しいラウンド開始
+                  const roundResult = startNewRound(newState, config, rng);
+                  if (roundResult.success) {
+                    newState = roundResult.newState;
+                    console.log('[PlayMove] New round started, new phase:', newState.phase);
+                  }
+                }
+              }
+            }
+          }
+          
+          // 状態更新
+          gameRef.current.state = newState;
+          setGameState(newState);
           return;
         }
         
