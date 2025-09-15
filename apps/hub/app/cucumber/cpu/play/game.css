@@ -72,6 +72,106 @@
   gap: 15px;
 }
 
+/* カードアニメーション */
+.card-slide-to-field {
+  animation: slideToField 0.8s ease-out forwards;
+}
+
+.card-slide-to-graveyard {
+  animation: slideToGraveyard 0.8s ease-out forwards;
+}
+
+@keyframes slideToField {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-100px) scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-200px) scale(0.9);
+    opacity: 0;
+  }
+}
+
+@keyframes slideToGraveyard {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(200px) translateY(-50px) scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(400px) translateY(-100px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* トリック完了時の表示 */
+.trick-completion-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  z-index: 1001;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+/* ゲーム終了時のキュウリ表示 */
+.cucumber-award-display {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 3rem;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 1002;
+  animation: slideUp 5s ease-in-out;
+}
+
+@keyframes slideUp {
+  0% { opacity: 0; transform: translate(-50%, -50%) translateY(50px); }
+  10% { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
+  90% { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) translateY(-50px); }
+}
+
+/* プレイヤー手札の横並び表示 */
+.player-hand-horizontal {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.player-name {
+  min-width: 80px;
+  font-weight: bold;
+}
+
+.player-cards {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .round-indicator {
   background: linear-gradient(135deg, #0b7f71, #0a6b5d);
   color: white;

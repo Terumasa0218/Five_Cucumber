@@ -13,8 +13,9 @@ export default function Home() {
   useEffect(() => {
     document.title = `${t('homeTitle')} | Five Cucumber`;
     
-    // ホーム背景を設定
+    // ホーム背景を設定とスクロール禁止
     document.body.setAttribute('data-bg', 'home');
+    document.body.classList.add('no-scroll');
     
     // ニックネームを取得
     setNickname(getNickname());
@@ -37,8 +38,9 @@ export default function Home() {
     window.addEventListener('storage', handleStorageChange);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      // ホームページを離れる時に背景属性をクリア
+      // ホームページを離れる時に背景属性とスクロール設定をクリア
       document.body.removeAttribute('data-bg');
+      document.body.classList.remove('no-scroll');
     };
   }, [t]);
 

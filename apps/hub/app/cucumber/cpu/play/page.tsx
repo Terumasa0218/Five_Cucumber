@@ -39,6 +39,8 @@ function CpuPlayContent() {
   const [isCardLocked, setIsCardLocked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
+  const [showTrickCompletion, setShowTrickCompletion] = useState(false);
+  const [showCucumberAward, setShowCucumberAward] = useState<{player: number, cucumbers: number} | null>(null);
   const cpuTurnTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef<boolean>(false);
   
@@ -325,6 +327,14 @@ function CpuPlayContent() {
         // トリック解決フェーズの処理
         if (newState.phase === "ResolvingTrick") {
           console.log('[PlayMove] Resolving trick...');
+          
+          // トリック完了表示
+          setShowTrickCompletion(true);
+          setTimeout(() => setShowTrickCompletion(false), 2000);
+          
+          // 2秒待機してからトリック解決
+          await delay(2000);
+          
           const trickResult = endTrick(newState, config, rng);
           if (trickResult.success) {
             newState = trickResult.newState;
@@ -345,6 +355,14 @@ function CpuPlayContent() {
                 // キュウリ付与の確認ログ
                 console.log('[PlayMove] Player cucumber counts after final round:', 
                   newState.players.map((p, index) => `Player ${index}: ${p.cucumbers} cucumbers`));
+                
+                // キュウリ付与表示（最も多くのキュウリを得たプレイヤー）
+                const maxCucumbers = Math.max(...newState.players.map(p => p.cucumbers));
+                const playerWithMaxCucumbers = newState.players.findIndex(p => p.cucumbers === maxCucumbers);
+                if (playerWithMaxCucumbers >= 0) {
+                  setShowCucumberAward({player: playerWithMaxCucumbers, cucumbers: maxCucumbers});
+                  setTimeout(() => setShowCucumberAward(null), 5000);
+                }
                 
                 if (newState.phase === "GameEnd") {
                   console.log('[PlayMove] Game ended');
@@ -453,10 +471,16 @@ function CpuPlayContent() {
   };
 
   const handleInterrupt = () => {
+    // ゲーム状態をクリア
+    const gameStateKey = getGameStateKey(searchParams);
+    localStorage.removeItem(gameStateKey);
     router.push('/cucumber/cpu/settings');
   };
 
   const handleBackToHome = () => {
+    // ゲーム状態をクリア
+    const gameStateKey = getGameStateKey(searchParams);
+    localStorage.removeItem(gameStateKey);
     router.push('/home');
   };
 
@@ -505,8 +529,23 @@ function CpuPlayContent() {
           isSubmitting={isSubmitting}
           lockedCardId={lockedCardId}
         />
-
-      {gameOver && (
+        
+        {/* トリック完了オーバーレイ */}
+        {showTrickCompletion && (
+          <div className="trick-completion-overlay">
+            トリック完了！
+          </div>
+        )}
+        
+        {/* キュウリ付与表示 */}
+        {showCucumberAward && (
+          <div className="cucumber-award-display">
+            <h3>🥒 お漬物きゅうり付与！</h3>
+            <p>プレイヤー{showCucumberAward.player}: {showCucumberAward.cucumbers}本</p>
+          </div>
+        )}
+        
+        {gameOver && (
         <div className="game-over">
           <div className="game-over-content">
             <h2>ゲーム終了</h2>

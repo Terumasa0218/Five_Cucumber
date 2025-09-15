@@ -23,9 +23,7 @@ export default function Header(){
     <header className="fixed top-0 left-0 right-0 z-50 bg-transparent border-b border-gray-200/50 backdrop-blur-sm">
       <div className="container mx-auto px-4 flex items-center justify-between py-4">
         {/* 左：タイトル */}
-        <Link href="/home" className="text-xl font-bold text-gray-800 hover:text-blue-600">
-          Five Cucumber
-        </Link>
+        <div></div>
 
         {/* 右：ユーザー名表示 */}
         <div className="text-sm text-gray-600">

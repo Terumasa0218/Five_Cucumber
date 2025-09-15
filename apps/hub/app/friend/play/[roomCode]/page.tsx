@@ -33,6 +33,8 @@ function FriendPlayContent() {
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
   const [disconnectedPlayers, setDisconnectedPlayers] = useState<Set<number>>(new Set());
   const [cpuReplacedPlayers, setCpuReplacedPlayers] = useState<Set<number>>(new Set());
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  const [disconnectStartTime, setDisconnectStartTime] = useState<number | null>(null);
   
   const gameRef = useRef<{
     state: GameState;
@@ -263,6 +265,44 @@ function FriendPlayContent() {
     }
   };
 
+  // ページの可視性監視（切断検知）
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      setIsPageVisible(isVisible);
+      
+      if (!isVisible && !disconnectStartTime) {
+        // ページが非表示になった時刻を記録
+        setDisconnectStartTime(Date.now());
+        console.log('[Friend] Player disconnected - starting 45s timer');
+      } else if (isVisible && disconnectStartTime) {
+        // ページが再表示された場合、切断タイマーをリセット
+        setDisconnectStartTime(null);
+        console.log('[Friend] Player reconnected - canceling disconnect timer');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [disconnectStartTime]);
+
+  // 切断タイマーの管理
+  useEffect(() => {
+    if (disconnectStartTime) {
+      const timer = setTimeout(() => {
+        // 45秒経過後、CPUに置き換え
+        console.log('[Friend] 45 seconds elapsed - replacing with CPU');
+        setCpuReplacedPlayers(prev => new Set(prev).add(0));
+        setDisconnectStartTime(null);
+      }, 45000); // 45秒
+
+      return () => clearTimeout(timer);
+    }
+  }, [disconnectStartTime]);
+
   // ゲーム開始
   useEffect(() => {
     startGame();
@@ -319,7 +359,7 @@ function FriendPlayContent() {
           </div>
           
           <div className="hud-right">
-            <a href="/home" className="btn">ホーム</a>
+            {/* フレンド対戦中は中断・ホームボタンを非表示 */}
           </div>
         </header>
 
