@@ -35,7 +35,7 @@ export default function RoomWaitingPage() {
         
         if (!res.ok) {
           if (res.status === 404) {
-            setError('ルームが見つかりません');
+            setError('ルームが見つかりません。ルームが削除されたか、ルーム番号が間違っている可能性があります。');
           } else {
             setError('ルーム情報の取得に失敗しました');
           }
@@ -76,14 +76,19 @@ export default function RoomWaitingPage() {
     if (!nickname || !room) return;
     
     try {
-      // APIで退出処理（実装が必要）
-      if (leaveRoom(roomId, nickname)) {
+      // APIで退出処理
+      const success = leaveRoom(roomId, nickname);
+      if (success) {
         // 成功時はホームに戻る
-        router.push('/friend');
+        router.push('/home');
+      } else {
+        // 失敗時もホームに戻る（ルームが存在しない場合など）
+        router.push('/home');
       }
     } catch (err) {
       console.error('Leave room error:', err);
-      setError('退出に失敗しました');
+      // エラー時もホームに戻る
+      router.push('/home');
     }
   };
 
@@ -120,12 +125,20 @@ export default function RoomWaitingPage() {
         <div className="container mx-auto px-4 text-center relative z-10">
           <div className="bg-red-100 border border-red-300 rounded-lg p-6 max-w-md mx-auto">
             <p className="text-red-600 font-semibold">{error}</p>
-            <Link 
-              href="/friend/join"
-              className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              戻る
-            </Link>
+            <div className="mt-4 space-x-2">
+              <Link 
+                href="/home"
+                className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                ホームに戻る
+              </Link>
+              <Link 
+                href="/friend"
+                className="inline-block px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+              >
+                フレンド対戦
+              </Link>
+            </div>
           </div>
         </div>
       </main>
@@ -247,7 +260,7 @@ export default function RoomWaitingPage() {
                   onClick={handleLeaveRoom}
                   className="w-full py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                 >
-                  退出
+                  ルームを退出してホームに戻る
                 </button>
               )}
 
