@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function CpuSettings() {
   const router = useRouter();
@@ -12,9 +12,53 @@ export default function CpuSettings() {
     cpuLevel: 'normal' as 'easy' | 'normal' | 'hard',
     showAllHands: false
   });
+  const [announcement, setAnnouncement] = useState('');
+
+  useEffect(() => {
+    document.body.setAttribute('data-bg', 'home');
+    document.body.classList.add('no-scroll');
+    
+    return () => {
+      document.body.removeAttribute('data-bg');
+      document.body.classList.remove('no-scroll');
+    };
+  }, []);
 
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+    
+    // アクセシビリティ用の音声通知
+    const labels: Record<string, Record<any, string>> = {
+      players: { 2: '2人', 3: '3人', 4: '4人', 5: '5人', 6: '6人' },
+      turnSeconds: { 5: '5秒', 15: '15秒', 30: '30秒', 0: '無制限' },
+      maxCucumbers: { 4: '4本', 5: '5本', 6: '6本', 7: '7本' },
+      cpuLevel: { easy: '簡単', normal: '普通', hard: '難しい' }
+    };
+    
+    if (labels[key] && labels[key][value]) {
+      setAnnouncement(`${labels[key][value]}を選択`);
+      setTimeout(() => setAnnouncement(''), 2000);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, options: any[], currentValue: any, key: string) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const currentIndex = options.findIndex(opt => 
+        typeof opt === 'object' ? opt.value === currentValue : opt === currentValue
+      );
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
+      const prevValue = typeof options[prevIndex] === 'object' ? options[prevIndex].value : options[prevIndex];
+      handleSettingChange(key, prevValue);
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const currentIndex = options.findIndex(opt => 
+        typeof opt === 'object' ? opt.value === currentValue : opt === currentValue
+      );
+      const nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
+      const nextValue = typeof options[nextIndex] === 'object' ? options[nextIndex].value : options[nextIndex];
+      handleSettingChange(key, nextValue);
+    }
   };
 
   const handleStart = () => {
@@ -26,7 +70,6 @@ export default function CpuSettings() {
       cpuLevel: settings.cpuLevel
     };
     
-    // URLパラメータで設定を渡す
     const params = new URLSearchParams();
     params.set('players', config.players.toString());
     params.set('turnSeconds', config.turnSeconds?.toString() || '0');
@@ -36,137 +79,165 @@ export default function CpuSettings() {
     router.push(`/cucumber/cpu/play?${params.toString()}`);
   };
 
+  const isAllSelected = () => {
+    return settings.players && settings.turnSeconds !== undefined && settings.maxCucumbers && settings.cpuLevel;
+  };
+
   return (
-    <main className="page-home h-screen w-full pt-20 overflow-auto">
-      <div className="container mx-auto px-4 max-w-2xl">
-        {/* 見出し */}
-        <div className="text-center mb-8">
-          <h1 className="sr-only" aria-label="CPU対戦設定">
-            CPU対戦設定
-          </h1>
-          <p className="text-lg text-gray-600">
-            ゲームの設定を調整してください
-          </p>
+    <main className="settings-page">
+      <div className="settings-container">
+        {/* 音声通知用 */}
+        <div aria-live="polite" className="sr-only">
+          {announcement}
         </div>
 
-        {/* 設定項目 */}
-        <div className="space-y-8">
-          {/* 対戦人数 */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold mb-4 text-center">対戦人数</h3>
-            <div className="flex justify-center">
-              <div className="grid grid-cols-3 gap-3 max-w-md">
-              {[2, 3, 4, 5, 6].map(num => (
-                <button
-                  key={num}
-                  onClick={() => handleSettingChange('players', num)}
-                  className={`opt ${settings.players === num ? 'selected' : ''}`}
-                  aria-pressed={settings.players === num}
-                >
-                  {num}人
-                </button>
-              ))}
-              </div>
-            </div>
-          </div>
-
-          {/* 制限時間 */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold mb-4 text-center">制限時間</h3>
-            <div className="grid grid-cols-4 gap-3 justify-center">
-              {[
-                { value: 5, label: '5秒' },
-                { value: 15, label: '15秒' },
-                { value: 30, label: '30秒' },
-                { value: 0, label: '無制限' }
-              ].map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => handleSettingChange('turnSeconds', option.value)}
-                  className={`opt ${settings.turnSeconds === option.value ? 'selected' : ''}`}
-                  aria-pressed={settings.turnSeconds === option.value}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* お漬物きゅうり数 */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold mb-4 text-center">お漬物きゅうり数</h3>
-            <div className="grid grid-cols-4 gap-3 justify-center">
-              {[4, 5, 6, 7].map(num => (
-                <button
-                  key={num}
-                  onClick={() => handleSettingChange('maxCucumbers', num)}
-                  className={`opt ${settings.maxCucumbers === num ? 'selected' : ''}`}
-                  aria-pressed={settings.maxCucumbers === num}
-                >
-                  {num}本
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* CPU難易度 */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="text-xl font-semibold mb-4 text-center">CPU難易度</h3>
-            <div className="grid grid-cols-3 gap-3 justify-center">
-              {[
-                { value: 'easy', label: '簡単' },
-                { value: 'normal', label: '普通' },
-                { value: 'hard', label: '難しい' }
-              ].map(option => (
-                <button
-                  key={option.value}
-                  onClick={() => handleSettingChange('cpuLevel', option.value)}
-                  className={`opt ${settings.cpuLevel === option.value ? 'selected' : ''} text-center`}
-                  aria-pressed={settings.cpuLevel === option.value}
-                >
-                  <div className="font-semibold">{option.label}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* デバッグモード（開発時のみ） */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-6">
-              <h3 className="text-xl font-semibold mb-4 text-yellow-800">🔧 デバッグモード</h3>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.showAllHands}
-                    onChange={(e) => handleSettingChange('showAllHands', e.target.checked)}
-                    className="w-5 h-5 text-yellow-600"
-                  />
-                  <span className="text-yellow-800 font-medium">全員の手札を表示</span>
-                </label>
-                <span className="text-sm text-yellow-600">
-                  （ゲームシステムの動作確認用）
-                </span>
-              </div>
-            </div>
-          )}
+        {/* 小見出し */}
+        <div className="settings-subtitle">
+          ゲームの設定を調整してください
         </div>
 
-        {/* 開始ボタン */}
-        <div className="mt-8 flex justify-center">
+        {/* 対戦人数 */}
+        <section className="settings-group">
+          <h2 className="settings-heading">対戦人数</h2>
+          <div 
+            role="radiogroup" 
+            aria-labelledby="players-heading"
+            className="settings-buttons"
+            onKeyDown={(e) => handleKeyDown(e, [2, 3, 4, 5, 6], settings.players, 'players')}
+          >
+            {[2, 3, 4, 5, 6].map((num, index) => (
+              <button
+                key={num}
+                role="radio"
+                aria-checked={settings.players === num}
+                tabIndex={settings.players === num ? 0 : -1}
+                onClick={() => handleSettingChange('players', num)}
+                className={`settings-radio-btn ${settings.players === num ? 'selected' : ''}`}
+              >
+                {num}人
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* 制限時間 */}
+        <section className="settings-group">
+          <h2 className="settings-heading">制限時間</h2>
+          <div 
+            role="radiogroup" 
+            aria-labelledby="time-heading"
+            className="settings-buttons"
+            onKeyDown={(e) => handleKeyDown(e, [
+              { value: 5, label: '5秒' },
+              { value: 15, label: '15秒' },
+              { value: 30, label: '30秒' },
+              { value: 0, label: '無制限' }
+            ], settings.turnSeconds, 'turnSeconds')}
+          >
+            {[
+              { value: 5, label: '5秒' },
+              { value: 15, label: '15秒' },
+              { value: 30, label: '30秒' },
+              { value: 0, label: '無制限' }
+            ].map((option) => (
+              <button
+                key={option.value}
+                role="radio"
+                aria-checked={settings.turnSeconds === option.value}
+                tabIndex={settings.turnSeconds === option.value ? 0 : -1}
+                onClick={() => handleSettingChange('turnSeconds', option.value)}
+                className={`settings-radio-btn ${settings.turnSeconds === option.value ? 'selected' : ''}`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* お漬物きゅうり数 */}
+        <section className="settings-group">
+          <h2 className="settings-heading">お漬物きゅうり数</h2>
+          <div 
+            role="radiogroup" 
+            aria-labelledby="cucumbers-heading"
+            className="settings-buttons"
+            onKeyDown={(e) => handleKeyDown(e, [4, 5, 6, 7], settings.maxCucumbers, 'maxCucumbers')}
+          >
+            {[4, 5, 6, 7].map((num) => (
+              <button
+                key={num}
+                role="radio"
+                aria-checked={settings.maxCucumbers === num}
+                tabIndex={settings.maxCucumbers === num ? 0 : -1}
+                onClick={() => handleSettingChange('maxCucumbers', num)}
+                className={`settings-radio-btn ${settings.maxCucumbers === num ? 'selected' : ''}`}
+              >
+                {num}本
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* CPU難易度 */}
+        <section className="settings-group">
+          <h2 className="settings-heading">CPU難易度</h2>
+          <div 
+            role="radiogroup" 
+            aria-labelledby="difficulty-heading"
+            className="settings-buttons"
+            onKeyDown={(e) => handleKeyDown(e, [
+              { value: 'easy', label: '簡単' },
+              { value: 'normal', label: '普通' },
+              { value: 'hard', label: '難しい' }
+            ], settings.cpuLevel, 'cpuLevel')}
+          >
+            {[
+              { value: 'easy', label: '簡単' },
+              { value: 'normal', label: '普通' },
+              { value: 'hard', label: '難しい' }
+            ].map((option) => (
+              <button
+                key={option.value}
+                role="radio"
+                aria-checked={settings.cpuLevel === option.value}
+                tabIndex={settings.cpuLevel === option.value ? 0 : -1}
+                onClick={() => handleSettingChange('cpuLevel', option.value)}
+                className={`settings-radio-btn ${settings.cpuLevel === option.value ? 'selected' : ''}`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* デバッグモード（開発時のみ） */}
+        {process.env.NODE_ENV === 'development' && (
+          <section className="settings-group debug-section">
+            <h2 className="settings-heading">🔧 デバッグモード</h2>
+            <label className="debug-checkbox">
+              <input
+                type="checkbox"
+                checked={settings.showAllHands}
+                onChange={(e) => handleSettingChange('showAllHands', e.target.checked)}
+              />
+              <span>全員の手札を表示（開発用）</span>
+            </label>
+          </section>
+        )}
+
+        {/* はじめるボタン */}
+        <div className="settings-actions">
           <button
             onClick={handleStart}
-            className="px-12 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg shadow-lg"
+            disabled={!isAllSelected()}
+            className={`settings-start-btn ${isAllSelected() ? 'enabled' : 'disabled'}`}
           >
             はじめる
           </button>
-        </div>
-
-        {/* 戻るボタン */}
-        <div className="mt-4 flex justify-center">
+          
           <button
             onClick={() => router.push('/home')}
-            className="text-gray-600 hover:text-gray-800"
+            className="settings-back-btn"
           >
             ← ホームに戻る
           </button>

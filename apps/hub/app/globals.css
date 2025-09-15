@@ -599,6 +599,198 @@ body[data-bg="battle"]::before {
   outline-offset: 2px;
 }
 
+/* CPU設定ページ専用スタイル */
+.settings-page {
+  height: 100svh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.settings-container {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.settings-subtitle {
+  text-align: center;
+  font-size: 1.125rem;
+  color: #2b2b2b;
+  margin-bottom: 2rem;
+  font-weight: 500;
+}
+
+.settings-group {
+  margin-bottom: 2rem;
+}
+
+.settings-group:last-of-type:not(.debug-section) {
+  margin-bottom: 2.5rem;
+}
+
+.settings-heading {
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2b2b2b;
+  margin-bottom: 1rem;
+}
+
+.settings-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.settings-radio-btn {
+  min-height: 44px;
+  min-width: 72px;
+  max-width: 88px;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid #d4c4a8;
+  background: #f5f0e6;
+  color: #2b2b2b;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 120ms ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.settings-radio-btn:hover {
+  background: #ede7d9;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.settings-radio-btn:focus-visible {
+  outline: 2px solid #B59A6B;
+  outline-offset: 2px;
+}
+
+.settings-radio-btn.selected {
+  background: #25533e;
+  color: white;
+  border: 2px solid #B59A6B;
+  font-weight: 600;
+  transform: scale(1.02);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.settings-actions {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.settings-start-btn {
+  width: 200px;
+  height: 52px;
+  border-radius: 12px;
+  border: none;
+  font-size: 1.125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+  margin-bottom: 1rem;
+}
+
+.settings-start-btn.enabled {
+  background: #25533e;
+  color: white;
+  box-shadow: 0 4px 12px rgba(37, 83, 62, 0.3);
+}
+
+.settings-start-btn.enabled:hover {
+  background: #1e4632;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 83, 62, 0.4);
+}
+
+.settings-start-btn.disabled {
+  background: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.settings-back-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: color 150ms ease;
+}
+
+.settings-back-btn:hover {
+  color: #374151;
+  background: rgba(107, 114, 128, 0.1);
+}
+
+.debug-section {
+  background: rgba(255, 243, 205, 0.5);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid #fbbf24;
+}
+
+.debug-checkbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #92400e;
+}
+
+.debug-checkbox input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 640px) {
+  .settings-container {
+    padding: 0 1rem;
+  }
+  
+  .settings-buttons {
+    gap: 0.5rem;
+  }
+  
+  .settings-radio-btn {
+    min-width: 64px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .settings-start-btn {
+    width: 180px;
+    height: 48px;
+    font-size: 1rem;
+  }
+}
+
+/* 極小画面対応 */
+@media (max-width: 480px) {
+  .settings-page {
+    padding: 0.5rem;
+  }
+  
+  .settings-radio-btn {
+    min-width: 56px;
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+  }
+}
+
 /* 楕円卓レイアウト（対戦画面専用） */
 .page-arena {
   position: relative;

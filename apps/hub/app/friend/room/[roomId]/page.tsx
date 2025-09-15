@@ -1,8 +1,8 @@
 'use client';
 
+import { getNickname } from "@/lib/profile";
 import { leaveRoom, updateRoomStatus } from "@/lib/roomSystemUnified";
 import { Room } from "@/types/room";
-import { getNickname } from "@/lib/profile";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
