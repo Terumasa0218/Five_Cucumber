@@ -472,11 +472,7 @@ html, body {
 
 /* デフォルト背景（ホーム用） */
 body {
-  background-image: url('/images/home1.png');
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background: none;
 }
 
 /* 特定ページでの背景オーバーライド */
@@ -516,9 +512,9 @@ body {
   background: url("/images/battle1.png") center/cover no-repeat fixed;
 }
 
-/* ホーム画面は body の背景を使用 */
+/* ホーム画面は home1.png を使用 */
 .page-home {
-  background: none; /* bodyの背景を使用 */
+  background: url("/images/home1.png") center/cover no-repeat fixed;
 }
 
 /* 設定画面の選択状態 */
