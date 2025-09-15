@@ -9,17 +9,57 @@ export default function FriendCreatePage() {
   const [settings, setSettings] = useState({
     roomSize: 4,
     turnSeconds: 15,
-    maxCucumbers: 6
+    maxCucumbers: 5
   });
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState('');
 
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+    
+    // アクセシビリティ用の音声通知
+    const labels: Record<string, Record<any, string>> = {
+      roomSize: { 2: '2人', 3: '3人', 4: '4人', 5: '5人', 6: '6人' },
+      turnSeconds: { 5: '5秒', 15: '15秒', 30: '30秒', 0: '無制限' },
+      maxCucumbers: { 4: '4本', 5: '5本', 6: '6本', 7: '7本' }
+    };
+    
+    if (labels[key] && labels[key][value]) {
+      setAnnouncement(`${labels[key][value]}を選択`);
+      setTimeout(() => setAnnouncement(''), 2000);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, options: any[], currentValue: any, key: string) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const currentIndex = options.findIndex(opt => 
+        typeof opt === 'object' ? opt.value === currentValue : opt === currentValue
+      );
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
+      const prevValue = typeof options[prevIndex] === 'object' ? options[prevIndex].value : options[prevIndex];
+      handleSettingChange(key, prevValue);
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const currentIndex = options.findIndex(opt => 
+        typeof opt === 'object' ? opt.value === currentValue : opt === currentValue
+      );
+      const nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
+      const nextValue = typeof options[nextIndex] === 'object' ? options[nextIndex].value : options[nextIndex];
+      handleSettingChange(key, nextValue);
+    }
   };
 
   useEffect(() => {
     document.title = 'ルーム作成 | Five Cucumber';
+    document.body.setAttribute('data-bg', 'home');
+    document.body.classList.add('no-scroll');
+    
+    return () => {
+      document.body.removeAttribute('data-bg');
+      document.body.classList.remove('no-scroll');
+    };
   }, []);
 
   const handleCreateRoom = async () => {
@@ -70,94 +110,129 @@ export default function FriendCreatePage() {
     }
   };
 
+  const isAllSelected = () => {
+    return settings.roomSize && settings.turnSeconds !== undefined && settings.maxCucumbers;
+  };
+
   return (
-    <main className="page-home min-h-screen w-full pt-20 relative">
-      {/* 背景オーバーレイ */}
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
-      
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-8 text-white drop-shadow-lg">ルーム作成</h1>
-          
-          <div className="space-y-6 max-w-2xl mx-auto">
-            {/* 人数選択 */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-xl font-semibold mb-4">人数</h3>
-              <div className="grid grid-cols-5 gap-3">
-                {[2, 3, 4, 5, 6].map(num => (
-                  <button
-                    key={num}
-                    onClick={() => handleSettingChange('roomSize', num)}
-                    className={`opt ${settings.roomSize === num ? 'selected' : ''}`}
-                    aria-pressed={settings.roomSize === num}
-                    disabled={isCreating}
-                  >
-                    {num}人
-                  </button>
-                ))}
-              </div>
-            </div>
+    <main className="settings-page">
+      <div className="settings-container">
+        {/* 音声通知用 */}
+        <div aria-live="polite" className="sr-only">
+          {announcement}
+        </div>
 
-            {/* 制限時間 */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-xl font-semibold mb-4">制限時間</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { value: 10, label: '10秒' },
-                  { value: 15, label: '15秒' },
-                  { value: 30, label: '30秒' },
-                  { value: 0, label: '無制限' }
-                ].map(option => (
-                  <button
-                    key={option.value}
-                    onClick={() => handleSettingChange('turnSeconds', option.value)}
-                    className={`opt ${settings.turnSeconds === option.value ? 'selected' : ''}`}
-                    aria-pressed={settings.turnSeconds === option.value}
-                    disabled={isCreating}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+        <h1 className="sr-only" aria-label="フレンド対戦ルーム作成">フレンド対戦ルーム作成</h1>
 
-            {/* きゅうり上限 */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-xl font-semibold mb-4">きゅうり上限</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {[4, 5, 6].map(num => (
-                  <button
-                    key={num}
-                    onClick={() => handleSettingChange('maxCucumbers', num)}
-                    className={`opt ${settings.maxCucumbers === num ? 'selected' : ''}`}
-                    aria-pressed={settings.maxCucumbers === num}
-                    disabled={isCreating}
-                  >
-                    {num}本
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* 小見出し */}
+        <div className="settings-subtitle">
+          フレンド対戦のルームを作成します
+        </div>
 
-            {/* エラー表示 */}
-            {error && (
-              <div className="p-3 bg-red-100 border border-red-300 rounded-md">
-                <p className="text-red-600 text-sm">{error}</p>
-              </div>
-            )}
-
-            <button
-              onClick={handleCreateRoom}
-              disabled={isCreating}
-              className={`w-full py-3 rounded-md font-semibold transition-colors ${
-                isCreating
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              {isCreating ? '作成中...' : 'ルーム作成'}
-            </button>
+        {/* 対戦人数 */}
+        <section className="settings-group">
+          <h2 id="players-heading" className="settings-heading">対戦人数</h2>
+          <div 
+            role="radiogroup" 
+            aria-labelledby="players-heading"
+            className="settings-buttons"
+            onKeyDown={(e) => handleKeyDown(e, [2, 3, 4, 5, 6], settings.roomSize, 'roomSize')}
+          >
+            {[2, 3, 4, 5, 6].map((num, index) => (
+              <button
+                key={num}
+                role="radio"
+                aria-checked={settings.roomSize === num}
+                tabIndex={settings.roomSize === num ? 0 : -1}
+                onClick={() => handleSettingChange('roomSize', num)}
+                className={`settings-radio-btn ${settings.roomSize === num ? 'selected' : ''}`}
+                disabled={isCreating}
+              >
+                {num}人
+              </button>
+            ))}
           </div>
+        </section>
+
+        {/* 制限時間 */}
+        <section className="settings-group">
+          <h2 id="time-heading" className="settings-heading">制限時間</h2>
+          <div 
+            role="radiogroup" 
+            aria-labelledby="time-heading"
+            className="settings-buttons"
+            onKeyDown={(e) => handleKeyDown(e, [{ value: 5, label: '5秒' }, { value: 15, label: '15秒' }, { value: 30, label: '30秒' }, { value: 0, label: '無制限' }], settings.turnSeconds, 'turnSeconds')}
+          >
+            {[
+              { value: 5, label: '5秒' },
+              { value: 15, label: '15秒' },
+              { value: 30, label: '30秒' },
+              { value: 0, label: '無制限' }
+            ].map(option => (
+              <button
+                key={option.value}
+                role="radio"
+                aria-checked={settings.turnSeconds === option.value}
+                tabIndex={settings.turnSeconds === option.value ? 0 : -1}
+                onClick={() => handleSettingChange('turnSeconds', option.value)}
+                className={`settings-radio-btn ${settings.turnSeconds === option.value ? 'selected' : ''}`}
+                disabled={isCreating}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* お漬物きゅうり数 */}
+        <section className="settings-group">
+          <h2 id="cucumbers-heading" className="settings-heading">お漬物きゅうり数</h2>
+          <div 
+            role="radiogroup" 
+            aria-labelledby="cucumbers-heading"
+            className="settings-buttons"
+            onKeyDown={(e) => handleKeyDown(e, [4, 5, 6, 7], settings.maxCucumbers, 'maxCucumbers')}
+          >
+            {[4, 5, 6, 7].map(num => (
+              <button
+                key={num}
+                role="radio"
+                aria-checked={settings.maxCucumbers === num}
+                tabIndex={settings.maxCucumbers === num ? 0 : -1}
+                onClick={() => handleSettingChange('maxCucumbers', num)}
+                className={`settings-radio-btn ${settings.maxCucumbers === num ? 'selected' : ''}`}
+                disabled={isCreating}
+              >
+                {num}本
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* エラー表示 */}
+        {error && (
+          <div className="p-3 bg-red-100 border border-red-300 rounded-md">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* アクションボタン */}
+        <div className="settings-actions">
+          <button
+            onClick={handleCreateRoom}
+            disabled={isCreating || !isAllSelected()}
+            className={`settings-start-btn ${(isAllSelected() && !isCreating) ? 'enabled' : 'disabled'}`}
+          >
+            {isCreating ? '作成中...' : 'ルーム作成'}
+          </button>
+          
+          <button
+            onClick={() => router.push('/friend')}
+            className="settings-back-btn"
+            disabled={isCreating}
+          >
+            ← フレンド対戦に戻る
+          </button>
         </div>
       </div>
     </main>
