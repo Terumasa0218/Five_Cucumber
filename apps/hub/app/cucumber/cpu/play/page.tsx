@@ -248,6 +248,18 @@ function CpuPlayContent() {
       }
       
       console.log(`[CPU] Turn completed for player ${currentPlayer}`);
+      
+      // ターン完了後、次のCPUターンをスケジューリング
+      setTimeout(() => {
+        if (gameRef.current && !gameOver) {
+          const { state } = gameRef.current;
+          if (state.currentPlayer !== 0 && state.phase === "AwaitMove") {
+            console.log(`[CPU] Auto-scheduling next turn for player ${state.currentPlayer}`);
+            scheduleCpuTurn();
+          }
+        }
+      }, 100); // 少し遅延させて状態更新を確実にする
+      
     } catch (error) {
       console.error('[CPU] Turn error:', error);
     } finally {
@@ -353,6 +365,19 @@ function CpuPlayContent() {
         }
         
         console.log(`[PlayMove] Move completed - Player: ${player}, Card: ${card}`);
+        
+        // プレイヤー0（人間）のターン後、次のCPUターンをスケジューリング
+        if (player === 0) {
+          setTimeout(() => {
+            if (gameRef.current && !gameOver) {
+              const { state } = gameRef.current;
+              if (state.currentPlayer !== 0 && state.phase === "AwaitMove") {
+                console.log(`[PlayMove] Scheduling next CPU turn for player ${state.currentPlayer}`);
+                scheduleCpuTurn();
+              }
+            }
+          }, 100);
+        }
       });
     } catch (error) {
       console.error('[PlayMove] Error:', error);
@@ -361,8 +386,12 @@ function CpuPlayContent() {
 
   // CPU手番のスケジューリング
   useEffect(() => {
-    if (gameState && !gameOver && !isProcessingRef.current) {
-      scheduleCpuTurn();
+    if (gameState && !gameOver && !isProcessingRef.current && gameRef.current) {
+      const { state } = gameRef.current;
+      if (state.currentPlayer !== 0 && state.phase === "AwaitMove") {
+        console.log(`[useEffect] Scheduling CPU turn for player ${state.currentPlayer}`);
+        scheduleCpuTurn();
+      }
     }
     
     return () => {
