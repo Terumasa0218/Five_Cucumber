@@ -3,20 +3,19 @@
 import { EllipseTable, Timer } from '@/components/ui';
 import { delay, runAnimation } from '@/lib/animQueue';
 import {
-    applyMove,
-    createGameView,
-    createInitialState,
-    endTrick,
-    finalRound,
-    GameConfig,
-    GameState,
-    getEffectiveTurnSeconds,
-    getLegalMoves,
-    getMinResolveMs,
-    Move,
-    PlayerController,
-    SeededRng,
-    startNewRound
+  applyMove,
+  createGameView,
+  createInitialState,
+  endTrick,
+  finalRound,
+  GameConfig,
+  GameState,
+  getEffectiveTurnSeconds,
+  getLegalMoves,
+  Move,
+  PlayerController,
+  SeededRng,
+  startNewRound
 } from '@/lib/game-core';
 import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -217,6 +216,7 @@ function CpuPlayContent() {
       const currentPlayer = state.currentPlayer;
       
       if (currentPlayer === 0 || gameOver || state.phase !== "AwaitMove") {
+        console.log(`[CPU] Skipping turn - Player: ${currentPlayer}, Phase: ${state.phase}, GameOver: ${gameOver}`);
         return;
       }
       
@@ -238,6 +238,7 @@ function CpuPlayContent() {
       const move = await controller.onYourTurn(view);
       
       if (move !== null && typeof move === 'number' && legalMoves.includes(move)) {
+        console.log(`[CPU] Playing move: ${move}`);
         await playMove(currentPlayer, move);
       } else {
         // フォールバック: 最初の合法手
@@ -245,17 +246,20 @@ function CpuPlayContent() {
         console.log(`[CPU] Using fallback move: ${fallbackMove}`);
         await playMove(currentPlayer, fallbackMove);
       }
+      
+      console.log(`[CPU] Turn completed for player ${currentPlayer}`);
     } catch (error) {
       console.error('[CPU] Turn error:', error);
     } finally {
       isProcessingRef.current = false;
+      console.log(`[CPU] Processing flag cleared`);
     }
   };
 
   const playMove = async (player: number, card: number) => {
-    if (!gameRef.current || isProcessingRef.current) return;
+    if (!gameRef.current) return;
     
-    isProcessingRef.current = true;
+    console.log(`[PlayMove] Starting move - Player: ${player}, Card: ${card}`);
     
     try {
       await runAnimation(async () => {
@@ -299,6 +303,7 @@ function CpuPlayContent() {
         }
         
         let newState = result.newState;
+        console.log(`[PlayMove] Move applied successfully, new phase: ${newState.phase}`);
         
         // 状態更新
         gameRef.current.state = newState;
@@ -316,6 +321,7 @@ function CpuPlayContent() {
             newState = trickResult.newState;
             gameRef.current.state = newState;
             setGameState(newState);
+            console.log(`[PlayMove] Trick resolved, new phase: ${newState.phase}`);
             
             // ラウンド終了の処理
             if (newState.phase === "RoundEnd") {
@@ -325,6 +331,7 @@ function CpuPlayContent() {
                 newState = finalResult.newState;
                 gameRef.current.state = newState;
                 setGameState(newState);
+                console.log(`[PlayMove] Final round processed, new phase: ${newState.phase}`);
                 
                 if (newState.phase === "GameEnd") {
                   console.log('[PlayMove] Game ended');
@@ -344,11 +351,11 @@ function CpuPlayContent() {
             }
           }
         }
+        
+        console.log(`[PlayMove] Move completed - Player: ${player}, Card: ${card}`);
       });
     } catch (error) {
       console.error('[PlayMove] Error:', error);
-    } finally {
-      isProcessingRef.current = false;
     }
   };
 
@@ -366,7 +373,7 @@ function CpuPlayContent() {
     };
   }, [gameState?.currentPlayer, gameState?.phase, gameOver]);
 
-  const handleCardClick = (card: number) => {
+  const handleCardClick = async (card: number) => {
     if (!gameRef.current || isCardLocked || isSubmitting || isProcessingRef.current) return;
     
     const { state } = gameRef.current;
@@ -377,7 +384,7 @@ function CpuPlayContent() {
       setIsCardLocked(true);
       
       try {
-        playMove(0, card);
+        await playMove(0, card);
         
         setTimeout(() => {
           setIsCardLocked(false);
@@ -393,8 +400,10 @@ function CpuPlayContent() {
     }
   };
 
-  const handleTimeout = () => {
+  const handleTimeout = async () => {
     if (!gameRef.current || gameState?.currentPlayer !== 0 || isProcessingRef.current) return;
+    
+    console.log('[Timeout] Handling timeout for player 0');
     
     // 制限時間切れ時のランダムカード選択
     const legalMoves = getLegalMoves(gameState, 0);
@@ -402,13 +411,13 @@ function CpuPlayContent() {
       const randomIndex = Math.floor(Math.random() * legalMoves.length);
       const selectedCard = legalMoves[randomIndex];
       console.log(`[Timeout] Auto-selecting random card: ${selectedCard} from legal moves:`, legalMoves);
-      handleCardClick(selectedCard);
+      await handleCardClick(selectedCard);
     } else {
       const hand = gameState.players[0].hand;
       if (hand.length > 0) {
         const minCard = Math.min(...hand);
         console.log(`[Timeout] No legal moves, selecting minimum card: ${minCard}`);
-        handleCardClick(minCard);
+        await handleCardClick(minCard);
       }
     }
   };
