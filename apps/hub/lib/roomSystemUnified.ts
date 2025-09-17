@@ -247,3 +247,16 @@ export function getAllRooms(): Room[] {
     return [];
   }
 }
+
+/**
+ * クライアント側のlocalStorageにルームを追加/更新（フォールバック用）
+ */
+export function upsertLocalRoom(room: Room): void {
+  try {
+    const rooms = getRoomsStorage();
+    rooms.set(room.id, room);
+    saveRoomsToStorage(rooms);
+  } catch (error) {
+    console.error('Upsert local room error:', error);
+  }
+}

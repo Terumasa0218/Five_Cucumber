@@ -1,5 +1,6 @@
 import { putRoom } from '@/lib/roomsStore';
 import { Room } from '@/types/room';
+import { upsertLocalRoom } from '@/lib/roomSystemUnified';
 import { createRoom } from '@/lib/roomSystemUnified';
 import { CreateRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
@@ -80,6 +81,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     if (hasFirestoreEnv) {
       try {
         await withTimeout(putRoom(room), 2000);
+        // クライアント側のフォールバック参照用にも保存
+        upsertLocalRoom(room);
         return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
       } catch (e) {
         console.warn('[API] Firestore putRoom failed or timed out, falling back:', e instanceof Error ? e.message : e);
@@ -90,6 +93,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     if (!result.success) {
       return NextResponse.json({ ok: false, reason: result.reason }, { status: 500 });
     }
+    // メモリ作成時もクライアント側保存
+    upsertLocalRoom({ ...room, id: result.roomId! });
     return NextResponse.json({ ok: true, roomId: result.roomId }, { status: 200 });
 
   } catch (error) {
