@@ -82,6 +82,10 @@ export default function FriendCreatePage() {
           turnSeconds: settings.turnSeconds,
           maxCucumbers: settings.maxCucumbers
         })
+      }).catch((err) => {
+        // Safari/拡張のメッセージポートエラー等を吸収
+        console.warn('Create room network error:', err);
+        return new Response(JSON.stringify({ ok: false }), { status: 520 });
       });
 
       if (res.ok) {
@@ -95,6 +99,9 @@ export default function FriendCreatePage() {
         switch (res.status) {
           case 400:
             setError('入力内容に問題があります');
+            break;
+          case 520:
+            setError('ネットワークエラーが発生しました');
             break;
           case 500:
             setError('サーバーエラーが発生しました');

@@ -1,5 +1,6 @@
 import { putRoom } from '@/lib/roomsStore';
 import { Room } from '@/types/room';
+import { createRoom } from '@/lib/roomSystemUnified';
 import { CreateRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -55,25 +56,29 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       );
     }
 
-    // ルーム作成（Firestore）
-    const id = String(Math.floor(100000 + Math.random() * 900000));
-    const room: Room = {
-      id,
-      size: roomSize,
-      seats: Array.from({ length: roomSize }, () => null),
-      status: 'waiting',
-      createdAt: Date.now(),
-      turnSeconds,
-      maxCucumbers
-    };
-    room.seats[0] = { nickname: nickname.trim() };
-
-    await putRoom(room);
-
-    return NextResponse.json(
-      { ok: true, roomId: id },
-      { status: 200 }
-    );
+    // ルーム作成（Firestore優先、失敗時はメモリにフォールバック）
+    try {
+      const id = String(Math.floor(100000 + Math.random() * 900000));
+      const room: Room = {
+        id,
+        size: roomSize,
+        seats: Array.from({ length: roomSize }, () => null),
+        status: 'waiting',
+        createdAt: Date.now(),
+        turnSeconds,
+        maxCucumbers
+      };
+      room.seats[0] = { nickname: nickname.trim() };
+      await putRoom(room);
+      return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
+    } catch (e) {
+      // フォールバック
+      const result = createRoom(roomSize, nickname, turnSeconds, maxCucumbers);
+      if (!result.success) {
+        return NextResponse.json({ ok: false, reason: result.reason }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true, roomId: result.roomId }, { status: 200 });
+    }
 
   } catch (error) {
     console.error('Room creation error:', error);
