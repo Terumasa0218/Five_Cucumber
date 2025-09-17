@@ -589,6 +589,37 @@
   backdrop-filter: blur(8px);
 }
 
+/* 簡易トースト */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  z-index: 1200;
+  font-size: 14px;
+  max-width: 60vw;
+}
+
+/* 開始カウントダウン */
+.countdown-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.35);
+  z-index: 1100;
+}
+.countdown-number {
+  color: #fff;
+  font-size: 96px;
+  font-weight: 800;
+  text-shadow: 0 0 12px rgba(255,255,255,0.7), 0 0 30px rgba(0,0,0,0.6);
+}
+
 .game-over-content {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
   padding: 50px;

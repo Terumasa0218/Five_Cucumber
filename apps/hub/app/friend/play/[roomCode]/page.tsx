@@ -32,6 +32,8 @@ function FriendPlayContent() {
   const [isCardLocked, setIsCardLocked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [disconnectedPlayers, setDisconnectedPlayers] = useState<Set<number>>(new Set());
   const [cpuReplacedPlayers, setCpuReplacedPlayers] = useState<Set<number>>(new Set());
   const [isPageVisible, setIsPageVisible] = useState(true);
@@ -171,6 +173,14 @@ function FriendPlayContent() {
       // Realtime: ホスト（座席0）だけが初期状態を保存
       if (currentPlayerIndex === 0) {
         await initRoomGame(roomCode, config, state);
+        setCountdown(3);
+        const id = setInterval(() => {
+          setCountdown(prev => {
+            if (prev === null) return null;
+            if (prev <= 1) { clearInterval(id); return null; }
+            return prev - 1;
+          });
+        }, 1000);
       }
 
       // Realtime: ゲームドキュメントを購読
@@ -184,6 +194,7 @@ function FriendPlayContent() {
       });
     } catch (error) {
       console.error('[Friend Game] Failed to start game:', error);
+      setToast('ゲーム初期化に失敗しました');
       router.push('/home');
     }
   };
@@ -367,6 +378,11 @@ function FriendPlayContent() {
   return (
     <BattleLayout>
       <div className="game-container">
+        {countdown !== null && (
+          <div className="countdown-overlay">
+            <div className="countdown-number">{countdown}</div>
+          </div>
+        )}
         <header className="hud layer-hud">
           <div className="hud-left">
             <div className="round-indicator" id="roundInfo">
@@ -400,6 +416,10 @@ function FriendPlayContent() {
           lockedCardId={lockedCardId}
           names={roomConfig?.seats?.map((s: any, idx: number) => idx === currentPlayerIndex ? 'あなた' : (s?.nickname || `P${idx+1}`))}
         />
+
+        {toast && (
+          <div className="toast" role="status" aria-live="polite">{toast}</div>
+        )}
         
         {/* 切断状態の表示 */}
         {cpuReplacedPlayers.size > 0 && (
