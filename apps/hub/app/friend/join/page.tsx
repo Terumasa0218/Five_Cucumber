@@ -1,6 +1,7 @@
 'use client';
 
 import { getNickname } from "@/lib/profile";
+import { getRoom as getLocalRoom, upsertLocalRoom } from "@/lib/roomSystemUnified";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -39,6 +40,13 @@ export default function FriendJoinPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.ok && data.roomId) {
+          // ルーム情報をローカルにも保持（404時のフォールバック対策）
+          try {
+            const local = getLocalRoom(data.roomId);
+            if (!local) {
+              upsertLocalRoom({ id: data.roomId, size: 2, seats: [{ nickname }, null], status: 'waiting', createdAt: Date.now(), turnSeconds: 15, maxCucumbers: 5 } as any);
+            }
+          } catch {}
           router.push(`/friend/room/${data.roomId}`);
         } else {
           setError('参加に失敗しました');

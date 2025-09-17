@@ -1,6 +1,7 @@
 'use client';
 
 import { getNickname } from "@/lib/profile";
+import { upsertLocalRoom } from "@/lib/roomSystemUnified";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -91,6 +92,9 @@ export default function FriendCreatePage() {
       if (res.ok) {
         const data = await res.json();
         if (data.ok && data.roomId) {
+          try {
+            upsertLocalRoom({ id: data.roomId, size: settings.roomSize, seats: Array.from({length: settings.roomSize}, () => null).map((v,i)=> i===0 ? { nickname } : v), status: 'waiting', createdAt: Date.now(), turnSeconds: settings.turnSeconds, maxCucumbers: settings.maxCucumbers } as any);
+          } catch {}
           router.push(`/friend/room/${data.roomId}`);
         } else {
           setError('ルーム作成に失敗しました');
