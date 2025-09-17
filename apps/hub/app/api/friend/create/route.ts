@@ -56,29 +56,41 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       );
     }
 
-    // ルーム作成（Firestore優先、失敗時はメモリにフォールバック）
-    try {
-      const id = String(Math.floor(100000 + Math.random() * 900000));
-      const room: Room = {
-        id,
-        size: roomSize,
-        seats: Array.from({ length: roomSize }, () => null),
-        status: 'waiting',
-        createdAt: Date.now(),
-        turnSeconds,
-        maxCucumbers
-      };
-      room.seats[0] = { nickname: nickname.trim() };
-      await putRoom(room);
-      return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
-    } catch (e) {
-      // フォールバック
-      const result = createRoom(roomSize, nickname, turnSeconds, maxCucumbers);
-      if (!result.success) {
-        return NextResponse.json({ ok: false, reason: result.reason }, { status: 500 });
+    // ルーム作成（Firestore優先、ハング回避のためタイムアウト付き。失敗/タイムアウト時はメモリにフォールバック）
+    const id = String(Math.floor(100000 + Math.random() * 900000));
+    const room: Room = {
+      id,
+      size: roomSize,
+      seats: Array.from({ length: roomSize }, () => null),
+      status: 'waiting',
+      createdAt: Date.now(),
+      turnSeconds,
+      maxCucumbers
+    };
+    room.seats[0] = { nickname: nickname.trim() };
+
+    const withTimeout = async <T,>(p: Promise<T>, ms: number): Promise<T> => {
+      return await Promise.race([
+        p,
+        new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+      ]);
+    };
+
+    const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    if (hasFirestoreEnv) {
+      try {
+        await withTimeout(putRoom(room), 2000);
+        return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
+      } catch (e) {
+        console.warn('[API] Firestore putRoom failed or timed out, falling back:', e instanceof Error ? e.message : e);
       }
-      return NextResponse.json({ ok: true, roomId: result.roomId }, { status: 200 });
     }
+
+    const result = createRoom(roomSize, nickname, turnSeconds, maxCucumbers);
+    if (!result.success) {
+      return NextResponse.json({ ok: false, reason: result.reason }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, roomId: result.roomId }, { status: 200 });
 
   } catch (error) {
     console.error('Room creation error:', error);

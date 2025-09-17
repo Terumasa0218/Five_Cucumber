@@ -1,6 +1,7 @@
 // ルーム情報取得API
 
 import { getRoomById } from '@/lib/roomsStore';
+import { getRoom } from '@/lib/roomSystemUnified';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -17,7 +18,11 @@ export async function GET(
       );
     }
 
-    const room = await getRoomById(roomId);
+    let room = await getRoomById(roomId);
+    if (!room) {
+      // フォールバック（メモリ）
+      room = getRoom(roomId);
+    }
     
     if (!room) {
       return NextResponse.json(
