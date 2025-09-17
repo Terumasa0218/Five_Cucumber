@@ -170,17 +170,22 @@ function FriendPlayContent() {
       console.log(`[Friend Game] Current player index: ${currentPlayerIndex}`);
       console.log(`[Friend Game] All players are human, no CPU replacement needed`);
 
-      // Realtime: ホスト（座席0）だけが初期状態を保存
+      // サーバーにゲーム初期状態を保存（ホストのみ）。他クライアントはGETで取得
       if (currentPlayerIndex === 0) {
-        await initRoomGame(roomCode, config, state);
+        await fetch(`/api/friend/game/${roomCode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'init', state, config }) });
         setCountdown(3);
         const id = setInterval(() => {
-          setCountdown(prev => {
-            if (prev === null) return null;
-            if (prev <= 1) { clearInterval(id); return null; }
-            return prev - 1;
-          });
+          setCountdown(prev => { if (prev === null) return null; if (prev <= 1) { clearInterval(id); return null; } return prev - 1; });
         }, 1000);
+      } else {
+        const res = await fetch(`/api/friend/game/${roomCode}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok && data.snapshot) {
+            gameRef.current = { state: data.snapshot.state, config: data.snapshot.config, controllers, rng };
+            setGameState(data.snapshot.state);
+          }
+        }
       }
 
       // Realtime: ゲームドキュメントを購読
@@ -219,10 +224,15 @@ function FriendPlayContent() {
       
       const result = applyMove(gameState, move, gameRef.current!.config, gameRef.current!.rng);
       if (result.success) {
-        gameRef.current!.state = result.newState;
-        setGameState(result.newState);
-        // Realtime: 直後にサーバーへ反映
-        await pushMove(roomCode, move, result.newState);
+        // 先にサーバーへ適用（サーバー正とする）
+        const post = await fetch(`/api/friend/game/${roomCode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'move', move }) });
+        if (post.ok) {
+          const data = await post.json();
+          if (data.ok && data.snapshot) {
+            gameRef.current!.state = data.snapshot.state;
+            setGameState(data.snapshot.state);
+          }
+        }
         
         // アニメーション待機
         await delay(getMinResolveMs(gameRef.current?.config || {} as GameConfig));
