@@ -9,6 +9,7 @@ export interface RealtimeCallbacks {
 }
 
 export function subscribeRoomGame(roomId: string, callbacks: RealtimeCallbacks) {
+  if (!db) return () => {};
   const gameRef = doc(db, 'room-games', roomId);
   const unsub = onSnapshot(gameRef, (snap) => {
     const data = snap.data();
@@ -21,11 +22,13 @@ export function subscribeRoomGame(roomId: string, callbacks: RealtimeCallbacks) 
 }
 
 export async function initRoomGame(roomId: string, config: GameConfig, state: GameState) {
+  if (!db) return;
   const gameRef = doc(db, 'room-games', roomId);
   await setDoc(gameRef, { config, state, updatedAt: Date.now() }, { merge: true });
 }
 
 export async function pushMove(roomId: string, move: Move, newState: GameState) {
+  if (!db) return;
   const gameRef = doc(db, 'room-games', roomId);
   await updateDoc(gameRef, { lastMove: move, state: newState, updatedAt: Date.now() } as any);
 }

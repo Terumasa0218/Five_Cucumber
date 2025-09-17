@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,8 +12,23 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+let app: any = null;
+let dbInternal: Firestore | null = null;
 
-export const db = getFirestore(app);
+try {
+  const hasRequired = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+  if (hasRequired) {
+    app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    dbInternal = getFirestore(app);
+  } else {
+    // 環境未設定の場合は null を返す（API側でフォールバック）
+    dbInternal = null;
+  }
+} catch (e) {
+  // 初期化失敗時も null（API側でフォールバック）
+  dbInternal = null;
+}
+
+export const db = dbInternal;
 
 
