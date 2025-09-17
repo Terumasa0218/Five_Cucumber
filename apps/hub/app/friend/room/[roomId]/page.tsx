@@ -1,7 +1,6 @@
 'use client';
 
 import { getNickname } from "@/lib/profile";
-import { leaveRoom, updateRoomStatus } from "@/lib/roomSystemUnified";
 import { Room } from "@/types/room";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -51,6 +50,12 @@ export default function RoomWaitingPage() {
           const isParticipating = data.room.seats.some((seat: any) => seat?.nickname === currentNickname);
           setIsInRoom(isParticipating);
           setError(null); // エラーをクリア
+
+          // 対戦が開始されており、かつ自分が参加者ならプレイ画面へ
+          if (isParticipating && data.room.status === 'playing') {
+            router.push(`/friend/play/${roomId}`);
+            return;
+          }
         } else {
           setError('ルーム情報の取得に失敗しました');
         }
@@ -74,46 +79,49 @@ export default function RoomWaitingPage() {
 
   const handleLeaveRoom = async () => {
     if (!nickname || !room) return;
-    
     try {
-      // APIで退出処理
-      const success = leaveRoom(roomId, nickname);
-      if (success) {
-        // 成功時はホームに戻る
-        router.push('/home');
-      } else {
-        // 失敗時もホームに戻る（ルームが存在しない場合など）
-        router.push('/home');
+      const res = await fetch('/api/friend/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId, nickname })
+      });
+      if (!res.ok) {
+        console.warn('Leave room failed with status', res.status);
       }
     } catch (err) {
       console.error('Leave room error:', err);
-      // エラー時もホームに戻る
+    } finally {
       router.push('/home');
     }
   };
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (!room || !nickname) return;
-    
-    // 満員かチェック
     const filledSeats = room.seats.filter(seat => seat !== null).length;
     if (filledSeats !== room.size) {
       setError('全員が揃っていません');
       return;
     }
-    
-    // ホスト（seats[0]）のみがゲーム開始可能
     const isHost = room.seats[0]?.nickname === nickname;
     if (!isHost) {
       setError('ホストのみがゲーム開始できます');
       return;
     }
-    
-    // ルームステータスを「対戦中」に変更
-    updateRoomStatus(roomId, 'playing');
-    
-    // ゲーム画面に遷移
-    router.push(`/friend/play/${roomId}`);
+    try {
+      const res = await fetch('/api/friend/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId, status: 'playing' })
+      });
+      if (!res.ok) {
+        setError('対戦開始に失敗しました');
+        return;
+      }
+      router.push(`/friend/play/${roomId}`);
+    } catch (err) {
+      console.error('Start game error:', err);
+      setError('対戦開始に失敗しました');
+    }
   };
 
   if (error) {

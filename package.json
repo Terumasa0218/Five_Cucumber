@@ -10,7 +10,7 @@
     "functions"
   ],
   "scripts": {
-    "prepare": "corepack enable || true",
+    "prepare": "node -e \"process.exit(0)\"",
     "postinstall": "pnpm -w run copy:assets",
     "copy:assets": "shx rm -rf apps/hub/public/assets && shx mkdir -p apps/hub/public && shx cp -r assets apps/hub/public/",
     "dev": "turbo run dev --parallel",
