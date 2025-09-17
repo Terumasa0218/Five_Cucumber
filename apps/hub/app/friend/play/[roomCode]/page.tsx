@@ -3,6 +3,7 @@
 import BattleLayout from '@/components/BattleLayout';
 import { EllipseTable, Timer } from '@/components/ui';
 import { delay } from '@/lib/animQueue';
+import { initRoomGame, pushMove, subscribeRoomGame } from '@/lib/realtime';
 import {
     applyMove,
     createInitialState,
@@ -166,6 +167,21 @@ function FriendPlayContent() {
       console.log(`[Friend Game] Turn seconds: ${config.turnSeconds}, Max cucumbers: ${config.maxCucumbers}`);
       console.log(`[Friend Game] Current player index: ${currentPlayerIndex}`);
       console.log(`[Friend Game] All players are human, no CPU replacement needed`);
+
+      // Realtime: ホスト（座席0）だけが初期状態を保存
+      if (currentPlayerIndex === 0) {
+        await initRoomGame(roomCode, config, state);
+      }
+
+      // Realtime: ゲームドキュメントを購読
+      subscribeRoomGame(roomCode, {
+        onState: (s) => {
+          if (!gameRef.current) return;
+          // 自分のローカルと差分があれば反映
+          gameRef.current.state = s;
+          setGameState(s);
+        }
+      });
     } catch (error) {
       console.error('[Friend Game] Failed to start game:', error);
       router.push('/home');
@@ -194,6 +210,8 @@ function FriendPlayContent() {
       if (result.success) {
         gameRef.current!.state = result.newState;
         setGameState(result.newState);
+        // Realtime: 直後にサーバーへ反映
+        await pushMove(roomCode, move, result.newState);
         
         // アニメーション待機
         await delay(getMinResolveMs(gameRef.current?.config || {} as GameConfig));
@@ -204,6 +222,7 @@ function FriendPlayContent() {
           if (trickResult.success) {
             gameRef.current!.state = trickResult.newState;
             setGameState(trickResult.newState);
+            await pushMove(roomCode, { ...move, type: 'resolve' } as any, trickResult.newState);
             
             // ラウンド終了
             if (trickResult.newState.phase === "RoundEnd") {
@@ -211,6 +230,7 @@ function FriendPlayContent() {
               if (finalResult.success) {
                 gameRef.current!.state = finalResult.newState;
                 setGameState(finalResult.newState);
+                await pushMove(roomCode, { ...move, type: 'roundEnd' } as any, finalResult.newState);
                 
                 if (finalResult.newState.phase === "GameEnd") {
                   setGameOver(true);
