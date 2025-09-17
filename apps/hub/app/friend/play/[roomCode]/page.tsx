@@ -425,6 +425,7 @@ function FriendPlayContent() {
           isSubmitting={isSubmitting}
           lockedCardId={lockedCardId}
           names={roomConfig?.seats?.map((s: any, idx: number) => idx === currentPlayerIndex ? 'あなた' : (s?.nickname || `P${idx+1}`))}
+          mySeatIndex={currentPlayerIndex}
         />
 
         {toast && (

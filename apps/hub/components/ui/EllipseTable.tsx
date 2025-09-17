@@ -14,11 +14,11 @@ interface EllipseTableProps {
   isSubmitting?: boolean; // 送信中フラグ
   lockedCardId?: number | null; // ロックされたカードID
   names?: string[]; // 座席ごとの表示名（任意）
+  mySeatIndex?: number; // 自分の座席インデックス（フレンド対戦用）
 }
 
-export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, className = '', showAllHands = false, isSubmitting = false, lockedCardId = null, names }: EllipseTableProps) {
+export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, className = '', showAllHands = false, isSubmitting = false, lockedCardId = null, names, mySeatIndex = 0 }: EllipseTableProps) {
   const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C', 'CPU-D', 'CPU-E'];
-  const mySeatIndex = 0; // プレイヤーは常に0番
   
   // デバッグログ（開発時のみ）
   useEffect(() => {
