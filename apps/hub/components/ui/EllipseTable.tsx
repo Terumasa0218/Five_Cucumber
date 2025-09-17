@@ -13,9 +13,10 @@ interface EllipseTableProps {
   showAllHands?: boolean; // デバッグ用：全員の手札を表示
   isSubmitting?: boolean; // 送信中フラグ
   lockedCardId?: number | null; // ロックされたカードID
+  names?: string[]; // 座席ごとの表示名（任意）
 }
 
-export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, className = '', showAllHands = false, isSubmitting = false, lockedCardId = null }: EllipseTableProps) {
+export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, className = '', showAllHands = false, isSubmitting = false, lockedCardId = null, names }: EllipseTableProps) {
   const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C', 'CPU-D', 'CPU-E'];
   const mySeatIndex = 0; // プレイヤーは常に0番
   
@@ -34,6 +35,7 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
   
   // フレンド対戦の場合は参加者名を使用
   const getPlayerName = (index: number) => {
+    if (names && names[index]) return names[index];
     if (index === 0) return 'あなた';
     return playerNames[index] || `プレイヤー${index + 1}`;
   };

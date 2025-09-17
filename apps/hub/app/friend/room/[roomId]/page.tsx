@@ -117,6 +117,8 @@ export default function RoomWaitingPage() {
         setError('対戦開始に失敗しました');
         return;
       }
+      // 共有シードを保存（全員で同一のシャッフル順になるように）
+      await fetch(`/api/friend/room/${roomId}`, { method: 'GET' });
       router.push(`/friend/play/${roomId}`);
     } catch (err) {
       console.error('Start game error:', err);

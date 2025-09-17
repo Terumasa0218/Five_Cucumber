@@ -146,16 +146,16 @@ function FriendPlayContent() {
         turnSeconds: room.turnSeconds === 0 ? null : room.turnSeconds,
         maxCucumbers: room.maxCucumbers,
         initialCards: 7,
-        seed: Date.now(),
-        cpuLevel: 'normal' // フレンド対戦では使用しない
+        seed: Number(room.seed ?? Date.now()),
+        cpuLevel: 'normal'
       };
       
       const { SeededRng } = await import('@/lib/game-core');
       const rng = new SeededRng(config.seed);
       const state = createInitialState(config, rng);
       
-      // コントローラー設定（全プレイヤーが人間）
-      const controllers = Array(room.size).fill(null).map(() => ({ type: 'human' }));
+      // コントローラー設定（表示用に名前付与）
+      const controllers = Array(room.size).fill(null).map((_, idx) => ({ type: 'human', name: idx === currentPlayerIndex ? 'あなた' : (room.seats[idx]?.nickname || `P${idx+1}`) }));
       
       gameRef.current = { state, config, controllers, rng };
       setGameState(state);
@@ -378,6 +378,7 @@ function FriendPlayContent() {
           className={isCardLocked ? 'cards-locked' : ''}
           isSubmitting={isSubmitting}
           lockedCardId={lockedCardId}
+          names={roomConfig?.seats?.map((s: any, idx: number) => idx === currentPlayerIndex ? 'あなた' : (s?.nickname || `P${idx+1}`))}
         />
         
         {/* 切断状態の表示 */}

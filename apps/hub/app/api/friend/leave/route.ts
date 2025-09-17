@@ -1,5 +1,5 @@
-import { leaveRoom } from '@/lib/roomSystemUnified';
 import { NextRequest, NextResponse } from 'next/server';
+import { getRoomById, putRoom } from '@/lib/roomsStore';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -10,11 +10,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400 });
     }
 
-    const ok = leaveRoom(roomId.trim(), nickname.trim());
-    if (!ok) {
+    const rid = roomId.trim();
+    const name = nickname.trim();
+    const room = await getRoomById(rid);
+    if (!room) {
       return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });
     }
-
+    const idx = room.seats.findIndex(s => s?.nickname === name);
+    if (idx >= 0) {
+      room.seats[idx] = null;
+      await putRoom(room);
+    }
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (error) {
     console.error('[API] leave room error:', error);

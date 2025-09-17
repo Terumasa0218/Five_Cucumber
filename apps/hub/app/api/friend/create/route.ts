@@ -1,4 +1,5 @@
-import { createRoom } from '@/lib/roomSystemUnified';
+import { putRoom } from '@/lib/roomsStore';
+import { Room } from '@/types/room';
 import { CreateRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -54,18 +55,23 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       );
     }
 
-    // ルーム作成
-    const result = createRoom(roomSize, nickname, turnSeconds, maxCucumbers);
+    // ルーム作成（Firestore）
+    const id = String(Math.floor(100000 + Math.random() * 900000));
+    const room: Room = {
+      id,
+      size: roomSize,
+      seats: Array.from({ length: roomSize }, () => null),
+      status: 'waiting',
+      createdAt: Date.now(),
+      turnSeconds,
+      maxCucumbers
+    };
+    room.seats[0] = { nickname: nickname.trim() };
 
-    if (!result.success) {
-      return NextResponse.json(
-        { ok: false, reason: result.reason },
-        { status: 400 }
-      );
-    }
+    await putRoom(room);
 
     return NextResponse.json(
-      { ok: true, roomId: result.roomId },
+      { ok: true, roomId: id },
       { status: 200 }
     );
 
