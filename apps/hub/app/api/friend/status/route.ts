@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateRoom } from '@/lib/roomsStore';
+import { updateRoomStatus } from '@/lib/roomSystemUnified';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -10,8 +11,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400 });
     }
 
-    await updateRoom(roomId.trim(), { status });
-    return NextResponse.json({ ok: true }, { status: 200 });
+    try {
+      await updateRoom(roomId.trim(), { status });
+      return NextResponse.json({ ok: true }, { status: 200 });
+    } catch (e) {
+      const ok = updateRoomStatus(roomId.trim(), status);
+      if (!ok) {
+        return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });
+      }
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
   } catch (error) {
     console.error('[API] status update error:', error);
     return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });

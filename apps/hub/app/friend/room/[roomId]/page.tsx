@@ -1,6 +1,7 @@
 'use client';
 
 import { getNickname } from "@/lib/profile";
+import { getRoom as getLocalRoom } from "@/lib/roomSystemUnified";
 import { Room } from "@/types/room";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -34,6 +35,16 @@ export default function RoomWaitingPage() {
         
         if (!res.ok) {
           if (res.status === 404) {
+            // サーバー側に存在しない場合、ローカル保存をフォールバックとして参照
+            const local = getLocalRoom(roomId);
+            if (local) {
+              setRoom(local as any);
+              const isParticipatingLocal = (local as any).seats.some((seat: any) => seat?.nickname === currentNickname);
+              setIsInRoom(isParticipatingLocal);
+              setError(null);
+              setIsLoading(false);
+              return;
+            }
             setError('ルームが見つかりません。ルームが削除されたか、ルーム番号が間違っている可能性があります。');
           } else {
             setError('ルーム情報の取得に失敗しました');
