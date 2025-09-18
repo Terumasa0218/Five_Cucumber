@@ -2,18 +2,12 @@
 
 import BattleLayout from '@/components/BattleLayout';
 import { EllipseTable, Timer } from '@/components/ui';
-import { delay } from '@/lib/animQueue';
-import { initRoomGame, pushMove, subscribeRoomGame } from '@/lib/realtime';
 import {
-    applyMove,
     createInitialState,
-    endTrick,
-    finalRound,
     GameConfig,
     GameState,
     getEffectiveTurnSeconds,
     getLegalMoves,
-    getMinResolveMs,
     Move,
     SeededRng
 } from '@/lib/game-core';
@@ -57,9 +51,10 @@ function FriendPlayContent() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const disconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef<boolean>(false);
+  const lastVersionRef = useRef<number>(0);
 
   // ルーム情報を取得
-  const fetchRoomConfig = async () => {
+  const fetchRoomConfig = async (): Promise<{ room: any; playerIndex: number } | null> => {
     try {
       console.log('[Friend Game] Fetching room config for:', roomCode);
       const res = await fetch(`/api/friend/room/${roomCode}`);
@@ -107,7 +102,7 @@ function FriendPlayContent() {
         throw new Error('No nickname or seats found');
       }
       
-      return data.room;
+      return { room: data.room, playerIndex: data.room.seats.findIndex((s: any) => s?.nickname === getNickname()) };
     } catch (error) {
       console.error('[Friend Game] Failed to fetch room config:', error);
       // エラー時はホームにリダイレクト
@@ -122,11 +117,13 @@ function FriendPlayContent() {
       console.log('[Friend Game] Starting game initialization...');
       
       // まずルーム情報を取得
-      const room = await fetchRoomConfig();
-      if (!room) {
+      const info = await fetchRoomConfig();
+      if (!info) {
         console.error('[Friend Game] Cannot start game without room config');
         return;
       }
+      const room = info.room;
+      const myIndex = info.playerIndex;
 
       // ルームの状態をチェック
       if (room.status !== 'playing') {
@@ -154,49 +151,58 @@ function FriendPlayContent() {
       };
       
       const { SeededRng } = await import('@/lib/game-core');
-      const rng = new SeededRng(config.seed);
-      const state = createInitialState(config, rng);
-      
-      // コントローラー設定（表示用に名前付与）
-      const controllers = Array(room.size).fill(null).map((_, idx) => ({ type: 'human', name: idx === currentPlayerIndex ? 'あなた' : (room.seats[idx]?.nickname || `P${idx+1}`) }));
-      
-      gameRef.current = { state, config, controllers, rng };
-      setGameState(state);
-      setGameOver(false);
-      setIsGameInitialized(true);
-      
-      console.log(`[Friend Game] Successfully started with ${room.size} players`);
-      console.log(`[Friend Game] Turn seconds: ${config.turnSeconds}, Max cucumbers: ${config.maxCucumbers}`);
-      console.log(`[Friend Game] Current player index: ${currentPlayerIndex}`);
-      console.log(`[Friend Game] All players are human, no CPU replacement needed`);
+      const controllers = Array(room.size).fill(null).map((_, idx) => ({ type: 'human', name: idx === myIndex ? 'あなた' : (room.seats[idx]?.nickname || `P${idx+1}`) }));
 
-      // サーバーにゲーム初期状態を保存（ホストのみ）。他クライアントはGETで取得
-      if (currentPlayerIndex === 0) {
-        await fetch(`/api/friend/game/${roomCode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'init', state, config }) });
-        setCountdown(3);
-        const id = setInterval(() => {
-          setCountdown(prev => { if (prev === null) return null; if (prev <= 1) { clearInterval(id); return null; } return prev - 1; });
-        }, 1000);
+      const isHost = myIndex === 0;
+      if (isHost) {
+        const rng = new SeededRng(config.seed);
+        const state = createInitialState(config, rng);
+        gameRef.current = { state, config, controllers, rng };
+        setGameState(state);
+        setGameOver(false);
+        setIsGameInitialized(true);
+        console.log(`[Friend Game] Host initialized local state and posting snapshot`);
+        const res = await fetch(`/api/friend/game/${roomCode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'init', state, config }) });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ok && data.snapshot) {
+            lastVersionRef.current = data.snapshot.version ?? 1;
+          }
+        }
       } else {
+        // 参加者はサーバーのスナップショットを取得するまで待機
         const res = await fetch(`/api/friend/game/${roomCode}`);
         if (res.ok) {
           const data = await res.json();
           if (data.ok && data.snapshot) {
+            const rng = new SeededRng(data.snapshot.config.seed);
             gameRef.current = { state: data.snapshot.state, config: data.snapshot.config, controllers, rng };
             setGameState(data.snapshot.state);
+            setIsGameInitialized(true);
+            lastVersionRef.current = data.snapshot.version ?? 1;
           }
         }
       }
 
-      // Realtime: ゲームドキュメントを購読
-      subscribeRoomGame(roomCode, {
-        onState: (s) => {
-          if (!gameRef.current) return;
-          // 自分のローカルと差分があれば反映
-          gameRef.current.state = s;
-          setGameState(s);
-        }
-      });
+      // ポーリングでサーバー権威の状態を反映
+      const poll = setInterval(async () => {
+        try {
+          const r = await fetch(`/api/friend/game/${roomCode}`);
+          if (!r.ok) return;
+          const d = await r.json();
+          if (d.ok && d.snapshot) {
+            if (!lastVersionRef.current || d.snapshot.version > lastVersionRef.current) {
+              lastVersionRef.current = d.snapshot.version;
+              if (gameRef.current) {
+                gameRef.current.state = d.snapshot.state;
+                gameRef.current.config = d.snapshot.config;
+              }
+              setGameState(d.snapshot.state);
+            }
+          }
+        } catch {}
+      }, 800);
+      (window as any).__friend_poll = poll;
     } catch (error) {
       console.error('[Friend Game] Failed to start game:', error);
       setToast('ゲーム初期化に失敗しました');
@@ -207,7 +213,7 @@ function FriendPlayContent() {
 
   // カードクリック処理
   const handleCardClick = async (card: number) => {
-    if (!gameState || gameState.currentPlayer !== currentPlayerIndex || isSubmitting || isCardLocked) return;
+    if (!gameRef.current || !gameState || gameRef.current.state.currentPlayer !== currentPlayerIndex || isSubmitting || isCardLocked) return;
     
     setIsSubmitting(true);
     setIsCardLocked(true);
@@ -221,52 +227,14 @@ function FriendPlayContent() {
       };
       
       console.log(`[Friend Game] Player ${currentPlayerIndex} plays card ${card}`);
-      
-      const result = applyMove(gameState, move, gameRef.current!.config, gameRef.current!.rng);
-      if (result.success) {
-        // 先にサーバーへ適用（サーバー正とする）
-        const post = await fetch(`/api/friend/game/${roomCode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'move', move }) });
-        if (post.ok) {
-          const data = await post.json();
-          if (data.ok && data.snapshot) {
-            gameRef.current!.state = data.snapshot.state;
-            setGameState(data.snapshot.state);
-          }
-        }
-        
-        // アニメーション待機
-        await delay(getMinResolveMs(gameRef.current?.config || {} as GameConfig));
-        
-        // トリック解決
-        if (result.newState.phase === "ResolvingTrick") {
-          const trickResult = endTrick(result.newState, gameRef.current!.config, gameRef.current!.rng);
-          if (trickResult.success) {
-            gameRef.current!.state = trickResult.newState;
-            setGameState(trickResult.newState);
-            await pushMove(roomCode, { ...move, type: 'resolve' } as any, trickResult.newState);
-            
-            // ラウンド終了
-            if (trickResult.newState.phase === "RoundEnd") {
-              const finalResult = finalRound(trickResult.newState, gameRef.current!.config, gameRef.current!.rng);
-              if (finalResult.success) {
-                gameRef.current!.state = finalResult.newState;
-                setGameState(finalResult.newState);
-                await pushMove(roomCode, { ...move, type: 'roundEnd' } as any, finalResult.newState);
-                
-                if (finalResult.newState.phase === "GameEnd") {
-                  setGameOver(true);
-                } else {
-                  // 新しいラウンド開始
-                  const { startNewRound } = await import('@/lib/game-core');
-                  const roundResult = startNewRound(finalResult.newState, gameRef.current!.config, gameRef.current!.rng);
-                  if (roundResult.success) {
-                    gameRef.current!.state = roundResult.newState;
-                    setGameState(roundResult.newState);
-                  }
-                }
-              }
-            }
-          }
+      // サーバーに移譲
+      const post = await fetch(`/api/friend/game/${roomCode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'move', move }) });
+      if (post.ok) {
+        const data = await post.json();
+        if (data.ok && data.snapshot) {
+          lastVersionRef.current = data.snapshot.version ?? (lastVersionRef.current + 1);
+          gameRef.current.state = data.snapshot.state;
+          setGameState(data.snapshot.state);
         }
       }
     } catch (error) {
