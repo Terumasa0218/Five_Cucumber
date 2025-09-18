@@ -1,6 +1,28 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /rooms/{roomId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+
+      match /games/{gameId} {
+        allow read, write: if false; // 直接アクセス禁止
+
+        match /events/{seq} { allow read, write: if false; }
+        match /appliedOps/{opId} { allow read, write: if false; }
+
+        match /views/{uid} {
+          allow read: if request.auth != null && request.auth.uid == uid;
+          allow write: if false;
+        }
+      }
+    }
+  }
+}
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
     // Matches collection
     match /matches/{matchId} {
       allow read, write: if request.auth != null;
