@@ -152,7 +152,7 @@ export default function FriendCreatePage() {
   return (
     <main className="friend-room-page">
       <div className="friend-room-page__background" aria-hidden="true" />
-      <div className="friend-room-page__container" style={{ paddingBottom: '88px' }}>
+      <div className="friend-room-page__container">
         <header className="friend-room-page__header">
           <div>
             <p className="friend-room-page__eyebrow">ROOM SETTINGS</p>
@@ -269,24 +269,22 @@ export default function FriendCreatePage() {
           </div>
         </section>
       </div>
-      {/* 下部固定アクションバー */}
-      <div className="friend-sticky-bar">
-        <div className="friend-sticky-inner">
-          <button
-            onClick={handleCreateRoom}
-            disabled={!isAllSelected() || isCreating}
-            className={`friend-room-card__submit ${(!isAllSelected() || isCreating) ? 'is-disabled' : ''}`}
-          >
-            {isCreating ? '作成中...' : 'ルームを作成する'}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/friend')}
-            className="friend-room-card__link"
-          >
-            フレンド対戦トップに戻る
-          </button>
-        </div>
+      {/* 下段CTA（グリッド行3） */}
+      <div className="friend-page__cta">
+        <button
+          onClick={handleCreateRoom}
+          disabled={!isAllSelected() || isCreating}
+          className={`friend-cta__primary ${(!isAllSelected() || isCreating) ? 'is-disabled' : ''}`}
+        >
+          {isCreating ? '作成中...' : 'ルームを作成する'}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push('/friend')}
+          className="friend-cta__secondary"
+        >
+          フレンド対戦トップに戻る
+        </button>
       </div>
     </main>
   );

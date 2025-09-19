@@ -11,7 +11,7 @@ export default function FriendPage() {
   return (
     <main className="friend-page">
       <div className="friend-page__background" aria-hidden="true" />
-      <div className="friend-page__container" style={{paddingBottom: '88px'}}>
+      <div className="friend-page__container">
         <header className="friend-page__header">
           <div className="friend-page__title-group">
             <p className="friend-page__eyebrow">ONLINE FRIEND MATCH</p>
@@ -56,12 +56,10 @@ export default function FriendPage() {
         </section>
       </div>
 
-      {/* 下部固定アクションバー */}
-      <div className="friend-sticky-bar">
-        <div className="friend-sticky-inner">
-          <Link href="/friend/create" className="friend-sticky-primary">ルームを作成</Link>
-          <Link href="/friend/join" className="friend-sticky-secondary">ルームに参加</Link>
-        </div>
+      {/* 下段CTA（グリッド行3） */}
+      <div className="friend-page__cta">
+        <Link href="/friend/create" className="friend-cta__primary">ルームを作成</Link>
+        <Link href="/friend/join" className="friend-cta__secondary">ルームに参加</Link>
       </div>
     </main>
   );
