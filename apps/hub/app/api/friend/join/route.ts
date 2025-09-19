@@ -1,5 +1,5 @@
-import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
+import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { joinRoom } from '@/lib/roomSystemUnified';
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
           await putRoomRedis(room);
         }
       }
-      return NextResponse.json({ ok: true, roomId: rid }, { status: 200 });
+      return NextResponse.json({ ok: true, roomId: rid, room }, { status: 200 });
     } catch (e) {
       // フォールバック（メモリ）
       const result = joinRoom(roomId.trim(), nickname);
@@ -62,7 +62,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         }
         return NextResponse.json({ ok: false, reason: result.reason }, { status });
       }
-      return NextResponse.json({ ok: true, roomId: result.roomId }, { status: 200 });
+      // メモリ側の最新roomを返す
+      const memoryRoom = await getRoomById(result.roomId!) || await getRoomByIdRedis(result.roomId!) || null;
+      return NextResponse.json({ ok: true, roomId: result.roomId, room: memoryRoom ?? undefined }, { status: 200 });
     }
 
   } catch (error) {

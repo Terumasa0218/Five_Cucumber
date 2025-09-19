@@ -1,5 +1,5 @@
-import { putRoom } from '@/lib/roomsStore';
-import { putRoomRedis } from '@/lib/roomsRedis';
+import { getRoomById, putRoom } from '@/lib/roomsStore';
+import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { Room } from '@/types/room';
 import { upsertLocalRoom } from '@/lib/roomSystemUnified';
 import { createRoom } from '@/lib/roomSystemUnified';
@@ -59,7 +59,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     // ルーム作成（Firestore優先、ハング回避のためタイムアウト付き。失敗/タイムアウト時はメモリにフォールバック）
-    const id = String(Math.floor(100000 + Math.random() * 900000));
+    // 6桁IDを重複しないように最大100回まで試行
+    let id = '';
+    for (let i = 0; i < 100; i++) {
+      const cand = String(Math.floor(100000 + Math.random() * 900000));
+      const exists = (await getRoomById?.(cand)) || (await getRoomByIdRedis?.(cand));
+      if (!exists) { id = cand; break; }
+    }
+    if (!id) {
+      return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });
+    }
     const room: Room = {
       id,
       size: roomSize,

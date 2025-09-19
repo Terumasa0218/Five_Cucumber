@@ -41,6 +41,7 @@ export interface JoinRoomRequest {
 export interface RoomResponse {
   ok: boolean;
   roomId?: string;
+  room?: Room;
   reason?: string;
 }
 

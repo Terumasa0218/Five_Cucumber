@@ -1,7 +1,7 @@
 'use client';
 
 import { getNickname } from "@/lib/profile";
-import { getRoom as getLocalRoom, upsertLocalRoom } from "@/lib/roomSystemUnified";
+import { upsertLocalRoom } from "@/lib/roomSystemUnified";
 import type { Room } from "@/types/room";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -42,18 +42,29 @@ export default function FriendJoinPage() {
         const data = await res.json();
         if (data.ok && data.roomId) {
           try {
-            const local = getLocalRoom(data.roomId);
-            if (!local) {
-              const fallbackRoom: Room = {
-                id: data.roomId,
-                size: 2,
-                seats: [{ nickname }, null],
-                status: 'waiting',
-                createdAt: Date.now(),
-                turnSeconds: 15,
-                maxCucumbers: 5
-              };
-              upsertLocalRoom(fallbackRoom);
+            if (data.room) {
+              upsertLocalRoom(data.room as Room);
+            } else {
+              // 追加取得で保存を試みる
+              const rf = await fetch(`/api/friend/room/${data.roomId}`);
+              if (rf.ok) {
+                const rd = await rf.json();
+                if (rd.ok && rd.room) {
+                  upsertLocalRoom(rd.room as Room);
+                } else {
+                  // 最終手段: 仮データ（ホスト席は空にして上書きを避ける）
+                  const fallbackRoom: Room = {
+                    id: data.roomId,
+                    size: 2,
+                    seats: [null, { nickname }],
+                    status: 'waiting',
+                    createdAt: Date.now(),
+                    turnSeconds: 15,
+                    maxCucumbers: 5
+                  };
+                  upsertLocalRoom(fallbackRoom);
+                }
+              }
             }
           } catch {}
           router.push(`/friend/room/${data.roomId}`);

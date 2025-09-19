@@ -1,16 +1,19 @@
 'use client';
 import { getNickname } from '@/lib/profile';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 /** 最小限のヘッダー（固定・最小限） */
 export default function Header(){
   const pathname = usePathname();
-  const [nickname, setNickname] = useState<string | null>(getNickname());
+  // 初期描画時は必ず null（= 未設定表示）で固定し、ハイドレーション差異を防ぐ
+  const [nickname, setNickname] = useState<string | null>(null);
   
   useEffect(() => {
-    // プロフィール変更を監視
+    // 初期読み込み（マウント時）
+    setNickname(getNickname());
+
+    // プロフィール変更を監視（storage イベント）
     const handleStorageChange = () => {
       setNickname(getNickname());
     };

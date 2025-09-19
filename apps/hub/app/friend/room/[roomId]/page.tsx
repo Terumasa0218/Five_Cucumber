@@ -18,10 +18,12 @@ export default function RoomWaitingPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     document.title = `ルーム ${roomId} | Five Cucumber`;
     document.body.setAttribute('data-bg', 'battle');
+    setMounted(true);
 
     const currentNickname = getNickname();
     if (!currentNickname) {
@@ -101,6 +103,22 @@ export default function RoomWaitingPage() {
       if (pollInterval) clearInterval(pollInterval);
     };
   }, [roomId, router, HAS_SERVER]);
+  // SSR/初期ハイドレーション差異を避けるため、マウント完了まで静的なスケルトンのみ表示
+  if (!mounted) {
+    return (
+      <main className="friend-room-page">
+        <div className="friend-room-page__background" aria-hidden="true" />
+        <div className="friend-room-page__container">
+          <section className="friend-room-page__content">
+            <div className="friend-room-card friend-room-card--message">
+              <p className="friend-room-card__message">読み込み中…</p>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
 
   const handleLeaveRoom = async () => {
     if (!nickname || !room) return;
