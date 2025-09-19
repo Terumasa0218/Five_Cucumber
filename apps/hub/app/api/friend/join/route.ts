@@ -25,7 +25,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     try {
-      // ルーム参加（Firestore）
+      // ルーム参加（共有ストア優先: Firestore -> Redis）
       const rid = roomId.trim();
       let room = await getRoomById(rid);
       if (!room) room = await getRoomByIdRedis(rid);
@@ -51,20 +51,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       }
       return NextResponse.json({ ok: true, roomId: rid, room }, { status: 200 });
     } catch (e) {
-      // フォールバック（メモリ）
-      const result = joinRoom(roomId.trim(), nickname);
-      if (!result.success) {
-        let status = 400;
-        switch (result.reason) {
-          case 'not-found': status = 404; break;
-          case 'full': status = 409; break;
-          case 'locked': status = 423; break;
-        }
-        return NextResponse.json({ ok: false, reason: result.reason }, { status });
-      }
-      // メモリ側の最新roomを返す
-      const memoryRoom = await getRoomById(result.roomId!) || await getRoomByIdRedis(result.roomId!) || null;
-      return NextResponse.json({ ok: true, roomId: result.roomId, room: memoryRoom ?? undefined }, { status: 200 });
+      // 共有ストアに無い場合は明確に not-found を返す（serverless間での分断を可視化）
+      const msg = (e as Error)?.message;
+      const status = msg === 'not-found' ? 404 : msg === 'full' ? 409 : msg === 'locked' ? 423 : 500;
+      return NextResponse.json({ ok: false, reason: msg ?? 'server-error' }, { status });
     }
 
   } catch (error) {
