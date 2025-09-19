@@ -125,11 +125,39 @@ function FriendPlayContent() {
       const room = info.room;
       const myIndex = info.playerIndex;
 
-      // ルームの状態をチェック
+      // ルームの状態をチェック（ホストは開始フラグを立て直す／ゲストは短時間待機）
       if (room.status !== 'playing') {
-        console.error('[Friend Game] Room is not in playing status:', room.status);
-        router.push(`/friend/room/${roomCode}`);
-        return;
+        if (myIndex === 0) {
+          try {
+            await fetch('/api/friend/status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ roomId: roomCode, status: 'playing' })
+            });
+            room.status = 'playing';
+          } catch (e) {
+            console.warn('[Friend Game] Failed to set playing status, will continue as host:', e);
+          }
+        } else {
+          // ゲストは最大5回リトライ（約2秒）
+          let tries = 0;
+          while (tries < 5) {
+            await new Promise(r => setTimeout(r, 400));
+            try {
+              const rf = await fetch(`/api/friend/room/${roomCode}`);
+              if (rf.ok) {
+                const d = await rf.json();
+                if (d?.room?.status === 'playing') { room.status = 'playing'; break; }
+              }
+            } catch {}
+            tries++;
+          }
+          if (room.status !== 'playing') {
+            console.error('[Friend Game] Room is not in playing status after wait:', room.status);
+            router.push(`/friend/room/${roomCode}`);
+            return;
+          }
+        }
       }
 
       // プレイヤーがルームに参加しているかチェック
