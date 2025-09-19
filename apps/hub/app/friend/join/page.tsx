@@ -2,6 +2,7 @@
 
 import { getNickname } from "@/lib/profile";
 import { getRoom as getLocalRoom, upsertLocalRoom } from "@/lib/roomSystemUnified";
+import type { Room } from "@/types/room";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -40,11 +41,19 @@ export default function FriendJoinPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.ok && data.roomId) {
-          // ルーム情報をローカルにも保持（404時のフォールバック対策）
           try {
             const local = getLocalRoom(data.roomId);
             if (!local) {
-              upsertLocalRoom({ id: data.roomId, size: 2, seats: [{ nickname }, null], status: 'waiting', createdAt: Date.now(), turnSeconds: 15, maxCucumbers: 5 } as any);
+              const fallbackRoom: Room = {
+                id: data.roomId,
+                size: 2,
+                seats: [{ nickname }, null],
+                status: 'waiting',
+                createdAt: Date.now(),
+                turnSeconds: 15,
+                maxCucumbers: 5
+              };
+              upsertLocalRoom(fallbackRoom);
             }
           } catch {}
           router.push(`/friend/room/${data.roomId}`);
@@ -78,48 +87,61 @@ export default function FriendJoinPage() {
   };
 
   return (
-    <main className="page-home min-h-screen w-full pt-20 relative">
-      {/* 背景オーバーレイ */}
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
-      
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-8 text-white drop-shadow-lg">ルーム参加</h1>
-          
-          <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-md mx-auto">
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">ルーム番号</label>
-                <input
-                  type="text"
-                  value={roomCode}
-                  onChange={(e) => {
-                    setRoomCode(e.target.value);
-                    setError(null);
-                  }}
-                  placeholder="6桁のルーム番号を入力"
-                  maxLength={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {error && (
-                  <p className="text-red-600 text-sm mt-2">{error}</p>
-                )}
-              </div>
+    <main className="friend-room-page">
+      <div className="friend-room-page__background" aria-hidden="true" />
+      <div className="friend-room-page__container">
+        <header className="friend-room-page__header">
+          <p className="friend-room-page__eyebrow">JOIN ROOM</p>
+          <h1 className="friend-room-page__title">ルーム番号で参加する</h1>
+          <p className="friend-room-page__lead">
+            ホストから共有された6桁のルーム番号を入力して、待機中のフレンド対戦に参加しましょう。
+          </p>
+        </header>
 
+        <section className="friend-room-page__content">
+          <div className="friend-room-card friend-room-card--form">
+            <div className="friend-room-card__form-group">
+              <label className="friend-room-card__heading" htmlFor="room-code">ルーム番号</label>
+              <input
+                id="room-code"
+                type="text"
+                value={roomCode}
+                onChange={(e) => {
+                  setRoomCode(e.target.value.replace(/[^0-9]/g, ''));
+                  setError(null);
+                }}
+                placeholder="6桁のルーム番号を入力"
+                maxLength={6}
+                className="friend-room-card__input"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+              />
+              <p className="friend-room-card__hint">
+                例) 123456
+              </p>
+              {error && (
+                <p className="friend-room-card__error" role="alert">{error}</p>
+              )}
+            </div>
+
+            <div className="friend-room-card__actions">
               <button
                 onClick={handleJoinRoom}
-                disabled={isJoining}
-                className={`w-full py-3 rounded-md font-semibold transition-colors ${
-                  isJoining
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
+                disabled={isJoining || roomCode.trim().length !== 6}
+                className={`friend-room-card__submit ${isJoining || roomCode.trim().length !== 6 ? 'is-disabled' : ''}`}
               >
-                {isJoining ? '参加中...' : '参加する'}
+                {isJoining ? '参加中...' : 'ルームに参加する'}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/friend')}
+                className="friend-room-card__link"
+              >
+                フレンド対戦トップに戻る
               </button>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   );
