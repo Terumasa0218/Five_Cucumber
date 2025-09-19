@@ -70,28 +70,43 @@ export function applyMove(state: GameState, move: Move, config: GameConfig, rng:
   }
   
   // 新しい状態を作成
+  const players = state.players.map((p, i) => {
+    const base = {
+      ...p,
+      hand: [...p.hand],
+      graveyard: [...p.graveyard]
+    };
+
+    if (i === player) {
+      base.hand = p.hand.filter((_, idx) => idx !== cardIndex);
+    }
+
+    return base;
+  });
+
+  const trickCards = [...state.trickCards, move];
+  const sharedGraveyard = [...state.sharedGraveyard];
+
+  let fieldCard = state.fieldCard;
+
+  // カードを場に出すか墓地に送るか
+  if (fieldCard === null || card >= fieldCard) {
+    fieldCard = card;
+  } else {
+    players[player].graveyard.push(card);
+    sharedGraveyard.push(card);
+  }
+
   const newState: GameState = {
     ...state,
-    players: state.players.map((p, i) => 
-      i === player 
-        ? { ...p, hand: p.hand.filter((_, idx) => idx !== cardIndex) }
-        : p
-    ),
-    trickCards: [...state.trickCards, move],
-    cardCounts: updateCardCounts(state.cardCounts, [card])
+    players,
+    trickCards,
+    sharedGraveyard,
+    cardCounts: updateCardCounts(state.cardCounts, [card]),
+    fieldCard,
+    currentPlayer: (state.currentPlayer + 1) % config.players
   };
-  
-  // カードを場に出すか墓地に送るか
-  if (state.fieldCard === null || card >= state.fieldCard) {
-    newState.fieldCard = card;
-  } else {
-    newState.players[player].graveyard.push(card);
-    newState.sharedGraveyard.push(card);
-  }
-  
-  // 次のプレイヤーに移る
-  newState.currentPlayer = (newState.currentPlayer + 1) % config.players;
-  
+
   // トリックが完了したかチェック
   if (isTrickComplete(newState.trickCards, config.players, newState.firstPlayer)) {
     newState.phase = "ResolvingTrick";
