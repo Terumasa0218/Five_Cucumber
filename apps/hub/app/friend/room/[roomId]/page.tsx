@@ -22,7 +22,7 @@ export default function RoomWaitingPage() {
 
   useEffect(() => {
     document.title = `ルーム ${roomId} | Five Cucumber`;
-    document.body.setAttribute('data-bg', 'battle');
+    document.body.setAttribute('data-bg', 'home');
     setMounted(true);
 
     const currentNickname = getNickname();

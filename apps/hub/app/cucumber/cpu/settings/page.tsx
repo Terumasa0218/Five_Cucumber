@@ -16,12 +16,7 @@ export default function CpuSettings() {
 
   useEffect(() => {
     document.body.setAttribute('data-bg', 'home');
-    document.body.classList.add('no-scroll');
-    
-    return () => {
-      document.body.removeAttribute('data-bg');
-      document.body.classList.remove('no-scroll');
-    };
+    return () => { document.body.removeAttribute('data-bg'); };
   }, []);
 
   const handleSettingChange = (key: string, value: any) => {
@@ -84,8 +79,8 @@ export default function CpuSettings() {
   };
 
   return (
-    <main className="settings-page">
-      <div className="settings-container">
+    <main className="settings-page bg-overlay-home" style={{ overflow: 'auto' }}>
+      <div className="settings-container overlay-container">
         {/* 音声通知用 */}
         <div aria-live="polite" className="sr-only">
           {announcement}
