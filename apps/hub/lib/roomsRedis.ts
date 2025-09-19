@@ -1,5 +1,5 @@
 import { redis } from './redis';
-import type { Room } from '@/types/room';
+import type { Room, RoomGameSnapshot } from '@/types/room';
 
 const key = (id: string) => `room:${id}`;
 
@@ -23,6 +23,15 @@ export async function updateRoomRedis(roomId: string, patch: Partial<Room>): Pro
   const next = { ...current, ...patch } as Room;
   await redis.set(key(roomId), JSON.stringify(next));
   return true;
+}
+
+export async function getRoomGameSnapshotRedis(roomId: string): Promise<RoomGameSnapshot | null> {
+  const room = await getRoomByIdRedis(roomId);
+  return room?.gameSnapshot ?? null;
+}
+
+export async function saveRoomGameSnapshotRedis(roomId: string, snapshot: RoomGameSnapshot): Promise<void> {
+  await updateRoomRedis(roomId, { gameSnapshot: snapshot });
 }
 
 

@@ -17,26 +17,26 @@ export default function RoomWaitingPage() {
   const [isInRoom, setIsInRoom] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     document.title = `ルーム ${roomId} | Five Cucumber`;
-    
+
     const currentNickname = getNickname();
     if (!currentNickname) {
       router.push(`/setup?returnTo=/friend/room/${roomId}`);
       return;
     }
-    
+
     setNickname(currentNickname);
-    
-    // APIからルーム情報を取得（サーバーストアが無ければローカルのみ参照）
+
     const fetchRoom = async () => {
       try {
         if (!HAS_SERVER) {
           const local = getLocalRoom(roomId);
           if (local) {
-            setRoom(local as any);
-            const isParticipatingLocal = (local as any).seats.some((seat: any) => seat?.nickname === currentNickname);
+            setRoom(local);
+            const isParticipatingLocal = local.seats.some(seat => seat?.nickname === currentNickname);
             setIsInRoom(isParticipatingLocal);
             setError(null);
           } else {
@@ -46,14 +46,13 @@ export default function RoomWaitingPage() {
           return;
         }
         const res = await fetch(`/api/friend/room/${roomId}`);
-        
+
         if (!res.ok) {
           if (res.status === 404) {
-            // サーバー側に存在しない場合、ローカル保存をフォールバックとして参照
             const local = getLocalRoom(roomId);
             if (local) {
-              setRoom(local as any);
-              const isParticipatingLocal = (local as any).seats.some((seat: any) => seat?.nickname === currentNickname);
+              setRoom(local);
+              const isParticipatingLocal = local.seats.some(seat => seat?.nickname === currentNickname);
               setIsInRoom(isParticipatingLocal);
               setError(null);
               setIsLoading(false);
@@ -66,17 +65,15 @@ export default function RoomWaitingPage() {
           setIsLoading(false);
           return;
         }
-        
-        const data = await res.json();
+
+        const data: { ok: boolean; room?: Room } = await res.json();
         if (data.ok && data.room) {
           setRoom(data.room);
-          
-          // 現在のユーザーがルームにいるかチェック
-          const isParticipating = data.room.seats.some((seat: any) => seat?.nickname === currentNickname);
-          setIsInRoom(isParticipating);
-          setError(null); // エラーをクリア
 
-          // 対戦が開始されており、かつ自分が参加者ならプレイ画面へ
+          const isParticipating = data.room.seats.some(seat => seat?.nickname === currentNickname);
+          setIsInRoom(isParticipating);
+          setError(null);
+
           if (isParticipating && data.room.status === 'playing') {
             router.push(`/friend/play/${roomId}`);
             return;
@@ -91,16 +88,17 @@ export default function RoomWaitingPage() {
         setIsLoading(false);
       }
     };
-    
+
     fetchRoom();
-    
-    // リアルタイム更新のためのポーリング
-    const pollInterval = HAS_SERVER ? setInterval(fetchRoom, 2000) : undefined; // サーバーストア無しならポーリングしない
-    
+
+    const pollInterval: ReturnType<typeof setInterval> | undefined = HAS_SERVER
+      ? setInterval(fetchRoom, 2000)
+      : undefined;
+
     return () => {
-      if (pollInterval) clearInterval(pollInterval as any);
+      if (pollInterval) clearInterval(pollInterval);
     };
-  }, [roomId, router]);
+  }, [roomId, router, HAS_SERVER]);
 
   const handleLeaveRoom = async () => {
     if (!nickname || !room) return;
@@ -139,12 +137,14 @@ export default function RoomWaitingPage() {
         body: JSON.stringify({ roomId, status: 'playing' })
       });
       if (!res.ok) {
-        // サーバー側が失敗してもローカルで状態を進める
         try {
           const { updateRoomStatus, getRoom, upsertLocalRoom } = await import('@/lib/roomSystemUnified');
           updateRoomStatus(roomId, 'playing');
           const local = getRoom(roomId);
-          if (local) upsertLocalRoom({ ...local, status: 'playing' } as any);
+          if (local) {
+            const updatedRoom: Room = { ...local, status: 'playing' };
+            upsertLocalRoom(updatedRoom);
+          }
         } catch {}
       }
       router.push(`/friend/play/${roomId}`);
@@ -154,52 +154,56 @@ export default function RoomWaitingPage() {
         const { updateRoomStatus, getRoom, upsertLocalRoom } = await import('@/lib/roomSystemUnified');
         updateRoomStatus(roomId, 'playing');
         const local = getRoom(roomId);
-        if (local) upsertLocalRoom({ ...local, status: 'playing' } as any);
+        if (local) {
+          const updatedRoom: Room = { ...local, status: 'playing' };
+          upsertLocalRoom(updatedRoom);
+        }
       } catch {}
       router.push(`/friend/play/${roomId}`);
     }
   };
 
-  if (error) {
-    return (
-      <main className="page-home min-h-screen w-full pt-20 relative">
-        {/* 背景オーバーレイ */}
-        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
-        
-        <div className="container mx-auto px-4 text-center relative z-10">
-          <div className="bg-red-100 border border-red-300 rounded-lg p-6 max-w-md mx-auto">
-            <p className="text-red-600 font-semibold">{error}</p>
-            <div className="mt-4 space-x-2">
-              <Link 
-                href="/home"
-                className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                ホームに戻る
-              </Link>
-              <Link 
-                href="/friend"
-                className="inline-block px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-              >
-                フレンド対戦
-              </Link>
-            </div>
+  const handleCopyRoomId = async () => {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(roomId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.warn('Copy room id failed:', err);
+    }
+  };
+
+  const renderStatusCard = (message: string, actions?: React.ReactNode) => (
+    <main className="friend-room-page">
+      <div className="friend-room-page__background" aria-hidden="true" />
+      <div className="friend-room-page__container">
+        <section className="friend-room-page__content">
+          <div className="friend-room-card friend-room-card--message">
+            <p className="friend-room-card__message">{message}</p>
+            {actions}
           </div>
-        </div>
-      </main>
+        </section>
+      </div>
+    </main>
+  );
+
+  if (error) {
+    return renderStatusCard(
+      error,
+      <div className="friend-room-card__actions">
+        <Link href="/home" className="friend-room-card__submit">
+          ホームに戻る
+        </Link>
+        <Link href="/friend" className="friend-room-card__link">
+          フレンド対戦トップへ
+        </Link>
+      </div>
     );
   }
 
   if (isLoading || !room || !nickname) {
-    return (
-      <main className="page-home min-h-screen w-full pt-20 relative">
-        {/* 背景オーバーレイ */}
-        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
-        
-        <div className="container mx-auto px-4 text-center relative z-10">
-          <p className="text-white text-xl">{isLoading ? '読み込み中...' : 'ルーム情報を取得中...'}</p>
-        </div>
-      </main>
-    );
+    return renderStatusCard(isLoading ? 'ルーム情報を読み込んでいます…' : 'ルーム情報を取得中です…');
   }
 
   const filledSeats = room.seats.filter(seat => seat !== null).length;
@@ -207,89 +211,87 @@ export default function RoomWaitingPage() {
   const isFull = filledSeats === room.size;
 
   return (
-    <main className="page-home min-h-screen w-full pt-20 relative">
-      {/* 背景オーバーレイ */}
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
-      
-      <div className="container mx-auto px-4 relative z-10">
-        {/* ヘッダー */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-white drop-shadow-lg">ルーム {roomId}</h1>
-          <div className="space-x-2">
-            <Link 
-              href="/rules" 
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-            >
-              ルール
-            </Link>
-            <Link 
-              href="/home" 
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              ホーム
-            </Link>
+    <main className="friend-room-page">
+      <div className="friend-room-page__background" aria-hidden="true" />
+      <div className="friend-room-page__container">
+        <header className="friend-room-page__header friend-room-page__header--with-actions">
+          <div>
+            <p className="friend-room-page__eyebrow">ROOM {roomId}</p>
+            <h1 className="friend-room-page__title">フレンドルーム待機中</h1>
+            <p className="friend-room-page__lead">
+              全員が揃ったらホストがゲームを開始してください。参加者はこのページで準備状況を確認できます。
+            </p>
           </div>
-        </div>
+          <div className="friend-room-page__header-actions">
+            <button type="button" onClick={handleCopyRoomId} className="friend-room-page__chip">
+              {copied ? 'コピーしました！' : 'ルーム番号をコピー'}
+            </button>
+            <Link href="/rules" className="friend-room-page__chip">ルール</Link>
+            <Link href="/home" className="friend-room-page__chip friend-room-page__chip--accent">ホーム</Link>
+          </div>
+        </header>
 
-        <div className="max-w-2xl mx-auto">
-          {/* 対戦中表示 */}
-          {room.status === 'playing' && (
-            <div className="mb-6 p-4 bg-blue-100 border-l-4 border-blue-500 rounded">
-              <p className="text-blue-800 font-semibold text-center">
-                🎮 現在対戦中です
-              </p>
-              <p className="text-blue-600 text-sm text-center mt-1">
-                対戦終了まで新規参加はできません
-              </p>
+        <section className="friend-room-page__content">
+          <div className="friend-room-card friend-room-card--status">
+            {room.status === 'playing' ? (
+              <div className="friend-room-banner friend-room-banner--info">
+                <span aria-hidden="true">🎮</span>
+                <div>
+                  <p className="friend-room-banner__title">現在対戦中です</p>
+                  <p className="friend-room-banner__text">対戦終了まで新規参加はできません</p>
+                </div>
+              </div>
+            ) : (
+              <div className="friend-room-banner friend-room-banner--waiting">
+                <span aria-hidden="true">⏳</span>
+                <div>
+                  <p className="friend-room-banner__title">参加者を待機中…</p>
+                  <p className="friend-room-banner__text">{room.size - filledSeats}人の参加を待っています</p>
+                </div>
+              </div>
+            )}
+
+            <div className="friend-room-card__badge" aria-live="polite">
+              <span>ROOM CODE</span>
+              <strong>{roomId}</strong>
             </div>
-          )}
-          
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            {/* ルーム情報 */}
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-4">ルーム情報</h2>
-              <div className="bg-gray-50 p-4 rounded-md space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">定員: {room.size}人</span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    room.status === 'waiting' ? 'bg-green-100 text-green-800' :
-                    room.status === 'playing' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {room.status === 'waiting' ? '待機中' :
-                     room.status === 'playing' ? '対戦中' : '終了'}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>制限時間: {room.turnSeconds === 0 ? '無制限' : `${room.turnSeconds}秒`}</p>
-                  <p>きゅうり上限: {room.maxCucumbers}本</p>
-                </div>
+
+            <div className="friend-room-card__section friend-room-card__section--grid">
+              <div className="friend-room-info-row">
+                <span>定員</span>
+                <strong>{room.size}人</strong>
+              </div>
+              <div className="friend-room-info-row">
+                <span>制限時間</span>
+                <strong>{room.turnSeconds === 0 ? '無制限' : `${room.turnSeconds}秒`}</strong>
+              </div>
+              <div className="friend-room-info-row">
+                <span>きゅうり上限</span>
+                <strong>{room.maxCucumbers}本</strong>
+              </div>
+              <div className="friend-room-info-row">
+                <span>ステータス</span>
+                <strong>
+                  {room.status === 'waiting' ? '待機中' : room.status === 'playing' ? '対戦中' : '終了'}
+                </strong>
               </div>
             </div>
 
-            {/* 参加者一覧 */}
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-4">
-                参加者 ({filledSeats}/{room.size})
-              </h2>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="friend-room-card__section">
+              <h2 className="friend-room-card__heading">参加者一覧 ({filledSeats}/{room.size})</h2>
+              <div className="friend-room-seat-grid">
                 {room.seats.map((seat, index) => (
                   <div
                     key={index}
-                    className={`p-3 rounded-md border ${
-                      seat !== null
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}
+                    className={`friend-room-seat ${seat ? 'friend-room-seat--occupied' : 'friend-room-seat--empty'}`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">
-                        {seat ? seat.nickname : '空き'}
-                      </span>
+                    <div className="friend-room-seat__title">
+                      <span>{seat ? seat.nickname : '空き'}</span>
                       {index === 0 && seat && (
-                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
-                          ★ホスト
-                        </span>
+                        <span className="friend-room-seat__badge">ホスト</span>
+                      )}
+                      {seat?.nickname === nickname && (
+                        <span className="friend-room-seat__badge friend-room-seat__badge--me">あなた</span>
                       )}
                     </div>
                   </div>
@@ -297,36 +299,34 @@ export default function RoomWaitingPage() {
               </div>
             </div>
 
-            {/* アクションボタン */}
-            <div className="space-y-4">
+            <div className="friend-room-card__actions friend-room-card__actions--wide">
               {isInRoom && (
                 <button
                   onClick={handleLeaveRoom}
-                  className="w-full py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                  className="friend-room-card__secondary"
                 >
-                  ルームを退出してホームに戻る
+                  ルームを退出する
                 </button>
               )}
 
               {isHost && isFull && room.status === 'waiting' && (
                 <button
                   onClick={handleStartGame}
-                  className="w-full py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                  className="friend-room-card__submit"
                 >
-                  ゲーム開始
+                  ゲームを開始する
                 </button>
               )}
 
-              {!isFull && (
-                <p className="text-center text-gray-600">
-                  {room.size - filledSeats}人の参加を待っています...
+              {!isFull && isHost && (
+                <p className="friend-room-card__hint" role="status">
+                  参加者が揃ったら「ゲームを開始する」を押してください
                 </p>
               )}
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   );
 }
-

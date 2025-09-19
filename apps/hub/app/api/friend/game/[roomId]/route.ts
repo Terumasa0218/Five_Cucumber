@@ -10,7 +10,7 @@ export async function GET(
   try {
     const roomId = params.roomId;
     if (!roomId) return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400 });
-    const snap = getGame(roomId);
+    const snap = await getGame(roomId);
     if (!snap) return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });
     return NextResponse.json({ ok: true, snapshot: snap }, { status: 200 });
   } catch (e) {
@@ -31,13 +31,13 @@ export async function POST(
     if (type === 'init') {
       const { state, config } = body || {};
       if (!state || !config) return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400 });
-      const snap = initGame(roomId, { state, config });
+      const snap = await initGame(roomId, { state, config });
       return NextResponse.json({ ok: true, snapshot: snap }, { status: 200 });
     }
     if (type === 'move') {
       const { move } = body || {};
       if (!move) return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400 });
-      const snap = applyServerMove(roomId, move);
+      const snap = await applyServerMove(roomId, move);
       if (!snap) return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });
       return NextResponse.json({ ok: true, snapshot: snap }, { status: 200 });
     }

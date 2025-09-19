@@ -1,41 +1,108 @@
 import { applyMove, endTrick, finalRound, GameConfig, GameState, Move, SeededRng } from '@/lib/game-core';
+import {
+  getRoomGameSnapshot,
+  saveRoomGameSnapshot
+} from '@/lib/roomsStore';
+import {
+  getRoomGameSnapshotRedis,
+  saveRoomGameSnapshotRedis
+} from '@/lib/roomsRedis';
+import type { RoomGameSnapshot } from '@/types/room';
 
-type GameSnapshot = {
-  state: GameState;
-  config: GameConfig;
-  version: number;
-  updatedAt: number;
-};
+const HAS_FIRESTORE = Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
+const HAS_REDIS = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 
-const store: Map<string, GameSnapshot> = new Map();
+export type GameSnapshot = RoomGameSnapshot;
 
-export function getGame(roomId: string): GameSnapshot | null {
-  return store.get(roomId) || null;
+const memoryStore: Map<string, GameSnapshot> = new Map();
+
+async function loadSnapshot(roomId: string): Promise<GameSnapshot | null> {
+  const local = memoryStore.get(roomId);
+  if (local) return local;
+
+  if (HAS_FIRESTORE) {
+    try {
+      const snap = await getRoomGameSnapshot(roomId);
+      if (snap) {
+        memoryStore.set(roomId, snap);
+        return snap;
+      }
+    } catch (error) {
+      console.warn('[FriendGameStore] Failed to load snapshot from Firestore:', error);
+    }
+  }
+
+  if (HAS_REDIS) {
+    try {
+      const snap = await getRoomGameSnapshotRedis(roomId);
+      if (snap) {
+        memoryStore.set(roomId, snap);
+        return snap;
+      }
+    } catch (error) {
+      console.warn('[FriendGameStore] Failed to load snapshot from Redis:', error);
+    }
+  }
+
+  return memoryStore.get(roomId) ?? null;
 }
 
-export function initGame(roomId: string, snapshot: { state: GameState; config: GameConfig }): GameSnapshot {
-  const existing = store.get(roomId);
+async function persistSnapshot(roomId: string, snapshot: GameSnapshot): Promise<void> {
+  memoryStore.set(roomId, snapshot);
+
+  if (HAS_FIRESTORE) {
+    try {
+      await saveRoomGameSnapshot(roomId, snapshot);
+    } catch (error) {
+      console.warn('[FriendGameStore] Failed to persist snapshot to Firestore:', error);
+    }
+  }
+
+  if (HAS_REDIS) {
+    try {
+      await saveRoomGameSnapshotRedis(roomId, snapshot);
+    } catch (error) {
+      console.warn('[FriendGameStore] Failed to persist snapshot to Redis:', error);
+    }
+  }
+}
+
+export async function getGame(roomId: string): Promise<GameSnapshot | null> {
+  return loadSnapshot(roomId);
+}
+
+export async function initGame(
+  roomId: string,
+  snapshot: { state: GameState; config: GameConfig }
+): Promise<GameSnapshot> {
+  const existing = await loadSnapshot(roomId);
   if (existing) return existing;
-  const snap: GameSnapshot = { state: snapshot.state, config: snapshot.config, version: 1, updatedAt: Date.now() };
-  store.set(roomId, snap);
+
+  const snap: GameSnapshot = {
+    state: snapshot.state,
+    config: snapshot.config,
+    version: 1,
+    updatedAt: Date.now()
+  };
+  await persistSnapshot(roomId, snap);
   return snap;
 }
 
-export function applyServerMove(roomId: string, move: Move): GameSnapshot | null {
-  const snap = store.get(roomId);
+export async function applyServerMove(roomId: string, move: Move): Promise<GameSnapshot | null> {
+  const snap = await loadSnapshot(roomId);
   if (!snap) return null;
 
-  const rng = new SeededRng(snap.config.seed);
-  let result = applyMove(snap.state, move, snap.config, rng);
-  if (!result.success) return snap; // ignore illegal
+  const rng = new SeededRng(snap.config.seed ?? Date.now());
+  const result = applyMove(snap.state, move, snap.config, rng);
+  if (!result.success) return snap; // ignore illegal moves but keep existing state
 
   let newState = result.newState;
   if (newState.phase === 'ResolvingTrick') {
-    const t = endTrick(newState, snap.config, rng);
-    if (t.success) newState = t.newState;
+    const trickResult = endTrick(newState, snap.config, rng);
+    if (trickResult.success) newState = trickResult.newState;
     if (newState.phase === 'RoundEnd') {
-      const f = finalRound(newState, snap.config, rng);
-      if (f.success) newState = f.newState;
+      const finalResult = finalRound(newState, snap.config, rng);
+      if (finalResult.success) newState = finalResult.newState;
     }
   }
 
@@ -45,8 +112,6 @@ export function applyServerMove(roomId: string, move: Move): GameSnapshot | null
     version: snap.version + 1,
     updatedAt: Date.now()
   };
-  store.set(roomId, updated);
+  await persistSnapshot(roomId, updated);
   return updated;
 }
-
-
