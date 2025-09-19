@@ -41,6 +41,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja" data-theme="light">
       <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(){
+                if (typeof window==='undefined') return;
+                window.addEventListener('unhandledrejection', function(e){
+                  var msg = String(e && e.reason && e.reason.message || e && e.reason || e);
+                  if (msg && msg.indexOf('The message port closed before a response was received') !== -1) {
+                    e.preventDefault();
+                    return false;
+                  }
+                });
+              })();
+            `,
+          }}
+        />
         {/* 浮遊ナビ（背景の空白域に左右配置） */}
         <Header />
         {children}
