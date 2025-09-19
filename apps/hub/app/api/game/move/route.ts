@@ -2,6 +2,7 @@ import { apply, projectViewFor, validate } from '@/lib/engine';
 import { realtime } from '@/lib/realtime';
 import { redis } from '@/lib/redis';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { hashState } from '@/lib/hashState';
 
@@ -22,9 +23,16 @@ async function withRoomLock<T>(roomId: string, fn: () => Promise<T>) {
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const { roomId, userId, opId, baseV, action } = await req.json();
-    if (!roomId || !userId || !opId || typeof baseV !== 'number' || !action) {
-      return NextResponse.json({ error: 'BAD_REQUEST' }, { status: 400 });
+    const schema = z.object({
+      roomId: z.string().min(1),
+      userId: z.string().min(1),
+      opId: z.string().min(1),
+      baseV: z.number().int().nonnegative(),
+      action: z.any(),
+    });
+    const { roomId, userId, opId, baseV, action } = schema.parse(await req.json());
+    if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN || !process.env.ABLY_API_KEY) {
+      return NextResponse.json({ error: 'MISCONFIGURED_ENV' }, { status: 500 });
     }
     const res = await withRoomLock(roomId, async () => {
       const dedup = await redis.set(`op:${roomId}:${opId}`, 1, { nx: true, ex: 60 } as any);

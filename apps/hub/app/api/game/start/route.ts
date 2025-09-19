@@ -2,15 +2,17 @@ import { initGame, projectViewFor } from '@/lib/engine';
 import { realtime } from '@/lib/realtime';
 import { hashState } from '@/lib/hashState';
 import { redis } from '@/lib/redis';
+import { z } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const { roomId, seats } = await req.json();
-    if (!roomId || !Array.isArray(seats) || seats.length < 2) {
-      return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400 });
+    const schema = z.object({ roomId: z.string().min(1), seats: z.array(z.string().min(1)).min(2) });
+    const { roomId, seats } = schema.parse(await req.json());
+    if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN || !process.env.ABLY_API_KEY) {
+      return NextResponse.json({ error: 'MISCONFIGURED_ENV' }, { status: 500 });
     }
     const seed = `${Date.now()}:${roomId}`;
     const state = initGame(seats, seed);
