@@ -1,12 +1,12 @@
+import { applyServerMove, getGame, initGame } from '@/lib/friendGameStore';
 import { NextRequest, NextResponse } from 'next/server';
-import { getGame, initGame, applyServerMove } from '@/lib/friendGameStore';
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { roomId: string } }
 ): Promise<NextResponse> {
   const roomId = params.roomId;
-  const snap = await getGame(roomId);
+  const snap = getGame(roomId);
   if (!snap) return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });
   return NextResponse.json({ ok: true, snapshot: snap }, { status: 200 });
 }
@@ -20,12 +20,12 @@ export async function POST(
   const { type } = body || {};
   if (type === 'init') {
     const { state, config } = body || {};
-    const snap = await initGame(roomId, { state, config });
+    const snap = initGame(roomId, { state, config });
     return NextResponse.json({ ok: true, snapshot: snap }, { status: 200 });
   }
   if (type === 'move') {
     const { move } = body || {};
-    const snap = await applyServerMove(roomId, move);
+    const snap = applyServerMove(roomId, move);
     if (!snap) return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });
     return NextResponse.json({ ok: true, snapshot: snap }, { status: 200 });
   }

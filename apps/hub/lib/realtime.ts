@@ -1,3 +1,14 @@
+import type { RealtimeAdapter } from './realtime-adapter';
+import { ablyAdapter } from './realtime-ably';
+
+export const realtime: RealtimeAdapter = (() => {
+  switch (process.env.REALTIME_PROVIDER) {
+    case 'ably':
+    default:
+      return ablyAdapter;
+  }
+})();
+
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { GameConfig, GameState, Move } from './game-core';

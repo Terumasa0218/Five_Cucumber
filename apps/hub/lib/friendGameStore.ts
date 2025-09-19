@@ -1,5 +1,4 @@
 import { applyMove, endTrick, finalRound, GameConfig, GameState, Move, SeededRng } from '@/lib/game-core';
-import { kv } from './kv';
 
 type GameSnapshot = {
   state: GameState;
@@ -10,34 +9,20 @@ type GameSnapshot = {
 
 const store: Map<string, GameSnapshot> = new Map();
 
-async function readSnap(roomId: string): Promise<GameSnapshot | null> {
-  if (kv) {
-    const v = await kv.get(`game:${roomId}`);
-    return v || null;
-  }
+export function getGame(roomId: string): GameSnapshot | null {
   return store.get(roomId) || null;
 }
 
-async function writeSnap(roomId: string, snap: GameSnapshot): Promise<void> {
-  if (kv) {
-    await kv.set(`game:${roomId}`, snap);
-    return;
-  }
-  store.set(roomId, snap);
-}
-
-export async function getGame(roomId: string): Promise<GameSnapshot | null> { return await readSnap(roomId); }
-
-export async function initGame(roomId: string, snapshot: { state: GameState; config: GameConfig }): Promise<GameSnapshot> {
-  const existing = await readSnap(roomId);
+export function initGame(roomId: string, snapshot: { state: GameState; config: GameConfig }): GameSnapshot {
+  const existing = store.get(roomId);
   if (existing) return existing;
   const snap: GameSnapshot = { state: snapshot.state, config: snapshot.config, version: 1, updatedAt: Date.now() };
-  await writeSnap(roomId, snap);
+  store.set(roomId, snap);
   return snap;
 }
 
-export async function applyServerMove(roomId: string, move: Move): Promise<GameSnapshot | null> {
-  const snap = await readSnap(roomId);
+export function applyServerMove(roomId: string, move: Move): GameSnapshot | null {
+  const snap = store.get(roomId);
   if (!snap) return null;
 
   const rng = new SeededRng(snap.config.seed);
@@ -60,7 +45,7 @@ export async function applyServerMove(roomId: string, move: Move): Promise<GameS
     version: snap.version + 1,
     updatedAt: Date.now()
   };
-  await writeSnap(roomId, updated);
+  store.set(roomId, updated);
   return updated;
 }
 
