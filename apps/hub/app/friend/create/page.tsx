@@ -145,14 +145,14 @@ export default function FriendCreatePage() {
   };
 
   return (
-    <main className="friend-room-page" style={{ overflow: 'auto' }}>
+    <main className="friend-room-page bg-overlay-home" style={{ overflow: 'auto' }}>
       <div className="friend-room-page__background" aria-hidden="true" />
-      <div className="friend-room-page__container">
+      <div className="friend-room-page__container overlay-container">
         <header className="friend-room-page__header">
           <div>
             <p className="friend-room-page__eyebrow">ROOM SETTINGS</p>
-            <h1 className="friend-room-page__title">フレンドルームを作成</h1>
-            <p className="friend-room-page__lead">
+            <h1 className="friend-room-page__title overlay-title">フレンドルームを作成</h1>
+            <p className="friend-room-page__lead overlay-lead">
               対戦人数・制限時間・きゅうり数を選んで、招待する友達にぴったりの設定にしましょう。
             </p>
           </div>

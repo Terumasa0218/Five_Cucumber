@@ -9,14 +9,14 @@ export default function FriendPage() {
   }, []);
 
   return (
-    <main className="friend-page">
+    <main className="friend-page bg-overlay-home">
       <div className="friend-page__background" aria-hidden="true" />
-      <div className="friend-page__container">
+      <div className="friend-page__container overlay-container">
         <header className="friend-page__header">
           <div className="friend-page__title-group">
             <p className="friend-page__eyebrow">ONLINE FRIEND MATCH</p>
-            <h1 className="friend-page__title">フレンド対戦</h1>
-            <p className="friend-page__lead">
+            <h1 className="friend-page__title overlay-title">フレンド対戦</h1>
+            <p className="friend-page__lead overlay-lead">
               あなたがホストとなってルームを作成するか、招待されたルームコードからすぐに合流できます。
             </p>
           </div>
