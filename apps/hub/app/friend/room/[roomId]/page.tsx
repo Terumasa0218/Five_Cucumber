@@ -8,6 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function RoomWaitingPage() {
+  const HAS_SERVER = (process.env.NEXT_PUBLIC_HAS_REDIS === '1') || Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
   const params = useParams();
   const router = useRouter();
   const roomId = params.roomId as string;
@@ -28,9 +29,22 @@ export default function RoomWaitingPage() {
     
     setNickname(currentNickname);
     
-    // APIからルーム情報を取得
+    // APIからルーム情報を取得（サーバーストアが無ければローカルのみ参照）
     const fetchRoom = async () => {
       try {
+        if (!HAS_SERVER) {
+          const local = getLocalRoom(roomId);
+          if (local) {
+            setRoom(local as any);
+            const isParticipatingLocal = (local as any).seats.some((seat: any) => seat?.nickname === currentNickname);
+            setIsInRoom(isParticipatingLocal);
+            setError(null);
+          } else {
+            setError('ルームが見つかりません。');
+          }
+          setIsLoading(false);
+          return;
+        }
         const res = await fetch(`/api/friend/room/${roomId}`);
         
         if (!res.ok) {
@@ -81,10 +95,10 @@ export default function RoomWaitingPage() {
     fetchRoom();
     
     // リアルタイム更新のためのポーリング
-    const pollInterval = setInterval(fetchRoom, 2000); // 2秒ごとに更新（負荷軽減）
+    const pollInterval = HAS_SERVER ? setInterval(fetchRoom, 2000) : undefined; // サーバーストア無しならポーリングしない
     
     return () => {
-      clearInterval(pollInterval);
+      if (pollInterval) clearInterval(pollInterval as any);
     };
   }, [roomId, router]);
 

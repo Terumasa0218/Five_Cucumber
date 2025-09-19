@@ -39,6 +39,7 @@ function FriendPlayContent() {
     maxCucumbers: number;
     seats: any[];
   } | null>(null);
+  const HAS_SERVER = (process.env.NEXT_PUBLIC_HAS_REDIS === '1') || Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
   
   const gameRef = useRef<{
@@ -57,7 +58,7 @@ function FriendPlayContent() {
   const fetchRoomConfig = async (): Promise<{ room: any; playerIndex: number } | null> => {
     try {
       console.log('[Friend Game] Fetching room config for:', roomCode);
-      const res = await fetch(`/api/friend/room/${roomCode}`);
+      const res = HAS_SERVER ? await fetch(`/api/friend/room/${roomCode}`) : new Response(JSON.stringify({ ok: false }), { status: 404 });
       
       if (!res.ok) {
         if (res.status === 404) {
@@ -199,7 +200,7 @@ function FriendPlayContent() {
         }
       } else {
         // 参加者はサーバーのスナップショットを取得するまで待機
-        const res = await fetch(`/api/friend/game/${roomCode}`);
+        const res = HAS_SERVER ? await fetch(`/api/friend/game/${roomCode}`) : new Response(JSON.stringify({ ok: false }), { status: 404 });
         if (res.ok) {
           const data = await res.json();
           if (data.ok && data.snapshot) {
@@ -213,7 +214,7 @@ function FriendPlayContent() {
       }
 
       // ポーリングでサーバー権威の状態を反映
-      const poll = setInterval(async () => {
+      const poll = HAS_SERVER ? setInterval(async () => {
         try {
           const r = await fetch(`/api/friend/game/${roomCode}`);
           if (!r.ok) return;
@@ -229,7 +230,7 @@ function FriendPlayContent() {
             }
           }
         } catch {}
-      }, 800);
+      }, 800) : undefined;
       (window as any).__friend_poll = poll;
     } catch (error) {
       console.error('[Friend Game] Failed to start game:', error);
