@@ -21,6 +21,7 @@ export default function RoomWaitingPage() {
 
   useEffect(() => {
     document.title = `ルーム ${roomId} | Five Cucumber`;
+    document.body.setAttribute('data-bg', 'battle');
 
     const currentNickname = getNickname();
     if (!currentNickname) {
@@ -96,6 +97,7 @@ export default function RoomWaitingPage() {
       : undefined;
 
     return () => {
+      document.body.removeAttribute('data-bg');
       if (pollInterval) clearInterval(pollInterval);
     };
   }, [roomId, router, HAS_SERVER]);

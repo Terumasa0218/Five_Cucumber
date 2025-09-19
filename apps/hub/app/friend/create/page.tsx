@@ -69,12 +69,7 @@ export default function FriendCreatePage() {
   useEffect(() => {
     document.title = 'ルーム作成 | Five Cucumber';
     document.body.setAttribute('data-bg', 'home');
-    document.body.classList.add('no-scroll');
-
-    return () => {
-      document.body.removeAttribute('data-bg');
-      document.body.classList.remove('no-scroll');
-    };
+    return () => { document.body.removeAttribute('data-bg'); };
   }, []);
 
   const handleCreateRoom = async () => {
@@ -150,7 +145,7 @@ export default function FriendCreatePage() {
   };
 
   return (
-    <main className="friend-room-page">
+    <main className="friend-room-page" style={{ overflow: 'auto' }}>
       <div className="friend-room-page__background" aria-hidden="true" />
       <div className="friend-room-page__container">
         <header className="friend-room-page__header">

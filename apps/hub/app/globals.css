@@ -465,10 +465,10 @@ header{ background: transparent !important; box-shadow: none !important; backdro
 
 /* === 固定背景レイヤシステム === */
 html, body, #__next { 
-  height: 100svh;
+  height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* 固定背景レイヤ（最背面） */

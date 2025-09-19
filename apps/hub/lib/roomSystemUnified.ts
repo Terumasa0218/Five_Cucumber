@@ -103,7 +103,7 @@ export function createRoom(roomSize: number, nickname: string, turnSeconds: numb
       status: 'waiting',
       createdAt: Date.now(),
       turnSeconds: Math.max(0, turnSeconds),
-      maxCucumbers: clamp(maxCucumbers, 4, 6)
+      maxCucumbers: clamp(maxCucumbers, 4, 7)
     };
 
     // ★ 作成者は必ず先頭席（seats[0]）に配置

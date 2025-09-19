@@ -51,7 +51,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       );
     }
 
-    if (!maxCucumbers || typeof maxCucumbers !== 'number' || maxCucumbers < 4 || maxCucumbers > 6) {
+    if (!maxCucumbers || typeof maxCucumbers !== 'number' || maxCucumbers < 4 || maxCucumbers > 7) {
       return NextResponse.json(
         { ok: false, reason: 'bad-request' },
         { status: 400 }
