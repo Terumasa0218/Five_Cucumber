@@ -879,6 +879,48 @@ body[data-bg="battle"]::before {
   border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
+/* フレンドトップ 下部固定アクションバー */
+.friend-sticky-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: saturate(1.1) blur(6px);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.friend-sticky-inner {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 12px 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.friend-sticky-primary,
+.friend-sticky-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  border-radius: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.friend-sticky-primary {
+  background: linear-gradient(135deg, #34a853, #1e7c3a);
+  color: #ffffff;
+}
+
+.friend-sticky-secondary {
+  background: rgba(0,0,0,0.04);
+  color: #111827;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
 @media (max-width: 768px) {
   .friend-page__header {
     align-items: stretch;
