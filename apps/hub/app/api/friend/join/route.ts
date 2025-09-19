@@ -1,4 +1,5 @@
 import { getRoomById, putRoom } from '@/lib/roomsStore';
+import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { joinRoom } from '@/lib/roomSystemUnified';
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
@@ -26,7 +27,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     try {
       // ルーム参加（Firestore）
       const rid = roomId.trim();
-      const room = await getRoomById(rid);
+      let room = await getRoomById(rid);
+      if (!room) room = await getRoomByIdRedis(rid);
       if (!room) {
         throw new Error('not-found');
       }
@@ -41,7 +43,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
           return NextResponse.json({ ok: false, reason: 'full' }, { status: 409 });
         }
         room.seats[emptyIndex] = { nickname: trimmedNickname };
-        await putRoom(room);
+        try {
+          await putRoom(room);
+        } catch {
+          await putRoomRedis(room);
+        }
       }
       return NextResponse.json({ ok: true, roomId: rid }, { status: 200 });
     } catch (e) {

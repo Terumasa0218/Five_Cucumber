@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateRoom } from '@/lib/roomsStore';
+import { updateRoomRedis } from '@/lib/roomsRedis';
 import { updateRoomStatus } from '@/lib/roomSystemUnified';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -15,6 +16,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await updateRoom(roomId.trim(), { status });
       return NextResponse.json({ ok: true }, { status: 200 });
     } catch (e) {
+      const updated = await updateRoomRedis(roomId.trim(), { status } as any);
+      if (updated) return NextResponse.json({ ok: true }, { status: 200 });
       const ok = updateRoomStatus(roomId.trim(), status);
       if (!ok) {
         return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });

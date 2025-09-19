@@ -1,4 +1,5 @@
 import { putRoom } from '@/lib/roomsStore';
+import { putRoomRedis } from '@/lib/roomsRedis';
 import { Room } from '@/types/room';
 import { upsertLocalRoom } from '@/lib/roomSystemUnified';
 import { createRoom } from '@/lib/roomSystemUnified';
@@ -86,6 +87,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
       } catch (e) {
         console.warn('[API] Firestore putRoom failed or timed out, falling back:', e instanceof Error ? e.message : e);
+      }
+    }
+
+    // Redis がある場合はRedisに保存
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      try {
+        await putRoomRedis(room);
+        upsertLocalRoom(room);
+        return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
+      } catch (e) {
+        console.warn('[API] Redis putRoom failed, fallback to memory:', e);
       }
     }
 
