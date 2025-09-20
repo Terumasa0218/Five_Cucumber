@@ -9,11 +9,34 @@ let serverRooms: Map<string, Room> | null = null;
  * サーバーサイド専用ストレージを取得（メモリのみ）
  */
 export function getServerRoomsStorage(): Map<string, Room> {
+  // グローバル変数が初期化されていない場合、必ず初期化する
   if (!serverRooms) {
     serverRooms = new Map();
     console.log('[RoomSystem] Initialized server-side room storage');
   }
   return serverRooms;
+}
+
+/**
+ * サーバーサイド専用：すべてのルームを取得
+ */
+export function getAllServerRooms(): Room[] {
+  if (typeof window !== 'undefined') {
+    throw new Error('This function is for server-side only');
+  }
+  const storage = getServerRoomsStorage();
+  return Array.from(storage.values());
+}
+
+/**
+ * サーバーサイド専用：ルームの存在確認
+ */
+export function hasServerRoom(roomId: string): boolean {
+  if (typeof window !== 'undefined') {
+    throw new Error('This function is for server-side only');
+  }
+  const storage = getServerRoomsStorage();
+  return storage.has(roomId);
 }
 
 /**

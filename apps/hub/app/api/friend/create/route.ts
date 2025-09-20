@@ -123,9 +123,18 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       // サーバー共有ストレージが利用できない場合、メモリフォールバックを使用
       console.log('[API] No persistent storage available, using memory fallback for room:', id);
       try {
+        const { getAllServerRooms } = await import('@/lib/roomSystemUnified');
+        const allServerRooms = getAllServerRooms();
+        console.log('[API] Server memory rooms count before save:', allServerRooms.length);
+        console.log('[API] Server memory rooms IDs before save:', allServerRooms.map(r => r.id));
+
         putRoomToMemory(room);
         storageUsed = 'Memory';
         console.log('[API] Successfully created room in memory');
+
+        const allServerRoomsAfter = getAllServerRooms();
+        console.log('[API] Server memory rooms count after save:', allServerRoomsAfter.length);
+        console.log('[API] Server memory rooms IDs after save:', allServerRoomsAfter.map(r => r.id));
         console.log('[API] Room details:', JSON.stringify(room, null, 2));
       } catch (e) {
         console.error('[API] Memory fallback failed:', e);

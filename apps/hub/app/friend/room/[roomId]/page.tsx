@@ -121,6 +121,13 @@ export default function RoomWaitingPage() {
       ? setInterval(fetchRoom, 3000) // スマホでのネットワーク遅延を考慮して3秒に延長
       : undefined;
 
+    // デバッグ用: サーバーメモリの状況を確認
+    if (HAS_SERVER) {
+      fetchRoom().then(() => {
+        console.log('[RoomPage] Initial fetch completed');
+      });
+    }
+
     return () => {
       document.body.removeAttribute('data-bg');
       if (pollInterval) clearInterval(pollInterval);

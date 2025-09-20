@@ -30,6 +30,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       const rid = roomId.trim();
       console.log('[API] Join room request for:', rid);
 
+      // サーバーサイドのメモリ状況を確認
+      try {
+        const { getAllServerRooms } = await import('@/lib/roomSystemUnified');
+        const allServerRooms = getAllServerRooms();
+        console.log('[API] Server memory rooms count:', allServerRooms.length);
+        console.log('[API] Server memory rooms IDs:', allServerRooms.map(r => r.id));
+      } catch (e) {
+        console.log('[API] Could not check server memory rooms');
+      }
+
       let room = await getRoomById(rid);
       console.log('[API] Firestore room:', room ? 'found' : 'not found');
 
