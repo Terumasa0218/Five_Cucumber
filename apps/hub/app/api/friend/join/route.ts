@@ -1,6 +1,5 @@
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
-import { joinRoom } from '@/lib/roomSystemUnified';
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -35,6 +34,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       if (room.status !== 'waiting') {
         return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423 });
       }
+
       const trimmedNickname = nickname.trim();
       const already = room.seats.some(s => s?.nickname === trimmedNickname);
       if (!already) {
@@ -42,11 +42,33 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         if (emptyIndex === -1) {
           return NextResponse.json({ ok: false, reason: 'full' }, { status: 409 });
         }
+
         room.seats[emptyIndex] = { nickname: trimmedNickname };
-        try {
-          await putRoom(room);
-        } catch {
-          await putRoomRedis(room);
+
+        const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+        const hasRedisEnv = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+        let persisted = false;
+
+        if (hasFirestoreEnv) {
+          try {
+            await putRoom(room);
+            persisted = true;
+          } catch (err) {
+            console.warn('[API] joinRoom Firestore putRoom failed:', err instanceof Error ? err.message : err);
+          }
+        }
+
+        if (hasRedisEnv) {
+          try {
+            await putRoomRedis(room);
+            persisted = true;
+          } catch (err) {
+            console.warn('[API] joinRoom Redis putRoom failed:', err instanceof Error ? err.message : err);
+          }
+        }
+
+        if (!persisted) {
+          throw new Error('persist-failed');
         }
       }
       return NextResponse.json({ ok: true, roomId: rid, room }, { status: 200 });
