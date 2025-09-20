@@ -53,6 +53,7 @@ function FriendPlayContent() {
   const disconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef<boolean>(false);
   const lastVersionRef = useRef<number>(0);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ルーム情報を取得
   const fetchRoomConfig = async (): Promise<{ room: any; playerIndex: number } | null> => {
@@ -214,6 +215,10 @@ function FriendPlayContent() {
       }
 
       // ポーリングでサーバー権威の状態を反映
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
       const poll = HAS_SERVER ? setInterval(async () => {
         try {
           // スマホでのネットワーク遅延を考慮してタイムアウトを設定
@@ -254,7 +259,7 @@ function FriendPlayContent() {
           }
         }
       }, 3000) : undefined; // スマホでのネットワーク遅延を考慮して3秒に延長
-      (window as any).__friend_poll = poll;
+      pollRef.current = poll || null;
     } catch (error) {
       console.error('[Friend Game] Failed to start game:', error);
       setToast('ゲーム初期化に失敗しました');
@@ -369,6 +374,21 @@ function FriendPlayContent() {
     if (roomCode) {
       startGame();
     }
+    return () => {
+      // ページ離脱時にポーリングを確実に停止
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      if (disconnectTimeoutRef.current) {
+        clearTimeout(disconnectTimeoutRef.current);
+        disconnectTimeoutRef.current = null;
+      }
+    };
   }, [roomCode]);
 
   // タイマー管理
