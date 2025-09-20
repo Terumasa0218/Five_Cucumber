@@ -20,5 +20,10 @@ export const isRedisAvailable = () => {
   return isVercel === true;
 };
 
+// 開発環境でのみメモリフォールバックを強制的に有効化
+export const isDevelopmentWithMemoryFallback = () => {
+  return process.env.NODE_ENV === 'development' && !isRedisAvailable();
+};
+
 
 

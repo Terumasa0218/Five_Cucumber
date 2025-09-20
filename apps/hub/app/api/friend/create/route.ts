@@ -1,7 +1,7 @@
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
-import { isRedisAvailable } from '@/lib/redis';
+import { isRedisAvailable, isDevelopmentWithMemoryFallback } from '@/lib/redis';
 import { Room } from '@/types/room';
 import { CreateRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
@@ -92,9 +92,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
     const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     const hasRedisAvailable = isRedisAvailable();
+    const useMemoryFallback = !hasFirestoreEnv && !hasRedisAvailable;
 
     let persisted = false;
     let storageUsed = '';
+
+    console.log('[API] Storage availability:', {
+      firestore: hasFirestoreEnv,
+      redis: hasRedisAvailable,
+      memoryFallback: useMemoryFallback
+    });
 
     if (hasFirestoreEnv) {
       try {
@@ -120,8 +127,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     if (!persisted) {
-      // サーバー共有ストレージが利用できない場合、メモリフォールバックを使用
-      console.log('[API] No persistent storage available, using memory fallback for room:', id);
+      // 開発環境または共有ストレージが利用できない場合、メモリフォールバックを使用
+      console.log('[API] Using memory fallback for room:', id, 'reason:', useMemoryFallback ? 'no storage available' : 'development mode');
       try {
         const { getAllServerRooms } = await import('@/lib/roomSystemUnified');
         const allServerRooms = getAllServerRooms();
