@@ -33,69 +33,92 @@ export default function RoomWaitingPage() {
 
     setNickname(currentNickname);
 
-    const fetchRoom = async () => {
-      try {
-        if (!HAS_SERVER) {
-          const local = getLocalRoom(roomId);
-          if (local) {
-            setRoom(local);
-            const isParticipatingLocal = local.seats.some(seat => seat?.nickname === currentNickname);
-            setIsInRoom(isParticipatingLocal);
-            setError(null);
-          } else {
-            setError('ルームが見つかりません。');
-          }
-          setIsLoading(false);
-          return;
-        }
-        const res = await fetch(`/api/friend/room/${roomId}`);
-
-        if (!res.ok) {
-          if (res.status === 404) {
-            const local = getLocalRoom(roomId);
-            if (local) {
-              setRoom(local);
-              const isParticipatingLocal = local.seats.some(seat => seat?.nickname === currentNickname);
-              setIsInRoom(isParticipatingLocal);
-              setError(null);
+        const fetchRoom = async (retryCount = 0) => {
+          try {
+            if (!HAS_SERVER) {
+              const local = getLocalRoom(roomId);
+              if (local) {
+                setRoom(local);
+                const isParticipatingLocal = local.seats.some(seat => seat?.nickname === currentNickname);
+                setIsInRoom(isParticipatingLocal);
+                setError(null);
+              } else {
+                setError('ルームが見つかりません。');
+              }
               setIsLoading(false);
               return;
             }
-            setError('ルームが見つかりません。ルームが削除されたか、ルーム番号が間違っている可能性があります。');
-          } else {
-            setError('ルーム情報の取得に失敗しました');
+
+            // スマホでのネットワーク遅延を考慮してタイムアウトを設定
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒タイムアウト
+
+            const res = await fetch(`/api/friend/room/${roomId}`, {
+              signal: controller.signal,
+              headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+              }
+            });
+            clearTimeout(timeoutId);
+
+            if (!res.ok) {
+              if (res.status === 404) {
+                const local = getLocalRoom(roomId);
+                if (local) {
+                  setRoom(local);
+                  const isParticipatingLocal = local.seats.some(seat => seat?.nickname === currentNickname);
+                  setIsInRoom(isParticipatingLocal);
+                  setError(null);
+                  setIsLoading(false);
+                  return;
+                }
+                setError('ルームが見つかりません。ルームが削除されたか、ルーム番号が間違っている可能性があります。');
+              } else {
+                setError('ルーム情報の取得に失敗しました');
+              }
+              setIsLoading(false);
+              return;
+            }
+
+            const data: { ok: boolean; room?: Room } = await res.json();
+            if (data.ok && data.room) {
+              setRoom(data.room);
+
+              const isParticipating = data.room.seats.some(seat => seat?.nickname === currentNickname);
+              setIsInRoom(isParticipating);
+              setError(null);
+
+              if (isParticipating && data.room.status === 'playing') {
+                router.push(`/friend/play/${roomId}`);
+                return;
+              }
+            } else {
+              setError('ルーム情報の取得に失敗しました');
+            }
+          } catch (err) {
+            console.error('Room fetch error:', err);
+            if (err && typeof err === 'object' && 'name' in err && err.name === 'AbortError') {
+              setError('リクエストがタイムアウトしました。ネットワーク状況を確認してください。');
+            } else {
+              setError('ネットワークエラーが発生しました');
+            }
+
+            // スマホでのネットワーク不安定さを考慮してリトライ
+            if (retryCount < 2) {
+              console.log(`Room fetch retry ${retryCount + 1}/2`);
+              setTimeout(() => fetchRoom(retryCount + 1), 1000);
+              return;
+            }
+          } finally {
+            setIsLoading(false);
           }
-          setIsLoading(false);
-          return;
-        }
-
-        const data: { ok: boolean; room?: Room } = await res.json();
-        if (data.ok && data.room) {
-          setRoom(data.room);
-
-          const isParticipating = data.room.seats.some(seat => seat?.nickname === currentNickname);
-          setIsInRoom(isParticipating);
-          setError(null);
-
-          if (isParticipating && data.room.status === 'playing') {
-            router.push(`/friend/play/${roomId}`);
-            return;
-          }
-        } else {
-          setError('ルーム情報の取得に失敗しました');
-        }
-      } catch (err) {
-        console.error('Room fetch error:', err);
-        setError('ネットワークエラーが発生しました');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        };
 
     fetchRoom();
 
     const pollInterval: ReturnType<typeof setInterval> | undefined = HAS_SERVER
-      ? setInterval(fetchRoom, 2000)
+      ? setInterval(fetchRoom, 3000) // スマホでのネットワーク遅延を考慮して3秒に延長
       : undefined;
 
     return () => {

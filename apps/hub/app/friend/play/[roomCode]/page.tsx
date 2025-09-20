@@ -216,8 +216,24 @@ function FriendPlayContent() {
       // ポーリングでサーバー権威の状態を反映
       const poll = HAS_SERVER ? setInterval(async () => {
         try {
-          const r = await fetch(`/api/friend/game/${roomCode}`);
-          if (!r.ok) return;
+          // スマホでのネットワーク遅延を考慮してタイムアウトを設定
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒タイムアウト
+
+          const r = await fetch(`/api/friend/game/${roomCode}`, {
+            signal: controller.signal,
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache'
+            }
+          });
+          clearTimeout(timeoutId);
+
+          if (!r.ok) {
+            console.warn(`[Game Poll] Failed to fetch game state: ${r.status}`);
+            return;
+          }
+
           const d = await r.json();
           if (d.ok && d.snapshot) {
             if (!lastVersionRef.current || d.snapshot.version > lastVersionRef.current) {
@@ -227,10 +243,17 @@ function FriendPlayContent() {
                 gameRef.current.config = d.snapshot.config;
               }
               setGameState(d.snapshot.state);
+              console.log(`[Game Poll] Updated game state to version ${d.snapshot.version}`);
             }
           }
-        } catch {}
-      }, 800) : undefined;
+        } catch (error) {
+          if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
+            console.warn('[Game Poll] Request timeout - network may be slow');
+          } else {
+            console.error('[Game Poll] Error:', error);
+          }
+        }
+      }, 3000) : undefined; // スマホでのネットワーク遅延を考慮して3秒に延長
       (window as any).__friend_poll = poll;
     } catch (error) {
       console.error('[Friend Game] Failed to start game:', error);
