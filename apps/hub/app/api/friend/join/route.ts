@@ -1,8 +1,11 @@
-import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
-import { getRoomById, putRoom } from '@/lib/roomsStore';
-import { joinRoom } from '@/lib/roomSystemUnified';
+import { getRoomByIdRedis } from '@/lib/roomsRedis';
+import { getRoomByIdStrict, RoomStoreError } from '@/lib/roomsStore';
+import { persistRoomToStores } from '@/lib/persistRoom';
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
   try {
@@ -25,16 +28,33 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     try {
-      // ルーム参加（共有ストア優先: Firestore -> Redis）
+      // ルーム参加（共有ストア優先: Redis -> Firestore）
       const rid = roomId.trim();
-      let room = await getRoomById(rid);
-      if (!room) room = await getRoomByIdRedis(rid);
+      let room = await getRoomByIdRedis(rid);
+      let storeError: RoomStoreError | null = null;
       if (!room) {
+        try {
+          room = await getRoomByIdStrict(rid);
+        } catch (error) {
+          if (error instanceof RoomStoreError) {
+            storeError = error;
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      if (!room) {
+        if (storeError) {
+          const reason = storeError.code === 'permission-denied' ? 'rooms-store-forbidden' : 'rooms-store-unavailable';
+          return NextResponse.json({ ok: false, reason }, { status: 500 });
+        }
         throw new Error('not-found');
       }
       if (room.status !== 'waiting') {
         return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423 });
       }
+
       const trimmedNickname = nickname.trim();
       const already = room.seats.some(s => s?.nickname === trimmedNickname);
       if (!already) {
@@ -42,11 +62,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         if (emptyIndex === -1) {
           return NextResponse.json({ ok: false, reason: 'full' }, { status: 409 });
         }
+
         room.seats[emptyIndex] = { nickname: trimmedNickname };
+
         try {
-          await putRoom(room);
-        } catch {
-          await putRoomRedis(room);
+          await persistRoomToStores(room, 'friend/join');
+        } catch (persistError) {
+          const reason = persistError instanceof Error ? persistError.message : 'persist-failed';
+          throw new Error(reason);
         }
       }
       return NextResponse.json({ ok: true, roomId: rid, room }, { status: 200 });

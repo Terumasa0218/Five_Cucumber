@@ -72,6 +72,26 @@ export default function FriendJoinPage() {
           setError('参加に失敗しました');
         }
       } else {
+        let errorReason: string | undefined;
+        try {
+          const payload = await res.json();
+          if (payload && typeof payload.reason === 'string') {
+            errorReason = payload.reason;
+          }
+        } catch {
+          errorReason = undefined;
+        }
+
+        if (errorReason === 'rooms-store-unavailable') {
+          setError('共有ストレージが利用できないため参加できません。サーバーの環境変数設定を確認してください。');
+          return;
+        }
+
+        if (errorReason === 'rooms-store-forbidden') {
+          setError('共有ストレージへのアクセスが拒否されました。Firestoreの権限設定を確認してください。');
+          return;
+        }
+
         switch (res.status) {
           case 404:
             setError('ルーム番号が違います');
