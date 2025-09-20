@@ -7,6 +7,11 @@ export async function GET(req: NextRequest) {
   const uid = url.searchParams.get('uid') ?? 'anon';
   const channel = url.searchParams.get('channel');
 
+  // スマホ対応: User-Agentを確認
+  const userAgent = req.headers.get('user-agent') || '';
+  const isMobile = /Mobile|iP(hone|od|ad)|Android|BlackBerry|IEMobile/.test(userAgent);
+  console.log('[Ably] Token request - User:', uid, 'Channel:', channel, 'Mobile:', isMobile, 'UA:', userAgent.substring(0, 100));
+
   if (!process.env.ABLY_API_KEY) {
     console.error('[Ably] ABLY_API_KEY environment variable is not set');
     return NextResponse.json(
@@ -23,10 +28,10 @@ export async function GET(req: NextRequest) {
     const tokenRequest = await ably.auth.createTokenRequest({
       clientId: uid,
       capability: JSON.stringify(capability),
-      ttl: 60 * 60 * 1000,
+      ttl: 60 * 60 * 1000, // 1時間
     });
 
-    console.log('[Ably] Token created successfully for user:', uid);
+    console.log('[Ably] Token created successfully for user:', uid, 'length:', JSON.stringify(tokenRequest).length);
     return NextResponse.json(tokenRequest);
   } catch (error) {
     console.error('[Ably] Failed to create token:', error);

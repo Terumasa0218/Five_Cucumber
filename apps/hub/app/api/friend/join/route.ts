@@ -133,6 +133,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         } catch (realtimeError) {
           console.warn('[API] Failed to broadcast room join event:', realtimeError);
           // リアルタイム通知の失敗は致命的ではないので、ログだけ出力して続行
+          // しかし、スマホではこれが原因で参加が反映されない可能性がある
+          console.warn('[API] Mobile users may not receive real-time updates due to this error');
         }
       }
 

@@ -7,6 +7,16 @@ export function makeClient(uid: string, channelName: string) {
   const client = new Ably.Realtime.Promise({
     authUrl: `/api/ably/token?uid=${encodeURIComponent(uid)}&channel=${encodeURIComponent(channelName)}`,
     autoConnect: true,
+    // スマホ対応: タイムアウトと再接続設定を強化
+    transportParams: {
+      heartbeatInterval: 30000, // 30秒
+      disconnectedRetryTimeout: 15000, // 15秒
+      suspendedRetryTimeout: 30000, // 30秒
+    },
+    // スマホ対応: 再接続設定
+    disconnectedRetryTimeout: 15000,
+    suspendedRetryTimeout: 30000,
+    // デバッグ設定
     debug: {
       enable: process.env.NODE_ENV === 'development'
     }
@@ -27,6 +37,10 @@ export function makeClient(uid: string, channelName: string) {
 
   client.connection.on('disconnected', () => {
     console.warn('[Ably] Disconnected - will auto-reconnect');
+  });
+
+  client.connection.on('suspended', () => {
+    console.warn('[Ably] Connection suspended - will retry');
   });
 
   return client;

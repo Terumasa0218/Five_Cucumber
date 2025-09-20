@@ -118,8 +118,13 @@ export default function RoomWaitingPage() {
 
     fetchRoom();
 
+        // スマホ対応: User-Agentを確認
+        const userAgent = navigator.userAgent;
+        const isMobile = /Mobile|iP(hone|od|ad)|Android|BlackBerry|IEMobile/.test(userAgent);
+        console.log('[RoomPage] User agent:', userAgent, 'Mobile:', isMobile);
+
         const pollInterval: ReturnType<typeof setInterval> | undefined = HAS_SERVER
-          ? setInterval(fetchRoom, 3000) // スマホでのネットワーク遅延を考慮して3秒に延長
+          ? setInterval(fetchRoom, isMobile ? 2000 : 3000) // スマホではより短い間隔でポーリング
           : undefined;
 
         // デバッグ用: サーバーメモリの状況を確認
@@ -132,8 +137,27 @@ export default function RoomWaitingPage() {
         // Ablyクライアントでリアルタイム更新を受信
         if (HAS_SERVER && currentNickname) {
           try {
+            console.log(`[RoomPage] Initializing Ably client for room: ${roomId}, user: ${currentNickname}, mobile: ${isMobile}`);
+
             const ablyClient = makeClient(currentNickname, `room-${roomId}`);
             const channel = ablyClient.channels.get(`room-${roomId}-u-${currentNickname}`);
+
+            // スマホ対応: チャネル状態を監視
+            channel.on('attaching', () => {
+              console.log('[RoomPage] Ably channel attaching...');
+            });
+
+            channel.on('attached', () => {
+              console.log('[RoomPage] Ably channel attached successfully');
+            });
+
+            channel.on('failed', (stateChange) => {
+              console.error('[RoomPage] Ably channel failed:', stateChange.reason);
+              // スマホではAblyが失敗しやすいので、警告を表示
+              if (isMobile) {
+                console.warn('[RoomPage] Ably failed on mobile - relying on polling fallback');
+              }
+            });
 
             channel.subscribe('room_updated', (message) => {
               console.log('[RoomPage] Received room_updated event:', message.data);
@@ -148,19 +172,24 @@ export default function RoomWaitingPage() {
 
                 if (event === 'player_joined' && joinedPlayer) {
                   console.log(`[RoomPage] Player ${joinedPlayer} joined the room`);
+                  // スマホでは通知を表示してユーザーに知らせる
+                  if (isMobile && 'Notification' in window && Notification.permission === 'granted') {
+                    new Notification('Five Cucumber', {
+                      body: `${joinedPlayer}さんがルームに参加しました`
+                    });
+                  }
                 }
               }
             });
 
             console.log(`[RoomPage] Subscribed to room updates for room: ${roomId}, user: ${currentNickname}`);
 
-            // エラーハンドリング
-            channel.on('failed', (stateChange) => {
-              console.error('[RoomPage] Ably channel failed:', stateChange.reason);
-            });
-
           } catch (error) {
             console.error('[RoomPage] Failed to initialize Ably client:', error);
+            // スマホではAblyが失敗しやすいので、警告を表示
+            if (isMobile) {
+              console.warn('[RoomPage] Ably initialization failed on mobile - relying on polling fallback');
+            }
           }
         }
 

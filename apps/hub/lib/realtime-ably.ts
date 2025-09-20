@@ -33,18 +33,35 @@ export const ablyAdapter: RealtimeAdapter = {
   async publishToMany(roomId, uids, event, build) {
     try {
       const rest = getRest();
-      console.log('[Ably] Publishing to many users:', roomId, uids.length, event);
+      console.log('[Ably] Publishing to many users:', roomId, uids.length, event, 'uids:', uids);
+
+      if (uids.length === 0) {
+        console.log('[Ably] No users to publish to, skipping');
+        return;
+      }
+
       await Promise.all(
         uids.map((uid) => {
           const ch = rest.channels.get(`room-${roomId}-u-${uid}`);
+          console.log('[Ably] Publishing to channel:', `room-${roomId}-u-${uid}`);
           return new Promise<void>((resolve, reject) => {
-            ch.publish(event, build(uid), (err: any) => (err ? reject(err) : resolve()));
+            ch.publish(event, build(uid), (err: any) => {
+              if (err) {
+                console.error('[Ably] Failed to publish to user:', uid, 'error:', err);
+                reject(err);
+              } else {
+                resolve();
+              }
+            });
           });
         })
       );
+
+      console.log('[Ably] Successfully published to all users');
     } catch (error) {
       console.error('[Ably] Failed to publish to many users:', error);
-      throw error;
+      // 個別のパブリッシュ失敗は致命的ではないので、ログだけ出力して続行
+      console.warn('[Ably] Some publishes may have failed, but continuing...');
     }
   },
 };
