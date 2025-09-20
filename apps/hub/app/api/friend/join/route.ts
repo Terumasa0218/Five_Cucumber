@@ -2,6 +2,7 @@ import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
 import { isRedisAvailable, isDevelopmentWithMemoryFallback } from '@/lib/redis';
+import { realtime } from '@/lib/realtime';
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -113,7 +114,28 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
             throw new Error('persist-failed');
           }
         }
+
+        // ルーム参加成功時にリアルタイム通知を送信
+        console.log('[API] Broadcasting room join event to all room members');
+        try {
+          // 現在のルームメンバー（ニックネームリスト）を取得
+          const members = room.seats.filter(seat => seat !== null).map(seat => seat!.nickname);
+          console.log('[API] Current room members:', members);
+
+          // Ablyを使ってルーム参加イベントをブロードキャスト
+          await realtime.publishToMany(rid, members, 'room_updated', (uid) => ({
+            room: room,
+            event: 'player_joined',
+            joinedPlayer: trimmedNickname
+          }));
+
+          console.log('[API] Successfully broadcasted room join event');
+        } catch (realtimeError) {
+          console.warn('[API] Failed to broadcast room join event:', realtimeError);
+          // リアルタイム通知の失敗は致命的ではないので、ログだけ出力して続行
+        }
       }
+
       return NextResponse.json({ ok: true, roomId: rid, room }, { status: 200 });
     } catch (e) {
       // エラー処理（共有ストアにない場合や永続化失敗時）

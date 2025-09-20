@@ -6,6 +6,7 @@ import { Room } from "@/types/room";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { makeClient } from "@/lib/realtime-client";
 
 export default function RoomWaitingPage() {
   const HAS_SERVER = (process.env.NEXT_PUBLIC_HAS_REDIS === '1') || Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
@@ -117,20 +118,56 @@ export default function RoomWaitingPage() {
 
     fetchRoom();
 
-    const pollInterval: ReturnType<typeof setInterval> | undefined = HAS_SERVER
-      ? setInterval(fetchRoom, 3000) // スマホでのネットワーク遅延を考慮して3秒に延長
-      : undefined;
+        const pollInterval: ReturnType<typeof setInterval> | undefined = HAS_SERVER
+          ? setInterval(fetchRoom, 3000) // スマホでのネットワーク遅延を考慮して3秒に延長
+          : undefined;
 
-    // デバッグ用: サーバーメモリの状況を確認
-    if (HAS_SERVER) {
-      fetchRoom().then(() => {
-        console.log('[RoomPage] Initial fetch completed');
-      });
-    }
+        // デバッグ用: サーバーメモリの状況を確認
+        if (HAS_SERVER) {
+          fetchRoom().then(() => {
+            console.log('[RoomPage] Initial fetch completed');
+          });
+        }
+
+        // Ablyクライアントでリアルタイム更新を受信
+        if (HAS_SERVER && currentNickname) {
+          try {
+            const ablyClient = makeClient(currentNickname, `room-${roomId}`);
+            const channel = ablyClient.channels.get(`room-${roomId}-u-${currentNickname}`);
+
+            channel.subscribe('room_updated', (message) => {
+              console.log('[RoomPage] Received room_updated event:', message.data);
+              const { room: updatedRoom, event, joinedPlayer } = message.data;
+
+              if (updatedRoom) {
+                console.log('[RoomPage] Updating room state with new data:', updatedRoom);
+                setRoom(updatedRoom);
+
+                const isParticipating = updatedRoom.seats.some((seat: any) => seat?.nickname === currentNickname);
+                setIsInRoom(isParticipating);
+
+                if (event === 'player_joined' && joinedPlayer) {
+                  console.log(`[RoomPage] Player ${joinedPlayer} joined the room`);
+                }
+              }
+            });
+
+            console.log(`[RoomPage] Subscribed to room updates for room: ${roomId}, user: ${currentNickname}`);
+
+            // エラーハンドリング
+            channel.on('failed', (stateChange) => {
+              console.error('[RoomPage] Ably channel failed:', stateChange.reason);
+            });
+
+          } catch (error) {
+            console.error('[RoomPage] Failed to initialize Ably client:', error);
+          }
+        }
 
     return () => {
       document.body.removeAttribute('data-bg');
       if (pollInterval) clearInterval(pollInterval);
+      // Ablyクライアントのクリーンアップは自動的に行われる
     };
   }, [roomId, router, HAS_SERVER]);
   // SSR/初期ハイドレーション差異を避けるため、マウント完了まで静的なスケルトンのみ表示
