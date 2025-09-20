@@ -1,8 +1,10 @@
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
-import { joinRoom } from '@/lib/roomSystemUnified';
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
   try {
@@ -25,16 +27,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     try {
-      // ルーム参加（共有ストア優先: Firestore -> Redis）
+      // ルーム参加（共有ストア優先: Redis -> Firestore）
       const rid = roomId.trim();
-      let room = await getRoomById(rid);
-      if (!room) room = await getRoomByIdRedis(rid);
+      let room = await getRoomByIdRedis(rid);
+      if (!room) room = await getRoomById(rid);
       if (!room) {
         throw new Error('not-found');
       }
       if (room.status !== 'waiting') {
         return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423 });
       }
+
       const trimmedNickname = nickname.trim();
       const already = room.seats.some(s => s?.nickname === trimmedNickname);
       if (!already) {
@@ -42,11 +45,40 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         if (emptyIndex === -1) {
           return NextResponse.json({ ok: false, reason: 'full' }, { status: 409 });
         }
+
         room.seats[emptyIndex] = { nickname: trimmedNickname };
-        try {
-          await putRoom(room);
-        } catch {
-          await putRoomRedis(room);
+
+        const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+        const hasRedisEnv = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+        const persistTasks: Array<Promise<void>> = [];
+
+        if (hasFirestoreEnv) {
+          persistTasks.push(
+            putRoom(room).catch((err) => {
+              console.warn('[API] joinRoom Firestore putRoom failed:', err instanceof Error ? err.message : err);
+              throw err;
+            })
+          );
+        }
+
+        if (hasRedisEnv) {
+          persistTasks.push(
+            putRoomRedis(room).catch((err) => {
+              console.warn('[API] joinRoom Redis putRoom failed:', err instanceof Error ? err.message : err);
+              throw err;
+            })
+          );
+        }
+
+        if (persistTasks.length === 0) {
+          throw new Error('persist-failed');
+        }
+
+        const results = await Promise.allSettled(persistTasks);
+        const persisted = results.some((r) => r.status === 'fulfilled');
+
+        if (!persisted) {
+          throw new Error('persist-failed');
         }
       }
       return NextResponse.json({ ok: true, roomId: rid, room }, { status: 200 });

@@ -3,6 +3,9 @@ import { updateRoom } from '@/lib/roomsStore';
 import { updateRoomRedis } from '@/lib/roomsRedis';
 import { updateRoomStatus } from '@/lib/roomSystemUnified';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body = await req.json();
