@@ -24,7 +24,13 @@ export function getRoomFromMemory(roomId: string): Room | null {
     throw new Error('This function is for server-side only');
   }
   const storage = getServerRoomsStorage();
-  return storage.get(roomId) || null;
+  console.log('[RoomSystem] Getting room from memory:', roomId);
+  console.log('[RoomSystem] Available rooms in memory:', Array.from(storage.keys()));
+
+  const room = storage.get(roomId);
+  console.log('[RoomSystem] Room found in memory:', room ? 'yes' : 'no');
+
+  return room || null;
 }
 
 /**
@@ -35,8 +41,13 @@ export function putRoomToMemory(room: Room): void {
     throw new Error('This function is for server-side only');
   }
   const storage = getServerRoomsStorage();
+  console.log('[RoomSystem] Saving room to memory:', room.id);
+  console.log('[RoomSystem] Room data:', JSON.stringify(room, null, 2));
+
   storage.set(room.id, room);
   console.log('[RoomSystem] Saved room to server memory:', room.id);
+  console.log('[RoomSystem] Current storage size:', storage.size);
+  console.log('[RoomSystem] Available rooms:', Array.from(storage.keys()));
 }
 
 /**

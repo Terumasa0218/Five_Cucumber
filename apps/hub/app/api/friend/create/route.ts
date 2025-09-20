@@ -118,6 +118,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       try {
         putRoomToMemory(room);
         console.log('[API] Using memory fallback for room creation:', id);
+        console.log('[API] Created room in memory:', JSON.stringify(room, null, 2));
       } catch (e) {
         console.error('[API] Memory fallback failed:', e);
         return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });

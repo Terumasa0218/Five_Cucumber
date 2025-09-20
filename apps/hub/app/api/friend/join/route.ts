@@ -27,12 +27,23 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     try {
       // ルーム参加（共有ストア優先: Firestore -> Redis -> Memory）
       const rid = roomId.trim();
+      console.log('[API] Join room request for:', rid);
+
       let room = await getRoomById(rid);
+      console.log('[API] Firestore room:', room ? 'found' : 'not found');
+
       if (!room) room = await getRoomByIdRedis(rid);
+      console.log('[API] Redis room:', room ? 'found' : 'not found');
+
       if (!room) room = getRoomFromMemory(rid);
+      console.log('[API] Memory room:', room ? 'found' : 'not found');
+
       if (!room) {
+        console.log('[API] Room not found anywhere for:', rid);
         throw new Error('not-found');
       }
+
+      console.log('[API] Found room:', JSON.stringify(room, null, 2));
       if (room.status !== 'waiting') {
         return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423 });
       }
