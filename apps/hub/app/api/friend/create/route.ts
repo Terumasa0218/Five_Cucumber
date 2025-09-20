@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
+import { kv } from '@vercel/kv';
 import { isRedisAvailable, isDevelopmentWithMemoryFallback } from '@/lib/redis';
 import { Room } from '@/types/room';
 import { CreateRoomRequest, RoomResponse } from '@/types/room';
@@ -162,7 +163,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       }
     }
 
-    return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
+    // 決定した部屋IDを文字列に統一して KV に必ず保存（TTL 30分）
+    const roomId = String(room.id ?? id);
+    try {
+      const key = `friend:room:${roomId}`;
+      await kv.set(key, room, { ex: 60 * 30 });
+      console.log('[API] Room persisted to KV:', key);
+    } catch (e) {
+      console.warn('[API] KV persist failed:', e);
+    }
+
+    return NextResponse.json({ ok: true, roomId }, { status: 200 });
 
   } catch (error) {
     console.error('Room creation error:', error);
