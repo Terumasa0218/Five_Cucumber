@@ -1,6 +1,7 @@
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
+import { isRedisAvailable } from '@/lib/redis';
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -59,22 +60,24 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         room.seats[emptyIndex] = { nickname: trimmedNickname };
 
         const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-        const hasRedisEnv = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+        const hasRedisAvailable = isRedisAvailable();
         let persisted = false;
 
         if (hasFirestoreEnv) {
           try {
             await putRoom(room);
             persisted = true;
+            console.log('[API] Join room saved to Firestore successfully');
           } catch (err) {
             console.warn('[API] joinRoom Firestore putRoom failed:', err instanceof Error ? err.message : err);
           }
         }
 
-        if (hasRedisEnv) {
+        if (hasRedisAvailable) {
           try {
             await putRoomRedis(room);
             persisted = true;
+            console.log('[API] Join room saved to Redis/KV successfully');
           } catch (err) {
             console.warn('[API] joinRoom Redis putRoom failed:', err instanceof Error ? err.message : err);
           }
@@ -82,9 +85,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
         if (!persisted) {
           // 共有ストアが利用できない場合、メモリフォールバックを使用
+          console.log('[API] No persistent storage available for join, using memory fallback for room:', rid);
           try {
             putRoomToMemory(room);
-            console.log('[API] Using memory fallback for room join:', rid);
+            console.log('[API] Successfully updated room in memory for join');
+            console.log('[API] Updated room details:', JSON.stringify(room, null, 2));
           } catch (err) {
             console.error('[API] Memory fallback failed:', err);
             throw new Error('persist-failed');

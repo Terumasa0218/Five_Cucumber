@@ -3,6 +3,7 @@
 import { getRoomById } from '@/lib/roomsStore';
 import { getRoomByIdRedis } from '@/lib/roomsRedis';
 import { getRoomFromMemory } from '@/lib/roomSystemUnified';
+import { isRedisAvailable } from '@/lib/redis';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
@@ -19,12 +20,18 @@ export async function GET(
       );
     }
 
+    const hasRedisAvailable = isRedisAvailable();
     let room = await getRoomById(roomId);
-    if (!room) {
+    console.log('[API] Room lookup - Firestore:', room ? 'found' : 'not found');
+
+    if (!room && hasRedisAvailable) {
       room = await getRoomByIdRedis(roomId);
+      console.log('[API] Room lookup - Redis/KV:', room ? 'found' : 'not found');
     }
+
     if (!room) {
       room = getRoomFromMemory(roomId);
+      console.log('[API] Room lookup - Memory:', room ? 'found' : 'not found');
     }
     
     if (!room) {

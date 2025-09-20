@@ -39,7 +39,7 @@ function FriendPlayContent() {
     maxCucumbers: number;
     seats: any[];
   } | null>(null);
-  const HAS_SERVER = (process.env.NEXT_PUBLIC_HAS_REDIS === '1') || Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) || process.env.NODE_ENV === 'development';
+  const HAS_SERVER = (process.env.NEXT_PUBLIC_HAS_REDIS === '1') || Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) || process.env.NODE_ENV === 'development' || true; // Always enable for memory fallback
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
   
   const gameRef = useRef<{

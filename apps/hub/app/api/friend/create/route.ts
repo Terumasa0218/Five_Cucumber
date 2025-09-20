@@ -1,6 +1,7 @@
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
+import { isRedisAvailable } from '@/lib/redis';
 import { Room } from '@/types/room';
 import { CreateRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
@@ -90,38 +91,49 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     };
 
     const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-    const hasRedisEnv = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+    const hasRedisAvailable = isRedisAvailable();
 
     let persisted = false;
+    let storageUsed = '';
 
     if (hasFirestoreEnv) {
       try {
         await withTimeout(putRoom(room), 2000);
         persisted = true;
+        storageUsed = 'Firestore';
+        console.log('[API] Room saved to Firestore successfully');
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         console.warn('[API] Firestore putRoom failed or timed out:', msg);
       }
     }
 
-    if (hasRedisEnv) {
+    if (hasRedisAvailable) {
       try {
         await putRoomRedis(room);
         persisted = true;
+        storageUsed = 'Redis/KV';
+        console.log('[API] Room saved to Redis/KV successfully');
       } catch (e) {
         console.warn('[API] Redis putRoom failed:', e);
       }
     }
 
     if (!persisted) {
-      // サーバー共有ストレージが利用できない場合、メモリフォールバックを使用（開発環境用）
+      // サーバー共有ストレージが利用できない場合、メモリフォールバックを使用
+      console.log('[API] No persistent storage available, using memory fallback for room:', id);
       try {
         putRoomToMemory(room);
-        console.log('[API] Using memory fallback for room creation:', id);
-        console.log('[API] Created room in memory:', JSON.stringify(room, null, 2));
+        storageUsed = 'Memory';
+        console.log('[API] Successfully created room in memory');
+        console.log('[API] Room details:', JSON.stringify(room, null, 2));
       } catch (e) {
         console.error('[API] Memory fallback failed:', e);
-        return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });
+        return NextResponse.json({
+          ok: false,
+          reason: 'server-error',
+          detail: 'Failed to create room in any storage'
+        }, { status: 500 });
       }
     }
 
