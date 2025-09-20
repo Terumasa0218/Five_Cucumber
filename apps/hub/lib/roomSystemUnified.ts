@@ -13,6 +13,7 @@ export function getServerRoomsStorage(): Map<string, Room> {
   if (!serverRooms) {
     serverRooms = new Map();
     console.log('[RoomSystem] Initialized server-side room storage');
+    console.log('[RoomSystem] Server rooms map created:', serverRooms);
   }
   return serverRooms;
 }
@@ -49,9 +50,14 @@ export function getRoomFromMemory(roomId: string): Room | null {
   const storage = getServerRoomsStorage();
   console.log('[RoomSystem] Getting room from memory:', roomId);
   console.log('[RoomSystem] Available rooms in memory:', Array.from(storage.keys()));
+  console.log('[RoomSystem] Storage size:', storage.size);
+  console.log('[RoomSystem] Storage object:', storage);
 
   const room = storage.get(roomId);
   console.log('[RoomSystem] Room found in memory:', room ? 'yes' : 'no');
+  if (room) {
+    console.log('[RoomSystem] Room data:', JSON.stringify(room, null, 2));
+  }
 
   return room || null;
 }
@@ -66,11 +72,20 @@ export function putRoomToMemory(room: Room): void {
   const storage = getServerRoomsStorage();
   console.log('[RoomSystem] Saving room to memory:', room.id);
   console.log('[RoomSystem] Room data:', JSON.stringify(room, null, 2));
+  console.log('[RoomSystem] Storage before save size:', storage.size);
+  console.log('[RoomSystem] Storage before save keys:', Array.from(storage.keys()));
 
   storage.set(room.id, room);
   console.log('[RoomSystem] Saved room to server memory:', room.id);
   console.log('[RoomSystem] Current storage size:', storage.size);
-  console.log('[RoomSystem] Available rooms:', Array.from(storage.keys()));
+  console.log('[RoomSystem] Available rooms after save:', Array.from(storage.keys()));
+
+  // デバッグ用: 保存されたルームの確認
+  const savedRoom = storage.get(room.id);
+  console.log('[RoomSystem] Verification - saved room exists:', savedRoom ? 'yes' : 'no');
+  if (savedRoom) {
+    console.log('[RoomSystem] Verification - saved room data matches:', JSON.stringify(savedRoom) === JSON.stringify(room));
+  }
 }
 
 /**
