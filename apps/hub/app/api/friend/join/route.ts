@@ -1,6 +1,11 @@
+ codex/fix-room-access-issue-and-debug-j2dtpt
 import { getRoomByIdRedis } from '@/lib/roomsRedis';
 import { getRoomByIdStrict, RoomStoreError } from '@/lib/roomsStore';
 import { persistRoomToStores } from '@/lib/persistRoom';
+
+import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
+import { getRoomById, putRoom } from '@/lib/roomsStore';
+ main
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -65,11 +70,38 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
         room.seats[emptyIndex] = { nickname: trimmedNickname };
 
+ codex/fix-room-access-issue-and-debug-j2dtpt
         try {
           await persistRoomToStores(room, 'friend/join');
         } catch (persistError) {
           const reason = persistError instanceof Error ? persistError.message : 'persist-failed';
           throw new Error(reason);
+
+        const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+        const hasRedisEnv = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+        let persisted = false;
+
+        if (hasFirestoreEnv) {
+          try {
+            await putRoom(room);
+            persisted = true;
+          } catch (err) {
+            console.warn('[API] joinRoom Firestore putRoom failed:', err instanceof Error ? err.message : err);
+          }
+        }
+
+        if (hasRedisEnv) {
+          try {
+            await putRoomRedis(room);
+            persisted = true;
+          } catch (err) {
+            console.warn('[API] joinRoom Redis putRoom failed:', err instanceof Error ? err.message : err);
+          }
+        }
+
+        if (!persisted) {
+          throw new Error('persist-failed');
+ main
         }
       }
       return NextResponse.json({ ok: true, roomId: rid, room }, { status: 200 });
