@@ -90,33 +90,41 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     };
 
     const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const hasRedisEnv = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    let persisted = false;
+
     if (hasFirestoreEnv) {
       try {
         await withTimeout(putRoom(room), 2000);
-        return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
+        persisted = true;
       } catch (e) {
-        console.warn('[API] Firestore putRoom failed or timed out, falling back:', e instanceof Error ? e.message : e);
+        const msg = e instanceof Error ? e.message : String(e);
+        console.warn('[API] Firestore putRoom failed or timed out:', msg);
       }
     }
 
-    // Redis がある場合はRedisに保存
-    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    if (hasRedisEnv) {
       try {
         await putRoomRedis(room);
-        return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
+        persisted = true;
       } catch (e) {
-        console.warn('[API] Redis putRoom failed, fallback to memory:', e);
+        console.warn('[API] Redis putRoom failed:', e);
       }
     }
 
-    // 最終フォールバック：サーバーメモリに保存（開発環境用）
-    try {
-      putRoomToMemory(room);
-      return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
-    } catch (e) {
-      console.error('[API] Memory fallback failed:', e);
-      return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });
+    if (!persisted) {
+      // サーバー共有ストレージが利用できない場合、メモリフォールバックを使用（開発環境用）
+      try {
+        putRoomToMemory(room);
+        console.log('[API] Using memory fallback for room creation:', id);
+      } catch (e) {
+        console.error('[API] Memory fallback failed:', e);
+        return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });
+      }
     }
+
+    return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
 
   } catch (error) {
     console.error('Room creation error:', error);

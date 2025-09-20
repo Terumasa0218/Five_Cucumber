@@ -36,6 +36,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       if (room.status !== 'waiting') {
         return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423 });
       }
+
       const trimmedNickname = nickname.trim();
       const already = room.seats.some(s => s?.nickname === trimmedNickname);
       if (!already) {
@@ -43,18 +44,47 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         if (emptyIndex === -1) {
           return NextResponse.json({ ok: false, reason: 'full' }, { status: 409 });
         }
+
         room.seats[emptyIndex] = { nickname: trimmedNickname };
-        try {
-          await putRoom(room);
-        } catch {
-          await putRoomRedis(room);
+
+        const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+        const hasRedisEnv = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
+        let persisted = false;
+
+        if (hasFirestoreEnv) {
+          try {
+            await putRoom(room);
+            persisted = true;
+          } catch (err) {
+            console.warn('[API] joinRoom Firestore putRoom failed:', err instanceof Error ? err.message : err);
+          }
+        }
+
+        if (hasRedisEnv) {
+          try {
+            await putRoomRedis(room);
+            persisted = true;
+          } catch (err) {
+            console.warn('[API] joinRoom Redis putRoom failed:', err instanceof Error ? err.message : err);
+          }
+        }
+
+        if (!persisted) {
+          // 共有ストアが利用できない場合、メモリフォールバックを使用
+          try {
+            putRoomToMemory(room);
+            console.log('[API] Using memory fallback for room join:', rid);
+          } catch (err) {
+            console.error('[API] Memory fallback failed:', err);
+            throw new Error('persist-failed');
+          }
         }
       }
       return NextResponse.json({ ok: true, roomId: rid, room }, { status: 200 });
     } catch (e) {
-      // 共有ストアに無い場合は明確に not-found を返す（serverless間での分断を可視化）
+      // エラー処理（共有ストアにない場合や永続化失敗時）
       const msg = (e as Error)?.message;
-      const status = msg === 'not-found' ? 404 : msg === 'full' ? 409 : msg === 'locked' ? 423 : 500;
+      const status = msg === 'not-found' ? 404 : msg === 'full' ? 409 : msg === 'locked' ? 423 : msg === 'persist-failed' ? 500 : 500;
       return NextResponse.json({ ok: false, reason: msg ?? 'server-error' }, { status });
     }
 

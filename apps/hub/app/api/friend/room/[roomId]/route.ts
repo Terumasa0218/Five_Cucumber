@@ -3,7 +3,6 @@
 import { getRoomById } from '@/lib/roomsStore';
 import { getRoomByIdRedis } from '@/lib/roomsRedis';
 import { getRoomFromMemory } from '@/lib/roomSystemUnified';
-// 共有ストアに統一するため、メモリフォールバックは使用しない
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
