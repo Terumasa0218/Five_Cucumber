@@ -1,7 +1,8 @@
 import { initGame, projectViewFor } from '@/lib/engine';
 import { hashState } from '@/lib/hashState';
 import { realtime } from '@/lib/realtime';
-import { redis } from '@/lib/redis';
+import { getRedis } from '@/lib/redis';
+import { ROOM_TTL_SECONDS } from '@/lib/roomsRedis';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -14,12 +15,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN || !process.env.ABLY_API_KEY) {
       return NextResponse.json({ error: 'MISCONFIGURED_ENV' }, { status: 500 });
     }
+    const redis = getRedis();
+    if (!redis) {
+      return NextResponse.json({ error: 'MISCONFIGURED_ENV' }, { status: 500 });
+    }
     const seed = `${Date.now()}:${roomId}`;
     const state = initGame(seats, seed);
     await Promise.all([
-      redis.set(`room:${roomId}:state`, JSON.stringify(state)),
-      redis.set(`room:${roomId}:v`, 0),
-      redis.set(`room:${roomId}:seats`, JSON.stringify(seats)),
+      redis.set(`room:${roomId}:state`, JSON.stringify(state), { ex: ROOM_TTL_SECONDS }),
+      redis.set(`room:${roomId}:v`, 0, { ex: ROOM_TTL_SECONDS }),
+      redis.set(`room:${roomId}:seats`, JSON.stringify(seats), { ex: ROOM_TTL_SECONDS }),
     ]);
     const v = 0;
 

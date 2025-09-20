@@ -1,7 +1,16 @@
+ codex/fix-room-access-issue-and-debug-j2dtpt
+import { getRoomByIdRedis } from '@/lib/roomsRedis';
+import { getRoomByIdStrict, RoomStoreError } from '@/lib/roomsStore';
+import { persistRoomToStores } from '@/lib/persistRoom';
+
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
+ main
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
   try {
@@ -24,11 +33,27 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     try {
-      // ルーム参加（共有ストア優先: Firestore -> Redis）
+      // ルーム参加（共有ストア優先: Redis -> Firestore）
       const rid = roomId.trim();
-      let room = await getRoomById(rid);
-      if (!room) room = await getRoomByIdRedis(rid);
+      let room = await getRoomByIdRedis(rid);
+      let storeError: RoomStoreError | null = null;
       if (!room) {
+        try {
+          room = await getRoomByIdStrict(rid);
+        } catch (error) {
+          if (error instanceof RoomStoreError) {
+            storeError = error;
+          } else {
+            throw error;
+          }
+        }
+      }
+
+      if (!room) {
+        if (storeError) {
+          const reason = storeError.code === 'permission-denied' ? 'rooms-store-forbidden' : 'rooms-store-unavailable';
+          return NextResponse.json({ ok: false, reason }, { status: 500 });
+        }
         throw new Error('not-found');
       }
       if (room.status !== 'waiting') {
@@ -44,6 +69,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         }
 
         room.seats[emptyIndex] = { nickname: trimmedNickname };
+
+ codex/fix-room-access-issue-and-debug-j2dtpt
+        try {
+          await persistRoomToStores(room, 'friend/join');
+        } catch (persistError) {
+          const reason = persistError instanceof Error ? persistError.message : 'persist-failed';
+          throw new Error(reason);
 
         const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
         const hasRedisEnv = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -69,6 +101,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
         if (!persisted) {
           throw new Error('persist-failed');
+ main
         }
       }
       return NextResponse.json({ ok: true, roomId: rid, room }, { status: 200 });

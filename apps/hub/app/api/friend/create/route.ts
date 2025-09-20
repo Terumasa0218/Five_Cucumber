@@ -1,8 +1,12 @@
-import { getRoomById, putRoom } from '@/lib/roomsStore';
-import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
+import { getRoomById } from '@/lib/roomsStore';
+import { getRoomByIdRedis } from '@/lib/roomsRedis';
+import { persistRoomToStores } from '@/lib/persistRoom';
 import { Room } from '@/types/room';
 import { CreateRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
   try {
@@ -56,12 +60,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       );
     }
 
-    // ルーム作成（Firestore優先、ハング回避のためタイムアウト付き。失敗/タイムアウト時はメモリにフォールバック）
+    // ルーム作成（Firestore/Redis へ並列永続化。Firestoreはタイムアウトを付けてハングを回避）
     // 6桁IDを重複しないように最大100回まで試行
     let id = '';
     for (let i = 0; i < 100; i++) {
       const cand = String(Math.floor(100000 + Math.random() * 900000));
-      const exists = (await getRoomById?.(cand)) || (await getRoomByIdRedis?.(cand));
+      const exists = (await getRoomByIdRedis(cand)) || (await getRoomById(cand));
       if (!exists) { id = cand; break; }
     }
     if (!id) {
@@ -77,6 +81,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       maxCucumbers
     };
     room.seats[0] = { nickname: nickname.trim() };
+
+ codex/fix-room-access-issue-and-debug-j2dtpt
+    try {
+      await persistRoomToStores(room, 'friend/create', { firestoreTimeoutMs: 2000 });
+    } catch (persistError) {
+      const reason = persistError instanceof Error ? persistError.message : 'persist-failed';
+      console.error('[API] Room persistence failed (create):', persistError);
+      return NextResponse.json({ ok: false, reason }, { status: 500 });
+    }
+
 
     const withTimeout = async <T,>(p: Promise<T>, ms: number): Promise<T> => {
       return await Promise.race([
@@ -114,6 +128,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });
     }
 
+ main
     return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
 
   } catch (error) {

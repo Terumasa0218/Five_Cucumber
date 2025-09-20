@@ -1,9 +1,12 @@
 // ルーム情報取得API
 
-import { getRoomById } from '@/lib/roomsStore';
+import { getRoomByIdStrict, RoomStoreError } from '@/lib/roomsStore';
 import { getRoomByIdRedis } from '@/lib/roomsRedis';
 // 共有ストアに統一するため、メモリフォールバックは使用しない
 import { NextRequest, NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET(
   req: NextRequest,
@@ -19,13 +22,25 @@ export async function GET(
       );
     }
 
-    let room = await getRoomById(roomId);
+    let room = await getRoomByIdRedis(roomId);
+    let storeError: RoomStoreError | null = null;
     if (!room) {
-      room = await getRoomByIdRedis(roomId);
+      try {
+        room = await getRoomByIdStrict(roomId);
+      } catch (error) {
+        if (error instanceof RoomStoreError) {
+          storeError = error;
+        } else {
+          throw error;
+        }
+      }
     }
-    // メモリフォールバックは serverless で分断されるため使用しない
-    
+
     if (!room) {
+      if (storeError) {
+        const reason = storeError.code === 'permission-denied' ? 'rooms-store-forbidden' : 'rooms-store-unavailable';
+        return NextResponse.json({ ok: false, reason }, { status: 500 });
+      }
       return NextResponse.json(
         { ok: false, reason: 'not-found' },
         { status: 404 }
