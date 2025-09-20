@@ -1,6 +1,6 @@
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
-import { joinRoom } from '@/lib/roomSystemUnified';
+import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -25,10 +25,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     try {
-      // ルーム参加（共有ストア優先: Firestore -> Redis）
+      // ルーム参加（共有ストア優先: Firestore -> Redis -> Memory）
       const rid = roomId.trim();
       let room = await getRoomById(rid);
       if (!room) room = await getRoomByIdRedis(rid);
+      if (!room) room = getRoomFromMemory(rid);
       if (!room) {
         throw new Error('not-found');
       }

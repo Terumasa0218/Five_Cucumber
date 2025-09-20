@@ -2,6 +2,7 @@
 
 import { getRoomById } from '@/lib/roomsStore';
 import { getRoomByIdRedis } from '@/lib/roomsRedis';
+import { getRoomFromMemory } from '@/lib/roomSystemUnified';
 // 共有ストアに統一するため、メモリフォールバックは使用しない
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -23,7 +24,9 @@ export async function GET(
     if (!room) {
       room = await getRoomByIdRedis(roomId);
     }
-    // メモリフォールバックは serverless で分断されるため使用しない
+    if (!room) {
+      room = getRoomFromMemory(roomId);
+    }
     
     if (!room) {
       return NextResponse.json(

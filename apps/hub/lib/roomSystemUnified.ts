@@ -6,6 +6,51 @@ import { Room } from '@/types/room';
 let serverRooms: Map<string, Room> | null = null;
 
 /**
+ * サーバーサイド専用ストレージを取得（メモリのみ）
+ */
+export function getServerRoomsStorage(): Map<string, Room> {
+  if (!serverRooms) {
+    serverRooms = new Map();
+    console.log('[RoomSystem] Initialized server-side room storage');
+  }
+  return serverRooms;
+}
+
+/**
+ * サーバーサイド専用：メモリストレージからルームを取得
+ */
+export function getRoomFromMemory(roomId: string): Room | null {
+  if (typeof window !== 'undefined') {
+    throw new Error('This function is for server-side only');
+  }
+  const storage = getServerRoomsStorage();
+  return storage.get(roomId) || null;
+}
+
+/**
+ * サーバーサイド専用：メモリストレージにルームを保存
+ */
+export function putRoomToMemory(room: Room): void {
+  if (typeof window !== 'undefined') {
+    throw new Error('This function is for server-side only');
+  }
+  const storage = getServerRoomsStorage();
+  storage.set(room.id, room);
+  console.log('[RoomSystem] Saved room to server memory:', room.id);
+}
+
+/**
+ * サーバーサイド専用：メモリストレージからルームを削除
+ */
+export function deleteRoomFromMemory(roomId: string): boolean {
+  if (typeof window !== 'undefined') {
+    throw new Error('This function is for server-side only');
+  }
+  const storage = getServerRoomsStorage();
+  return storage.delete(roomId);
+}
+
+/**
  * ストレージを取得（環境に応じて切り替え）
  */
 function getRoomsStorage(): Map<string, Room> {

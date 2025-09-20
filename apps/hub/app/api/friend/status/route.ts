@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateRoom } from '@/lib/roomsStore';
 import { updateRoomRedis } from '@/lib/roomsRedis';
-import { updateRoomStatus } from '@/lib/roomSystemUnified';
+import { updateRoomStatus, getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -18,6 +18,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     } catch (e) {
       const updated = await updateRoomRedis(roomId.trim(), { status } as any);
       if (updated) return NextResponse.json({ ok: true }, { status: 200 });
+
+      // メモリフォールバック
+      const memoryRoom = getRoomFromMemory(roomId.trim());
+      if (memoryRoom) {
+        memoryRoom.status = status;
+        putRoomToMemory(memoryRoom);
+        return NextResponse.json({ ok: true }, { status: 200 });
+      }
+
       const ok = updateRoomStatus(roomId.trim(), status);
       if (!ok) {
         return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });

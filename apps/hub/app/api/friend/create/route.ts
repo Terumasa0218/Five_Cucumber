@@ -1,5 +1,6 @@
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
+import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
 import { Room } from '@/types/room';
 import { CreateRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
@@ -56,12 +57,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       );
     }
 
-    // ルーム作成（Firestore優先、ハング回避のためタイムアウト付き。失敗/タイムアウト時はメモリにフォールバック）
+    // ルーム作成（共有ストア優先、ハング回避のためタイムアウト付き。失敗時はメモリにフォールバック）
     // 6桁IDを重複しないように最大100回まで試行
     let id = '';
     for (let i = 0; i < 100; i++) {
       const cand = String(Math.floor(100000 + Math.random() * 900000));
-      const exists = (await getRoomById?.(cand)) || (await getRoomByIdRedis?.(cand));
+      const existsInFirestore = await getRoomById?.(cand);
+      const existsInRedis = await getRoomByIdRedis?.(cand);
+      const existsInMemory = getRoomFromMemory(cand);
+      const exists = existsInFirestore || existsInRedis || existsInMemory;
       if (!exists) { id = cand; break; }
     }
     if (!id) {
@@ -105,8 +109,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       }
     }
 
-    // サーバー共有ストレージが無い場合は失敗を返す（serverlessでの分断を避ける）
-    return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });
+    // 最終フォールバック：サーバーメモリに保存（開発環境用）
+    try {
+      putRoomToMemory(room);
+      return NextResponse.json({ ok: true, roomId: id }, { status: 200 });
+    } catch (e) {
+      console.error('[API] Memory fallback failed:', e);
+      return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });
+    }
 
   } catch (error) {
     console.error('Room creation error:', error);
