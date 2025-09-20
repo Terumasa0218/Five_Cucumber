@@ -14,7 +14,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const hasRedisAvailable = isRedisAvailable();
-    const isProd = process.env.VERCEL === '1' || !!process.env.VERCEL_ENV;
+    const isProd = process.env.VERCEL_ENV === 'production';
     let storageUsed = '';
 
     try {

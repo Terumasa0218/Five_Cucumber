@@ -92,7 +92,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
     const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     const hasRedisAvailable = isRedisAvailable();
-    const isProd = process.env.VERCEL === '1' || !!process.env.VERCEL_ENV;
+    // 本番は VERCEL_ENV==='production' のみ。preview/development ではメモリフォールバックを許可
+    const isProd = process.env.VERCEL_ENV === 'production';
     const useMemoryFallback = !hasFirestoreEnv && !hasRedisAvailable && !isProd;
 
     let persisted = false;
