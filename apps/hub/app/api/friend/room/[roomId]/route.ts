@@ -5,6 +5,9 @@ import { getRoomByIdRedis } from '@/lib/roomsRedis';
 // 共有ストアに統一するため、メモリフォールバックは使用しない
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   req: NextRequest,
   { params }: { params: { roomId: string } }
@@ -19,9 +22,9 @@ export async function GET(
       );
     }
 
-    let room = await getRoomById(roomId);
+    let room = await getRoomByIdRedis(roomId);
     if (!room) {
-      room = await getRoomByIdRedis(roomId);
+      room = await getRoomById(roomId);
     }
     // メモリフォールバックは serverless で分断されるため使用しない
     

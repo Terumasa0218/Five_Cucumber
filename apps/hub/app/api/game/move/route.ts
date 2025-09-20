@@ -1,14 +1,17 @@
 import { apply, projectViewFor, validate } from '@/lib/engine';
 import { hashState } from '@/lib/hashState';
 import { realtime } from '@/lib/realtime';
-import { redis } from '@/lib/redis';
+import { getRedis } from '@/lib/redis';
+import { ROOM_TTL_SECONDS } from '@/lib/roomsRedis';
 import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 export const runtime = 'nodejs';
 
-async function withRoomLock<T>(roomId: string, fn: () => Promise<T>) {
+type RedisClient = NonNullable<ReturnType<typeof getRedis>>;
+
+async function withRoomLock<T>(redis: RedisClient, roomId: string, fn: () => Promise<T>) {
   const key = `lock:room:${roomId}`;
   const token = randomUUID();
   const ok = await redis.set(key, token, { nx: true, ex: 2 } as any);
@@ -34,7 +37,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN || !process.env.ABLY_API_KEY) {
       return NextResponse.json({ error: 'MISCONFIGURED_ENV' }, { status: 500 });
     }
-    const res = await withRoomLock(roomId, async () => {
+    const redis = getRedis();
+    if (!redis) {
+      return NextResponse.json({ error: 'MISCONFIGURED_ENV' }, { status: 500 });
+    }
+    const res = await withRoomLock(redis, roomId, async () => {
       const dedup = await redis.set(`op:${roomId}:${opId}`, 1, { nx: true, ex: 60 } as any);
       if (dedup !== 'OK') {
         const vNow = await redis.get<number>(`room:${roomId}:v`);
@@ -57,8 +64,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const next = apply(state, action);
       const v = vNow + 1;
       await Promise.all([
-        redis.set(`room:${roomId}:state`, JSON.stringify(next)),
-        redis.set(`room:${roomId}:v`, v),
+        redis.set(`room:${roomId}:state`, JSON.stringify(next), { ex: ROOM_TTL_SECONDS }),
+        redis.set(`room:${roomId}:v`, v, { ex: ROOM_TTL_SECONDS }),
       ]);
 
       await realtime.publishToMany(roomId, seats, 'state_patch', (uid) => {
