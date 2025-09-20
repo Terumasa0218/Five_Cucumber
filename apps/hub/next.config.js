@@ -22,14 +22,12 @@ const nextConfig = {
     };
     return config;
   },
-  async rewrites() {
-    return [
-      {
-        source: '/assets/:path*',
-        destination: '/public/assets/:path*',
-      },
-    ];
-  },
+  // NOTE: public 配下はそのまま配信されるため、この rewrites は不要です
+  // async rewrites() {
+  //   return [
+  //     { source: '/assets/:path*', destination: '/public/assets/:path*' },
+  //   ];
+  // },
 };
 
 export default nextConfig;
