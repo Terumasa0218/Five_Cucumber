@@ -4,19 +4,19 @@ import type { Room, RoomGameSnapshot } from '@/types/room';
 const key = (id: string) => `room:${id}`;
 
 export async function getRoomByIdRedis(roomId: string): Promise<Room | null> {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) return null;
+  // Vercel KVは自動的に利用可能なのでチェック不要
   const s = await redis.get<string>(key(roomId));
   if (!s) return null;
   try { return JSON.parse(s) as Room; } catch { return null; }
 }
 
 export async function putRoomRedis(room: Room): Promise<void> {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) return;
+  // Vercel KVは自動的に利用可能なのでチェック不要
   await redis.set(key(room.id), JSON.stringify(room));
 }
 
 export async function updateRoomRedis(roomId: string, patch: Partial<Room>): Promise<boolean> {
-  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) return false;
+  // Vercel KVは自動的に利用可能なのでチェック不要
   const s = await redis.get<string>(key(roomId));
   if (!s) return false;
   const current = JSON.parse(s) as Room;

@@ -13,29 +13,30 @@
     "clean": "rm -rf .next dist"
   },
   "dependencies": {
+    "@five-cucumber/metrics": "workspace:*",
+    "@five-cucumber/sdk": "workspace:*",
+    "@five-cucumber/ui": "workspace:*",
+    "@upstash/redis": "^1.28.4",
+    "@vercel/kv": "^3.0.0",
+    "ably": "^1.2.48",
+    "firebase": "^10.7.0",
+    "i18next": "^23.7.0",
+    "i18next-browser-languagedetector": "^7.2.0",
     "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-i18next": "^13.5.0",
-    "i18next": "^23.7.0",
-    "i18next-browser-languagedetector": "^7.2.0",
-    "firebase": "^10.7.0",
-    "@upstash/redis": "^1.28.4",
-    "ably": "^1.2.48",
     "uuid": "^9.0.1",
-    "zod": "^3.23.8",
-    "@five-cucumber/sdk": "workspace:*",
-    "@five-cucumber/ui": "workspace:*",
-    "@five-cucumber/metrics": "workspace:*"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "typescript": "^5.0.0",
-    "eslint": "^8.57.0",
-    "@typescript-eslint/parser": "^7.0.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "eslint-config-next": "^14.0.0"
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.0.0",
+    "typescript": "^5.0.0"
   }
 }
