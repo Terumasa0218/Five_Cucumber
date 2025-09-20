@@ -21,6 +21,7 @@ export async function GET(
     }
 
     const hasRedisAvailable = isRedisAvailable();
+    const isProd = process.env.VERCEL === '1' || !!process.env.VERCEL_ENV;
     let room = await getRoomById(roomId);
     console.log('[API] Room lookup - Firestore:', room ? 'found' : 'not found');
 
@@ -29,7 +30,7 @@ export async function GET(
       console.log('[API] Room lookup - Redis/KV:', room ? 'found' : 'not found');
     }
 
-    if (!room) {
+    if (!room && !isProd) {
       room = getRoomFromMemory(roomId);
       console.log('[API] Room lookup - Memory:', room ? 'found' : 'not found');
     }

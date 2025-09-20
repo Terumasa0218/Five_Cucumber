@@ -4,20 +4,12 @@ export const redis = kv;
 
 // Vercel KVが利用できない場合のフォールバック
 export const isRedisAvailable = () => {
-  // Vercel KVはVercelプラットフォームでのみ動作する
-  // ローカル開発では常にfalseを返す
   if (typeof process === 'undefined') return false;
-
-  // Vercel環境では自動的に利用可能になる
-  const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
-  console.log('[Redis] Environment check:', {
-    isVercel,
-    vercel: process.env.VERCEL,
-    vercelEnv: process.env.VERCEL_ENV,
-    nodeEnv: process.env.NODE_ENV
-  });
-
-  return isVercel === true;
+  const hasUrl = !!process.env.KV_REST_API_URL || !!process.env.VERCEL_REDIS_URL;
+  const hasToken = !!process.env.KV_REST_API_TOKEN || !!process.env.VERCEL_REDIS_TOKEN;
+  const enabled = hasUrl && hasToken;
+  console.log('[Redis] KV availability:', { hasUrl, hasToken, enabled, nodeEnv: process.env.NODE_ENV });
+  return enabled;
 };
 
 // 開発環境でのみメモリフォールバックを強制的に有効化

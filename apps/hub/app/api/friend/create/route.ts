@@ -92,7 +92,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
     const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     const hasRedisAvailable = isRedisAvailable();
-    const useMemoryFallback = !hasFirestoreEnv && !hasRedisAvailable;
+    const isProd = process.env.VERCEL === '1' || !!process.env.VERCEL_ENV;
+    const useMemoryFallback = !hasFirestoreEnv && !hasRedisAvailable && !isProd;
 
     let persisted = false;
     let storageUsed = '';
@@ -127,7 +128,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     if (!persisted) {
-      // 開発環境または共有ストレージが利用できない場合、メモリフォールバックを使用
+      // 本番ではメモリフォールバックを禁止（サーバーレスで共有されないため）
+      if (isProd) {
+        console.error('[API] No persistent storage available in production');
+        return NextResponse.json({ ok: false, reason: 'server-error', detail: 'No persistent storage in production' }, { status: 500 });
+      }
+      // 開発環境ではメモリフォールバックを使用
       console.log('[API] Using memory fallback for room:', id, 'reason:', useMemoryFallback ? 'no storage available' : 'development mode');
       try {
         const { getAllServerRooms } = await import('@/lib/roomSystemUnified');

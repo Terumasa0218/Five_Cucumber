@@ -9,7 +9,8 @@ import { useEffect, useState } from "react";
 import { makeClient } from "@/lib/realtime-client";
 
 export default function RoomWaitingPage() {
-  const HAS_SERVER = (process.env.NEXT_PUBLIC_HAS_REDIS === '1') || Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+  // 常にサーバーAPIを使い、失敗時のみローカルにフォールバック
+  const HAS_SERVER = true;
   const params = useParams();
   const router = useRouter();
   const roomId = params.roomId as string;

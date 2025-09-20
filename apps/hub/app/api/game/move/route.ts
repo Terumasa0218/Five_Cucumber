@@ -1,7 +1,7 @@
 import { apply, projectViewFor, validate } from '@/lib/engine';
 import { hashState } from '@/lib/hashState';
 import { realtime } from '@/lib/realtime';
-import { redis } from '@/lib/redis';
+import { redis, isRedisAvailable } from '@/lib/redis';
 import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -11,13 +11,25 @@ export const runtime = 'nodejs';
 async function withRoomLock<T>(roomId: string, fn: () => Promise<T>) {
   const key = `lock:room:${roomId}`;
   const token = randomUUID();
-  const ok = await redis.set(key, token, { nx: true, ex: 2 } as any);
-  if (ok !== 'OK') throw new Error('ROOM_BUSY');
+  if (isRedisAvailable()) {
+    const ok = await redis.set(key, token, { nx: true, ex: 2 } as any);
+    if (ok !== 'OK') throw new Error('ROOM_BUSY');
+  } else {
+    (globalThis as any).__locks = (globalThis as any).__locks || new Map<string, string>();
+    const locks = (globalThis as any).__locks as Map<string, string>;
+    if (locks.has(key)) throw new Error('ROOM_BUSY');
+    locks.set(key, token);
+  }
   try {
     return await fn();
   } finally {
-    const v = await redis.get<string>(key);
-    if (v === token) await redis.del(key);
+    if (isRedisAvailable()) {
+      const v = await redis.get<string>(key);
+      if (v === token) await redis.del(key);
+    } else {
+      const locks = (globalThis as any).__locks as Map<string, string>;
+      if (locks?.get(key) === token) locks.delete(key);
+    }
   }
 }
 
@@ -39,17 +51,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     console.log('[Game Move] Processing move for room:', roomId, 'user:', userId, 'opId:', opId);
     const res = await withRoomLock(roomId, async () => {
-      const dedup = await redis.set(`op:${roomId}:${opId}`, 1, { nx: true, ex: 60 } as any);
-      if (dedup !== 'OK') {
-        const vNow = await redis.get<number>(`room:${roomId}:v`);
-        return { v: vNow, dedup: true };
+      let vNow: number | null = null;
+      let seatsStr: string | null = null;
+      let stateStr: string | null = null;
+      if (isRedisAvailable()) {
+        const dedup = await redis.set(`op:${roomId}:${opId}`, 1, { nx: true, ex: 60 } as any);
+        if (dedup !== 'OK') {
+          vNow = await redis.get<number>(`room:${roomId}:v`);
+          return { v: vNow, dedup: true };
+        }
+        [vNow, seatsStr, stateStr] = await Promise.all([
+          redis.get<number>(`room:${roomId}:v`),
+          redis.get<string>(`room:${roomId}:seats`),
+          redis.get<string>(`room:${roomId}:state`),
+        ]);
+      } else {
+        const mem = ((globalThis as any).__mem ?? new Map<string, any>()) as Map<string, any>;
+        (globalThis as any).__mem = mem;
+        vNow = mem.has(`room:${roomId}:v`) ? mem.get(`room:${roomId}:v`) : null;
+        seatsStr = mem.get(`room:${roomId}:seats`) ?? null;
+        stateStr = mem.get(`room:${roomId}:state`) ?? null;
       }
-
-      const [vNow, seatsStr, stateStr] = await Promise.all([
-        redis.get<number>(`room:${roomId}:v`),
-        redis.get<string>(`room:${roomId}:seats`),
-        redis.get<string>(`room:${roomId}:state`),
-      ]);
       if (vNow === null || !seatsStr || !stateStr) throw new Error('GAME_NOT_FOUND');
       if (vNow !== baseV) throw new Error('STALE_VERSION');
       const seats = JSON.parse(seatsStr) as string[];
@@ -60,10 +82,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       const next = apply(state, action);
       const v = vNow + 1;
-      await Promise.all([
-        redis.set(`room:${roomId}:state`, JSON.stringify(next)),
-        redis.set(`room:${roomId}:v`, v),
-      ]);
+      if (isRedisAvailable()) {
+        await Promise.all([
+          redis.set(`room:${roomId}:state`, JSON.stringify(next)),
+          redis.set(`room:${roomId}:v`, v),
+        ]);
+      } else {
+        const mem = (globalThis as any).__mem as Map<string, any>;
+        mem.set(`room:${roomId}:state`, JSON.stringify(next));
+        mem.set(`room:${roomId}:v`, v);
+      }
 
       await realtime.publishToMany(roomId, seats, 'state_patch', (uid) => {
         const view = projectViewFor(next, uid);

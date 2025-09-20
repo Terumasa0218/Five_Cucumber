@@ -14,6 +14,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const hasRedisAvailable = isRedisAvailable();
+    const isProd = process.env.VERCEL === '1' || !!process.env.VERCEL_ENV;
     let storageUsed = '';
 
     try {
@@ -33,15 +34,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         }
       }
 
-      // メモリフォールバック
-      console.log('[API] No persistent storage available for status, using memory fallback');
-      const memoryRoom = getRoomFromMemory(roomId.trim());
-      if (memoryRoom) {
-        memoryRoom.status = status;
-        putRoomToMemory(memoryRoom);
-        storageUsed = 'Memory';
-        console.log('[API] Status updated in memory successfully');
-        return NextResponse.json({ ok: true }, { status: 200 });
+      // 本番ではメモリフォールバック禁止
+      if (!isProd) {
+        console.log('[API] No persistent storage available for status, using memory fallback');
+        const memoryRoom = getRoomFromMemory(roomId.trim());
+        if (memoryRoom) {
+          memoryRoom.status = status;
+          putRoomToMemory(memoryRoom);
+          storageUsed = 'Memory';
+          console.log('[API] Status updated in memory successfully');
+          return NextResponse.json({ ok: true }, { status: 200 });
+        }
       }
 
       const ok = updateRoomStatus(roomId.trim(), status);
