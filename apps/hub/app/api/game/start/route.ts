@@ -11,9 +11,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const schema = z.object({ roomId: z.string().min(1), seats: z.array(z.string().min(1)).min(2) });
     const { roomId, seats } = schema.parse(await req.json());
-    if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN || !process.env.ABLY_API_KEY) {
+
+    if (!process.env.ABLY_API_KEY) {
+      console.error('[Game Start] ABLY_API_KEY environment variable is not set');
       return NextResponse.json({ error: 'MISCONFIGURED_ENV' }, { status: 500 });
     }
+
+    console.log('[Game Start] Starting game for room:', roomId, 'seats:', seats);
     const seed = `${Date.now()}:${roomId}`;
     const state = initGame(seats, seed);
     await Promise.all([

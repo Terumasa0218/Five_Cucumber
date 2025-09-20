@@ -31,9 +31,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       action: z.any(),
     });
     const { roomId, userId, opId, baseV, action } = schema.parse(await req.json());
-    if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN || !process.env.ABLY_API_KEY) {
+
+    if (!process.env.ABLY_API_KEY) {
+      console.error('[Game Move] ABLY_API_KEY environment variable is not set');
       return NextResponse.json({ error: 'MISCONFIGURED_ENV' }, { status: 500 });
     }
+
+    console.log('[Game Move] Processing move for room:', roomId, 'user:', userId, 'opId:', opId);
     const res = await withRoomLock(roomId, async () => {
       const dedup = await redis.set(`op:${roomId}:${opId}`, 1, { nx: true, ex: 60 } as any);
       if (dedup !== 'OK') {
