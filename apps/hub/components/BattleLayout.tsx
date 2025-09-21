@@ -39,8 +39,8 @@ export default function BattleLayout({ children, className, showOrientationHint 
     <BackgroundFrame src="/images/battle1.png" objectPosition="center" priority className={className}>
       {/* 縦向き時の回転案内オーバーレイ（必要時のみ） */}
       {showOrientationHint && isPortrait && (
-        <div className="absolute inset-0 grid place-items-center bg-black/70 backdrop-blur-sm text-center">
-          <div>
+        <div className="battle-layout__orientation-overlay">
+          <div className="battle-layout__orientation-card">
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📱</div>
             <div>横向きにしてプレイしてください</div>
             <div style={{ fontSize: '1rem', marginTop: '1rem', opacity: 0.7 }}>
@@ -52,7 +52,7 @@ export default function BattleLayout({ children, className, showOrientationHint 
 
       {/* ステージ */}
       <div className="flex-1 flex flex-col">
-        <div className="aspect-[16/9] w-full max-w-[1280px] mx-auto rounded-[32px] border border-white/10 bg-white/5 backdrop-blur">
+        <div className="battle-layout__stage">
           {children}
         </div>
       </div>

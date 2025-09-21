@@ -40,9 +40,9 @@ export function RoomSummaryCard({
   })();
 
   return (
-    <div className={mergeClassNames("backdrop-blur-sm bg-black/30 border border-white/10 rounded-3xl p-8 flex flex-col gap-8", className)}>
-      <div className="flex items-start justify-between gap-4">
-        <span className={mergeClassNames("inline-flex items-center gap-3 rounded-full px-4 py-2 text-sm font-semibold", banner.className)}>
+    <div className={mergeClassNames("room-summary-card", className)}>
+      <div className="room-summary-card__header">
+        <span className={mergeClassNames("room-summary-card__status", `room-summary-card__status--${status}`)}>
           <span aria-hidden>{banner.emoji}</span>
           <span>
             {status === "waiting" ? "待機中" : status === "playing" ? "対戦中" : "終了"}
@@ -51,27 +51,27 @@ export function RoomSummaryCard({
         {headerActions ? <div className="flex items-center gap-3">{headerActions}</div> : null}
       </div>
 
-      <div className="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 font-mono text-sm">
+      <div className="room-summary-card__code">
         <span className="opacity-80">ROOM CODE</span>
         <strong>{roomCode}</strong>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 text-white/80">
-        <div className="flex items-center justify-between">
+      <div className="room-summary-card__info">
+        <div className="room-summary-card__info-item">
           <span>定員</span>
-          <strong>{requiredPlayers}人</strong>
+          <strong className="room-summary-card__info-value">{requiredPlayers}人</strong>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="room-summary-card__info-item">
           <span>参加者</span>
-          <strong>{joinedPlayers}人</strong>
+          <strong className="room-summary-card__info-value">{joinedPlayers}人</strong>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="room-summary-card__info-item">
           <span>制限時間</span>
-          <strong>{limitSeconds === 0 ? "無制限" : `${limitSeconds}秒`}</strong>
+          <strong className="room-summary-card__info-value">{limitSeconds === 0 ? "無制限" : `${limitSeconds}秒`}</strong>
         </div>
-        <div className="flex items-center justify-between">
+        <div className="room-summary-card__info-item">
           <span>きゅうり上限</span>
-          <strong>{maxCucumbers}本</strong>
+          <strong className="room-summary-card__info-value">{maxCucumbers}本</strong>
         </div>
       </div>
 

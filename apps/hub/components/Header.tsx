@@ -1,5 +1,6 @@
 'use client';
 import { getNickname } from '@/lib/profile';
+import { t } from '@/lib/i18n';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -36,7 +37,7 @@ export default function Header(){
             </span>
           ) : (
             <span className="header-user__placeholder">
-              未設定
+              {t("nicknameUnset")}
             </span>
           )}
         </div>

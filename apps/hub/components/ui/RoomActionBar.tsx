@@ -15,12 +15,12 @@ function mergeClassNames(...classes: Array<string | undefined | false>) {
 
 export function RoomActionBar({ primary, secondary, hint, className }: RoomActionBarProps) {
   return (
-    <div className={mergeClassNames("flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4", className)}>
-      <div className="flex gap-3">
+    <div className={mergeClassNames("room-action-bar", className)}>
+      <div className="room-action-bar__actions">
         {secondary}
         {primary}
       </div>
-      {hint ? <p className="text-white/70 text-sm">{hint}</p> : null}
+      {hint ? <p className="room-action-bar__hint">{hint}</p> : null}
     </div>
   );
 }

@@ -204,7 +204,7 @@ export default function RoomWaitingPage() {
   if (!mounted) {
     return (
       <FriendRoomLayout title="フレンドルーム" eyebrow={`ROOM ${roomId}`}>
-        <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-3xl p-10 text-center">読み込み中…</div>
+        <div className="friend-room__status-card text-center">読み込み中…</div>
       </FriendRoomLayout>
     );
   }
@@ -286,7 +286,7 @@ export default function RoomWaitingPage() {
 
   const renderStatusCard = (message: string, actions?: React.ReactNode) => (
     <FriendRoomLayout title="フレンドルーム" eyebrow={`ROOM ${roomId}`}>
-      <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-3xl p-10 text-center flex flex-col gap-4">
+      <div className="friend-room__status-card text-center flex flex-col gap-4">
         <p>{message}</p>
         {actions}
       </div>
@@ -296,11 +296,11 @@ export default function RoomWaitingPage() {
   if (error) {
     return renderStatusCard(
       error,
-      <div className="flex gap-3 justify-center">
-        <Link href="/home" className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60">
+      <div className="friend-room__status-actions">
+        <Link href="/home" className="btn-primary friend-room__cta-button">
           ホームに戻る
         </Link>
-        <Link href="/friend" className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60">
+        <Link href="/friend" className="btn-secondary friend-room__cta-button">
           フレンド対戦トップへ
         </Link>
       </div>
@@ -326,7 +326,7 @@ export default function RoomWaitingPage() {
             isInRoom ? (
               <button
                 onClick={handleLeaveRoom}
-                className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+                className="btn-secondary friend-room__cta-button"
               >
                 ルームを退出する
               </button>
@@ -336,7 +336,7 @@ export default function RoomWaitingPage() {
             isHost && isFull && room.status === 'waiting' ? (
               <button
                 onClick={handleStartGame}
-                className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+                className="btn-primary friend-room__cta-button"
               >
                 ゲームを開始する
               </button>
@@ -358,17 +358,17 @@ export default function RoomWaitingPage() {
             <button
               type="button"
               onClick={handleCopyRoomId}
-              className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45"
+              className="btn-secondary"
             >
               {copied ? 'コピーしました！' : 'ルーム番号をコピー'}
             </button>
-            <Link href="/rules" className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45">ルール</Link>
-            <Link href="/home" className="inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45">ホーム</Link>
+            <Link href="/rules" className="btn-secondary">ルール</Link>
+            <Link href="/home" className="btn-secondary">ホーム</Link>
           </>
         }
       >
         <div>
-          <h2 className="font-heading text-[clamp(18px,2.6vw,24px)]">参加者一覧 ({filledSeats}/{room.size})</h2>
+          <h2 className="font-heading text-[clamp(18px,2.6vw,24px)]" style={{color: 'var(--antique-ink)'}}>参加者一覧 ({filledSeats}/{room.size})</h2>
           <PlayerSeatGrid
             seats={room.seats.map((seat, index) => ({
               nickname: seat?.nickname ?? null,

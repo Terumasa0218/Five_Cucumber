@@ -1637,6 +1637,455 @@ body[data-bg="battle"]::before {
   border: 1px solid rgba(255, 210, 122, 0.5);
 }
 
+/* === BackgroundFrame === */
+.background-frame {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Noto Sans JP', sans-serif;
+  width: 100%;
+}
+
+.background-frame__overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.background-frame__overlay--radial {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(245,240,230,0.08) 0%, rgba(200,168,90,0.12) 68%, rgba(43,43,43,0.15) 100%);
+}
+
+.background-frame__overlay--linear {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(245,240,230,0.1) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 78%, rgba(245,240,230,0.1) 100%);
+}
+
+.background-frame__safe-area {
+  position: relative;
+  z-index: 10;
+  padding-block: clamp(64px, 10vh, 128px);
+  padding-inline: clamp(20px, 6vw, 96px);
+  width: 100%;
+}
+
+/* === フレンドルームレイアウト === */
+.friend-room {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(24px, 4vw, 48px);
+}
+
+.friend-room__header {
+  background: rgba(245, 240, 230, 0.95);
+  border: 2px solid var(--antique-border);
+  border-radius: 24px;
+  padding: clamp(24px, 4vw, 40px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vw, 24px);
+  box-shadow: 0 8px 32px var(--antique-shadow);
+}
+
+.friend-room__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 9999px;
+  background: rgba(245, 240, 230, 0.9);
+  border: 2px solid var(--antique-border);
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--antique-ink);
+  box-shadow: 0 2px 8px var(--antique-shadow);
+}
+
+.friend-room__eyebrow {
+  color: var(--antique-muted);
+  font-size: clamp(12px, 1.4vw, 14px);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.friend-room__title {
+  font-family: 'Shippori Mincho', serif;
+  font-size: clamp(22px, 4vw, 36px);
+  font-weight: 700;
+  color: var(--antique-ink);
+  margin: 0;
+}
+
+.friend-room__description {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: clamp(14px, 1.6vw, 18px);
+  color: var(--antique-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.friend-room__status-card {
+  background: rgba(245, 240, 230, 0.95);
+  border: 2px solid var(--antique-border);
+  border-radius: 24px;
+  padding: clamp(20px, 4vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 3vw, 24px);
+  box-shadow: 0 8px 32px var(--antique-shadow);
+}
+
+.friend-room__status-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (min-width: 640px) {
+  .friend-room__status-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+.friend-room__cta-button {
+  min-width: 160px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* === 設定レイアウト === */
+.settings-layout {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(24px, 4vw, 48px);
+}
+
+.settings-layout__header {
+  background: rgba(245, 240, 230, 0.95);
+  border: 2px solid var(--antique-border);
+  border-radius: 24px;
+  padding: clamp(24px, 4vw, 40px);
+  box-shadow: 0 8px 32px var(--antique-shadow);
+}
+
+.settings-layout__title {
+  font-family: 'Shippori Mincho', serif;
+  font-size: clamp(22px, 4vw, 36px);
+  font-weight: 700;
+  color: var(--antique-ink);
+  margin: 0;
+}
+
+.settings-layout__description {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: clamp(14px, 1.6vw, 18px);
+  color: var(--antique-muted);
+  line-height: 1.6;
+  margin: 12px 0 0 0;
+}
+
+/* === ルームサマリーカード === */
+.room-summary-card {
+  background: rgba(245, 240, 230, 0.95);
+  border: 2px solid var(--antique-border);
+  border-radius: 24px;
+  padding: clamp(20px, 4vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 3vw, 24px);
+  box-shadow: 0 8px 32px var(--antique-shadow);
+}
+
+.room-summary-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.room-summary-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.room-summary-card__status--waiting {
+  background: rgba(46, 125, 50, 0.15);
+  color: var(--antique-forest);
+  border: 1px solid rgba(46, 125, 50, 0.3);
+}
+
+.room-summary-card__status--playing {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1e40af;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.room-summary-card__status--finished {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.room-summary-card__code {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 9999px;
+  border: 2px solid var(--antique-border);
+  background: rgba(245, 240, 230, 0.9);
+  padding: 8px 16px;
+  font-family: monospace;
+  font-size: 14px;
+  color: var(--antique-ink);
+}
+
+.room-summary-card__info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  color: var(--antique-muted);
+}
+
+.room-summary-card__info-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(245, 240, 230, 0.5);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.room-summary-card__info-value {
+  font-weight: 600;
+  color: var(--antique-ink);
+}
+
+/* === プレイヤーシートグリッド === */
+.player-seat-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.player-seat-grid__container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .player-seat-grid__container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.player-seat-grid__seat {
+  border-radius: 16px;
+  padding: 16px;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+}
+
+.player-seat-grid__seat--empty {
+  background: rgba(245, 240, 230, 0.3);
+  border-color: var(--antique-border);
+  border-style: dashed;
+}
+
+.player-seat-grid__seat--occupied {
+  background: rgba(245, 240, 230, 0.7);
+  border-color: var(--antique-border);
+}
+
+.player-seat-grid__seat--you {
+  border-color: var(--antique-forest);
+  box-shadow: 0 0 0 2px var(--antique-forest);
+}
+
+.player-seat-grid__name {
+  font-weight: 600;
+  color: var(--antique-ink);
+}
+
+.player-seat-grid__badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-seat-grid__badge {
+  border-radius: 9999px;
+  background: rgba(245, 240, 230, 0.9);
+  border: 1px solid var(--antique-border);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--antique-ink);
+}
+
+.player-seat-grid__badge--host {
+  background: var(--antique-brass);
+  color: white;
+  border-color: var(--antique-brass);
+}
+
+.player-seat-grid__badge--you {
+  background: var(--antique-forest);
+  color: white;
+  border-color: var(--antique-forest);
+}
+
+/* === ルームアクションバー === */
+.room-action-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .room-action-bar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.room-action-bar__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.room-action-bar__hint {
+  color: var(--antique-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+@media (min-width: 640px) {
+  .room-action-bar__hint {
+    text-align: right;
+  }
+}
+
+/* === オプショントグルグループ === */
+.option-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option-toggle__container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.option-toggle__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  min-width: 72px;
+  padding: 8px 20px;
+  border-radius: 9999px;
+  font-size: clamp(13px, 1.6vw, 16px);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: 2px solid;
+  background: rgba(245, 240, 230, 0.7);
+  border-color: var(--antique-border);
+  color: var(--antique-ink);
+}
+
+.option-toggle__button:hover {
+  background: rgba(245, 240, 230, 0.9);
+  border-color: var(--antique-forest);
+}
+
+.option-toggle__button:focus-visible {
+  outline: 2px solid var(--antique-brass);
+  outline-offset: 2px;
+}
+
+.option-toggle__button--selected {
+  background: var(--antique-forest);
+  color: white;
+  border-color: var(--antique-forest);
+  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.3);
+}
+
+.option-toggle__button--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* === バトルレイアウト === */
+.battle-layout {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Noto Sans JP', sans-serif;
+  color: #f8fafc;
+}
+
+.battle-layout__orientation-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  text-align: center;
+  z-index: 1000;
+}
+
+.battle-layout__orientation-card {
+  background: rgba(245, 240, 230, 0.95);
+  border: 2px solid var(--antique-border);
+  border-radius: 24px;
+  padding: 32px;
+  color: var(--antique-ink);
+  box-shadow: 0 8px 32px var(--antique-shadow);
+}
+
+.battle-layout__stage {
+  aspect-ratio: 16/9;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  border-radius: 32px;
+  border: 2px solid var(--antique-border);
+  background: rgba(245, 240, 230, 0.05);
+  backdrop-filter: blur(4px);
+}
+
 /* === ホームページ専用スタイル === */
 .home-page {
   display: flex;

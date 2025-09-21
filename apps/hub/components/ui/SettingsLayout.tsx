@@ -29,11 +29,11 @@ export function SettingsLayout({
       priority
       className={className}
     >
-      <div className="max-w-[960px] mx-auto flex flex-col gap-12">
-        <header className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-3xl p-10">
-          <h1 className="font-heading text-[clamp(22px,4vw,36px)]">{title}</h1>
+      <div className="settings-layout">
+        <header className="settings-layout__header">
+          <h1 className="settings-layout__title">{title}</h1>
           {description ? (
-            <p className="mt-3 text-white/80 text-[clamp(14px,1.6vw,18px)]">{description}</p>
+            <p className="settings-layout__description">{description}</p>
           ) : null}
         </header>
 

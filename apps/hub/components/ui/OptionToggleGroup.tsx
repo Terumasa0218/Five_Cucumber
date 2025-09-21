@@ -54,8 +54,8 @@ export function OptionToggleGroup<T extends string | number>({
   }, [id, onChange, options, selectedIndex]);
 
   return (
-    <div className={mergeClassNames("flex flex-col gap-2", className)}>
-      <div id={id} role="radiogroup" aria-label={label} className={layout === "wrap" ? "flex flex-wrap gap-3 justify-center" : "grid gap-3"}>
+    <div className={mergeClassNames("option-toggle", className)}>
+      <div id={id} role="radiogroup" aria-label={label} className="option-toggle__container">
         {options.map((option, idx) => {
           const isSelected = option.value === value;
           return (
@@ -68,16 +68,14 @@ export function OptionToggleGroup<T extends string | number>({
               onClick={() => !option.disabled && onChange(option.value)}
               disabled={option.disabled}
               className={mergeClassNames(
-                "inline-flex h-12 min-w-[72px] items-center justify-center rounded-full px-5 text-[clamp(13px,1.6vw,16px)] font-medium transition",
-                option.disabled ? "opacity-40" : undefined,
-                isSelected
-                  ? "bg-emerald-500/90 text-emerald-950 border border-white/40 shadow-[0_12px_30px_rgba(16,185,129,0.25)]"
-                  : "bg-white/10 border border-white/15 hover:bg-white/16 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+                "option-toggle__button",
+                option.disabled ? "option-toggle__button--disabled" : undefined,
+                isSelected ? "option-toggle__button--selected" : undefined
               )}
             >
               <span>{option.label}</span>
               {option.description ? (
-                <span className="ml-2 text-white/60">{option.description}</span>
+                <span className="ml-2" style={{color: 'var(--antique-muted)'}}>{option.description}</span>
               ) : null}
             </button>
           );
