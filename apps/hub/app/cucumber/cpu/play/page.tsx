@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
 import BattleLayout from '@/components/BattleLayout';
-import { EllipseTable, Timer } from '@/components/ui';
+import { BattleHud, BattleTable, GameFooter, Timer } from '@/components/ui';
 import { delay, runAnimation } from '@/lib/animQueue';
 import {
-  applyMove,
-  createGameView,
-  createInitialState,
-  endTrick,
-  finalRound,
-  GameConfig,
-  GameState,
-  getEffectiveTurnSeconds,
-  getLegalMoves,
-  Move,
-  PlayerController,
-  SeededRng,
-  startNewRound
+    applyMove,
+    createGameView,
+    createInitialState,
+    endTrick,
+    finalRound,
+    GameConfig,
+    GameState,
+    getEffectiveTurnSeconds,
+    getLegalMoves,
+    Move,
+    PlayerController,
+    SeededRng,
+    startNewRound
 } from '@/lib/game-core';
 import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -492,81 +492,83 @@ function CpuPlayContent() {
 
   if (!gameState) {
     return (
-      <BattleLayout>
-        <div className="game-container">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-            Loading...
-          </div>
+      <BattleLayout showOrientationHint>
+        <div className="flex-1 flex flex-col p-4">
+          <div className="grid place-items-center h-full text-white/80">Loading...</div>
         </div>
       </BattleLayout>
     );
   }
 
   return (
-    <BattleLayout>
-        <div className="game-container">
-        <header className="hud layer-hud">
-        <div className="hud-left">
-            <div className="round-indicator" id="roundInfo">
-              第{gameState.currentRound}回戦 / 第{gameState.currentTrick}トリック
-          </div>
-        </div>
-        
-        <div className="hud-center">
+    <BattleLayout showOrientationHint>
+      <div className="flex-1 flex flex-col gap-6 p-4">
+        <BattleHud
+          round={gameState.currentRound}
+          trick={gameState.currentTrick}
+          timer={
             <Timer
               turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
               isActive={gameState.currentPlayer === 0 && gameState.phase === "AwaitMove"}
               onTimeout={handleTimeout}
             />
-        </div>
-        
-        <div className="hud-right">
-            <button onClick={handleInterrupt} className="btn">中断</button>
-            <button onClick={handleBackToHome} className="btn">ホーム</button>
-        </div>
-        </header>
-
-        <EllipseTable
-          state={gameState}
-          config={gameRef.current?.config || {} as GameConfig}
-          currentPlayerIndex={gameState.currentPlayer}
-          onCardClick={handleCardClick}
-          className={isCardLocked ? 'cards-locked' : ''}
-          isSubmitting={isSubmitting}
-          lockedCardId={lockedCardId}
+          }
+          onInterrupt={handleInterrupt}
+          onExit={handleBackToHome}
         />
-        
-        {/* トリック完了オーバーレイ */}
-        {showTrickCompletion && (
-          <div className="trick-completion-overlay">
-            トリック完了！
-          </div>
-        )}
-        
-        {/* キュウリ付与表示 */}
-        {showCucumberAward && (
-          <div className="cucumber-award-display">
-            <h3>🥒 お漬物きゅうり付与！</h3>
-            <p>プレイヤー{showCucumberAward.player}: {showCucumberAward.cucumbers}本</p>
-          </div>
-        )}
-        
-        {gameOver && (
-        <div className="game-over">
-          <div className="game-over-content">
-            <h2>ゲーム終了</h2>
-            <div className="final-scores">
-              {gameOverData.map((data, index) => (
-                <div key={index} className="score-item">
-                  プレイヤー{data.player}: {data.count}個のキュウリ
-            </div>
-              ))}
-            </div>
-            <button onClick={handleInterrupt} className="btn">新しいゲーム</button>
-            <button onClick={handleBackToHome} className="btn">ホームに戻る</button>
-          </div>
+
+        <div className="flex-1 flex">
+          <BattleTable
+            players={gameState.players.map((p, idx) => ({
+              id: String(idx),
+              name: idx === 0 ? 'You' : `CPU ${idx}`,
+              cucumbers: p.cucumbers,
+              you: idx === 0,
+              isActive: idx === gameState.currentPlayer,
+            }))}
+            currentPlayerId={String(gameState.currentPlayer)}
+            fieldCards={((gameState as any).table?.field || []).map(String)}
+            discardCards={((gameState as any).table?.discard || []).map(String)}
+            onCardSelect={(card) => handleCardClick(Number(card))}
+            lockedCardId={lockedCardId !== null ? String(lockedCardId) : null}
+            isSubmitting={isSubmitting}
+          >
+            {showTrickCompletion && (
+              <div className="absolute inset-0 grid place-items-center text-center">
+                <div className="rounded-2xl bg-black/50 border border-white/10 px-6 py-4">
+                  トリック完了！
+                </div>
+              </div>
+            )}
+
+            {showCucumberAward && (
+              <div className="absolute inset-x-0 bottom-4 grid place-items-center">
+                <div className="rounded-full bg-black/40 border border-white/10 px-4 py-2 text-sm">
+                  🥒 お漬物きゅうり付与！ プレイヤー{showCucumberAward.player}: {showCucumberAward.cucumbers}本
+                </div>
+              </div>
+            )}
+          </BattleTable>
         </div>
-      )}
+
+        {gameOver ? (
+          <GameFooter>
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="font-heading text-[clamp(18px,2.2vw,24px)]">ゲーム終了</h2>
+              <div className="flex flex-wrap gap-2 text-white/80 text-sm">
+                {gameOverData.map((data, index) => (
+                  <span key={index} className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1">
+                    プレイヤー{data.player}: {data.count}個
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <button onClick={handleInterrupt} className="inline-flex items-center gap-2 rounded-full bg-black/35 border border-white/10 px-5 py-2 text-sm font-semibold hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60">再戦</button>
+              <button onClick={handleBackToHome} className="inline-flex items-center gap-2 rounded-full bg-black/35 border border-white/10 px-5 py-2 text-sm font-semibold hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60">ホーム</button>
+            </div>
+          </GameFooter>
+        ) : null}
       </div>
     </BattleLayout>
   );

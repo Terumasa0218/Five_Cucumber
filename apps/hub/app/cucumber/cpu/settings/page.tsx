@@ -1,5 +1,6 @@
-'use client';
+"use client";
 
+import { OptionToggleGroup, SettingsLayout } from '@/components/ui';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -15,8 +16,7 @@ export default function CpuSettings() {
   const [announcement, setAnnouncement] = useState('');
 
   useEffect(() => {
-    document.body.setAttribute('data-bg', 'home');
-    return () => { document.body.removeAttribute('data-bg'); };
+    // 背景制御はレイアウトに委譲
   }, []);
 
   const handleSettingChange = (key: string, value: any) => {
@@ -79,137 +79,87 @@ export default function CpuSettings() {
   };
 
   return (
-    <main className="settings-page bg-overlay-home" style={{ overflow: 'hidden' }}>
-      <div className="settings-container overlay-container">
-        {/* 音声通知用 */}
-        <div aria-live="polite" className="sr-only">
-          {announcement}
-        </div>
-
-        {/* 小見出し */}
-        <div className="settings-subtitle">
-          ゲームの設定を調整してください
-        </div>
-
-        {/* 対戦人数 */}
-        <section className="settings-group">
-          <h2 className="settings-heading">対戦人数</h2>
-          <div 
-            role="radiogroup" 
-            aria-labelledby="players-heading"
-            className="settings-buttons"
-            onKeyDown={(e) => handleKeyDown(e, [2, 3, 4, 5, 6], settings.players, 'players')}
+    <SettingsLayout
+      title="CPU 対戦の設定"
+      description="ゲームの設定を調整してください"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={() => router.push('/home')}
+            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
           >
-            {[2, 3, 4, 5, 6].map((num, index) => (
-              <button
-                key={num}
-                role="radio"
-                aria-checked={settings.players === num}
-                tabIndex={settings.players === num ? 0 : -1}
-                onClick={() => handleSettingChange('players', num)}
-                className={`settings-radio-btn ${settings.players === num ? 'selected' : ''}`}
-              >
-                {num}人
-              </button>
-            ))}
-          </div>
+            ホームに戻る
+          </button>
+          <button
+            onClick={handleStart}
+            disabled={!isAllSelected()}
+            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:opacity-40"
+          >
+            CPU対戦を開始
+          </button>
+        </>
+      }
+    >
+      <div aria-live="polite" className="sr-only">{announcement}</div>
+
+      <div className="grid gap-8">
+        <section className="flex flex-col gap-3">
+          <h2 className="font-heading text-[clamp(18px,2.6vw,24px)]">対戦人数</h2>
+          <p className="text-white/80 text-[clamp(13px,1.6vw,16px)]">2〜6人から選択</p>
+          <OptionToggleGroup
+            id="players"
+            label="対戦人数"
+            options={[2,3,4,5,6].map(n=>({ value: n, label: `${n}人` }))}
+            value={settings.players}
+            onChange={(v)=>handleSettingChange('players', Number(v))}
+          />
         </section>
 
-        {/* 制限時間 */}
-        <section className="settings-group">
-          <h2 className="settings-heading">制限時間</h2>
-          <div 
-            role="radiogroup" 
-            aria-labelledby="time-heading"
-            className="settings-buttons"
-            onKeyDown={(e) => handleKeyDown(e, [
-              { value: 5, label: '5秒' },
-              { value: 15, label: '15秒' },
-              { value: 30, label: '30秒' },
-              { value: 0, label: '無制限' }
-            ], settings.turnSeconds, 'turnSeconds')}
-          >
-            {[
-              { value: 5, label: '5秒' },
-              { value: 15, label: '15秒' },
-              { value: 30, label: '30秒' },
-              { value: 0, label: '無制限' }
-            ].map((option) => (
-              <button
-                key={option.value}
-                role="radio"
-                aria-checked={settings.turnSeconds === option.value}
-                tabIndex={settings.turnSeconds === option.value ? 0 : -1}
-                onClick={() => handleSettingChange('turnSeconds', option.value)}
-                className={`settings-radio-btn ${settings.turnSeconds === option.value ? 'selected' : ''}`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+        <section className="flex flex-col gap-3">
+          <h2 className="font-heading text-[clamp(18px,2.6vw,24px)]">制限時間</h2>
+          <p className="text-white/80 text-[clamp(13px,1.6vw,16px)]">5, 10, 15, 20, 30秒から選択</p>
+          <OptionToggleGroup
+            id="turnSeconds"
+            label="制限時間"
+            options={[5,10,15,20,30].map(n=>({ value: n, label: `${n}秒` }))}
+            value={settings.turnSeconds}
+            onChange={(v)=>handleSettingChange('turnSeconds', Number(v))}
+          />
         </section>
 
-        {/* お漬物きゅうり数 */}
-        <section className="settings-group">
-          <h2 className="settings-heading">お漬物きゅうり数</h2>
-          <div 
-            role="radiogroup" 
-            aria-labelledby="cucumbers-heading"
-            className="settings-buttons"
-            onKeyDown={(e) => handleKeyDown(e, [4, 5, 6, 7], settings.maxCucumbers, 'maxCucumbers')}
-          >
-            {[4, 5, 6, 7].map((num) => (
-              <button
-                key={num}
-                role="radio"
-                aria-checked={settings.maxCucumbers === num}
-                tabIndex={settings.maxCucumbers === num ? 0 : -1}
-                onClick={() => handleSettingChange('maxCucumbers', num)}
-                className={`settings-radio-btn ${settings.maxCucumbers === num ? 'selected' : ''}`}
-              >
-                {num}本
-              </button>
-            ))}
-          </div>
+        <section className="flex flex-col gap-3">
+          <h2 className="font-heading text-[clamp(18px,2.6vw,24px)]">きゅうり数</h2>
+          <p className="text-white/80 text-[clamp(13px,1.6vw,16px)]">4〜7本から選択</p>
+          <OptionToggleGroup
+            id="maxCucumbers"
+            label="きゅうり数"
+            options={[4,5,6,7].map(n=>({ value: n, label: `${n}本` }))}
+            value={settings.maxCucumbers}
+            onChange={(v)=>handleSettingChange('maxCucumbers', Number(v))}
+          />
         </section>
 
-        {/* CPU難易度 */}
-        <section className="settings-group">
-          <h2 className="settings-heading">CPU難易度</h2>
-          <div 
-            role="radiogroup" 
-            aria-labelledby="difficulty-heading"
-            className="settings-buttons"
-            onKeyDown={(e) => handleKeyDown(e, [
+        <section className="flex flex-col gap-3">
+          <h2 className="font-heading text-[clamp(18px,2.6vw,24px)]">CPU難易度</h2>
+          <p className="text-white/80 text-[clamp(13px,1.6vw,16px)]">簡単 / 普通 / 難しい</p>
+          <OptionToggleGroup
+            id="cpuLevel"
+            label="CPU難易度"
+            options={[
               { value: 'easy', label: '簡単' },
               { value: 'normal', label: '普通' },
               { value: 'hard', label: '難しい' }
-            ], settings.cpuLevel, 'cpuLevel')}
-          >
-            {[
-              { value: 'easy', label: '簡単' },
-              { value: 'normal', label: '普通' },
-              { value: 'hard', label: '難しい' }
-            ].map((option) => (
-              <button
-                key={option.value}
-                role="radio"
-                aria-checked={settings.cpuLevel === option.value}
-                tabIndex={settings.cpuLevel === option.value ? 0 : -1}
-                onClick={() => handleSettingChange('cpuLevel', option.value)}
-                className={`settings-radio-btn ${settings.cpuLevel === option.value ? 'selected' : ''}`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+            ]}
+            value={settings.cpuLevel}
+            onChange={(v)=>handleSettingChange('cpuLevel', v)}
+          />
         </section>
 
-        {/* デバッグモード（開発時のみ） */}
         {process.env.NODE_ENV === 'development' && (
-          <section className="settings-group debug-section">
-            <h2 className="settings-heading">🔧 デバッグモード</h2>
-            <label className="debug-checkbox">
+          <section className="flex flex-col gap-3">
+            <h2 className="font-heading text-[clamp(18px,2.6vw,24px)]">🔧 デバッグモード</h2>
+            <label className="inline-flex items-center gap-3 text-[clamp(13px,1.6vw,16px)] text-white/80">
               <input
                 type="checkbox"
                 checked={settings.showAllHands}
@@ -219,25 +169,7 @@ export default function CpuSettings() {
             </label>
           </section>
         )}
-
-        {/* はじめるボタン */}
-        <div className="settings-actions">
-          <button
-            onClick={handleStart}
-            disabled={!isAllSelected()}
-            className={`settings-start-btn ${isAllSelected() ? 'enabled' : 'disabled'}`}
-          >
-            はじめる
-          </button>
-          
-          <button
-            onClick={() => router.push('/home')}
-            className="settings-back-btn"
-          >
-            ← ホームに戻る
-          </button>
-        </div>
       </div>
-    </main>
+    </SettingsLayout>
   );
 }

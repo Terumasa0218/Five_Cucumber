@@ -1,15 +1,16 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { BackgroundFrame } from '@/components/ui';
+import { useEffect, useState } from 'react';
 
 interface BattleLayoutProps {
   children: React.ReactNode;
+  className?: string;
+  showOrientationHint?: boolean;
 }
 
-export default function BattleLayout({ children }: BattleLayoutProps) {
+export default function BattleLayout({ children, className, showOrientationHint }: BattleLayoutProps) {
   const [isPortrait, setIsPortrait] = useState(false);
-  const [hasTriedOrientationLock, setHasTriedOrientationLock] = useState(false);
-  const battleStageRef = useRef<HTMLDivElement>(null);
 
   // 画面向きの監視
   useEffect(() => {
@@ -34,66 +35,11 @@ export default function BattleLayout({ children }: BattleLayoutProps) {
     };
   }, []);
 
-  // スケール計算と適用
-  useEffect(() => {
-    const updateScale = () => {
-      if (!battleStageRef.current) return;
-
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const scale = Math.min(vw / 1280, vh / 720);
-      
-      battleStageRef.current.style.transform = `translate(-50%, -50%) scale(${scale})`;
-    };
-
-    // 初期スケール適用
-    updateScale();
-
-    // リサイズ時のスケール更新
-    window.addEventListener('resize', updateScale);
-    window.addEventListener('orientationchange', updateScale);
-
-    return () => {
-      window.removeEventListener('resize', updateScale);
-      window.removeEventListener('orientationchange', updateScale);
-    };
-  }, []);
-
-  // マウント時の処理
-  useEffect(() => {
-    // 背景とスクロール制御
-    document.body.setAttribute('data-bg', 'battle');
-    document.body.classList.add('no-scroll');
-
-    return () => {
-      // アンマウント時のクリーンアップ
-      document.body.removeAttribute('data-bg');
-      document.body.classList.remove('no-scroll');
-    };
-  }, []);
-
-  // 横向きロックの試行（初回タップ時のみ）
-  const handleOrientationLock = async () => {
-    if (hasTriedOrientationLock) return;
-    
-    setHasTriedOrientationLock(true);
-    
-    try {
-      // 画面ロックAPIの試行（非対応ブラウザは黙殺）
-      if ('orientation' in screen && 'lock' in screen.orientation) {
-        await (screen.orientation as any).lock('landscape');
-      }
-    } catch (error) {
-      // ロック失敗は無視（iOS等の制限）
-      console.log('Orientation lock not supported or failed');
-    }
-  };
-
   return (
-    <div className="battle-root" onClick={handleOrientationLock}>
-      {/* 縦向き時の回転案内オーバーレイ */}
-      {isPortrait && (
-        <div className="battle-rotate-overlay">
+    <BackgroundFrame src="/images/battle1.png" objectPosition="center" priority className={className}>
+      {/* 縦向き時の回転案内オーバーレイ（必要時のみ） */}
+      {showOrientationHint && isPortrait && (
+        <div className="absolute inset-0 grid place-items-center bg-black/70 backdrop-blur-sm text-center">
           <div>
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📱</div>
             <div>横向きにしてプレイしてください</div>
@@ -103,14 +49,13 @@ export default function BattleLayout({ children }: BattleLayoutProps) {
           </div>
         </div>
       )}
-      
-      {/* 対戦ステージ */}
-      <div 
-        ref={battleStageRef}
-        className={`battle-stage ${isPortrait ? 'hide-when-portrait' : ''}`}
-      >
-        {children}
+
+      {/* ステージ */}
+      <div className="flex-1 flex flex-col">
+        <div className="aspect-[16/9] w-full max-w-[1280px] mx-auto rounded-[32px] border border-white/10 bg-white/5 backdrop-blur">
+          {children}
+        </div>
       </div>
-    </div>
+    </BackgroundFrame>
   );
 }
