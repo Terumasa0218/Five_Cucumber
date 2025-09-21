@@ -4,6 +4,9 @@ import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
 import { isRedisAvailable } from '@/lib/redis';
 import { realtime } from '@/lib/realtime';
+import { kv } from '@vercel/kv';
+
+const keyOf = (id: string) => `friend:room:${id}`;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -45,6 +48,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       if (!persisted) {
         putRoomToMemory(room);
+      }
+
+      // KV を唯一のソースとして同期
+      try {
+        await kv.set(keyOf(rid), room, { ex: 60 * 30 });
+      } catch (e) {
+        console.warn('[API] leave: failed to sync KV:', e);
       }
 
       // 退出をリアルタイム通知

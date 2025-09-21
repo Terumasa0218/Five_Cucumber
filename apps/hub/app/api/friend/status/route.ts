@@ -3,6 +3,9 @@ import { updateRoom } from '@/lib/roomsStore';
 import { updateRoomRedis } from '@/lib/roomsRedis';
 import { updateRoomStatus, getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
 import { isRedisAvailable } from '@/lib/redis';
+import { kv } from '@vercel/kv';
+
+const keyOf = (id: string) => `friend:room:${id}`;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -13,46 +16,82 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400 });
     }
 
+    const rid = roomId.trim();
     const hasRedisAvailable = isRedisAvailable();
     const isProd = process.env.VERCEL_ENV === 'production';
-    let storageUsed = '';
+
+    // 1) KV を単一のソースとして更新
+    try {
+      const room = await kv.get<any>(keyOf(rid));
+      if (room) {
+        room.status = status;
+        await kv.set(keyOf(rid), room, { ex: 60 * 30 });
+        return NextResponse.json({ ok: true }, { status: 200 });
+      }
+    } catch (e) {
+      console.warn('[API] Status KV update failed or room not found in KV, falling back:', e);
+    }
+
+    // 2) 既存ストアを更新しつつ、見つかったら KV にも同期
+    let syncedToKv = false;
 
     try {
-      await updateRoom(roomId.trim(), { status });
-      storageUsed = 'Firestore';
-      console.log('[API] Status updated in Firestore successfully');
-      return NextResponse.json({ ok: true }, { status: 200 });
-    } catch (e) {
-      console.log('[API] Firestore update failed, trying other storage');
-
-      if (hasRedisAvailable) {
-        const updated = await updateRoomRedis(roomId.trim(), { status } as any);
-        if (updated) {
-          storageUsed = 'Redis/KV';
-          console.log('[API] Status updated in Redis/KV successfully');
-          return NextResponse.json({ ok: true }, { status: 200 });
+      await updateRoom(rid, { status });
+      try {
+        const r = await kv.get<any>(keyOf(rid));
+        if (r) {
+          r.status = status;
+          await kv.set(keyOf(rid), r, { ex: 60 * 30 });
         }
-      }
-
-      // 本番ではメモリフォールバック禁止
-      if (!isProd) {
-        console.log('[API] No persistent storage available for status, using memory fallback');
-        const memoryRoom = getRoomFromMemory(roomId.trim());
-        if (memoryRoom) {
-          memoryRoom.status = status;
-          putRoomToMemory(memoryRoom);
-          storageUsed = 'Memory';
-          console.log('[API] Status updated in memory successfully');
-          return NextResponse.json({ ok: true }, { status: 200 });
-        }
-      }
-
-      const ok = updateRoomStatus(roomId.trim(), status);
-      if (!ok) {
-        return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });
-      }
+      } catch {}
       return NextResponse.json({ ok: true }, { status: 200 });
+    } catch {
+      // ignore
     }
+
+    if (hasRedisAvailable) {
+      const updated = await updateRoomRedis(rid, { status } as any);
+      if (updated) {
+        try {
+          const r = await kv.get<any>(keyOf(rid));
+          if (r) {
+            r.status = status;
+            await kv.set(keyOf(rid), r, { ex: 60 * 30 });
+            syncedToKv = true;
+          }
+        } catch {}
+        return NextResponse.json({ ok: true }, { status: 200 });
+      }
+    }
+
+    // 3) 本番ではメモリフォールバック禁止、ただし開発では許可し KV へも同期試行
+    if (!isProd) {
+      const memoryRoom = getRoomFromMemory(rid);
+      if (memoryRoom) {
+        memoryRoom.status = status;
+        putRoomToMemory(memoryRoom);
+        try {
+          await kv.set(keyOf(rid), memoryRoom, { ex: 60 * 30 });
+          syncedToKv = true;
+        } catch {}
+        return NextResponse.json({ ok: true }, { status: 200 });
+      }
+    }
+
+    const ok = updateRoomStatus(rid, status);
+    if (!ok) {
+      return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });
+    }
+    try {
+      const r = await kv.get<any>(keyOf(rid));
+      if (r) {
+        r.status = status;
+        await kv.set(keyOf(rid), r, { ex: 60 * 30 });
+        syncedToKv = true;
+      }
+    } catch {}
+
+    return NextResponse.json({ ok: true }, { status: 200 });
   } catch (error) {
     console.error('[API] status update error:', error);
     return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });
