@@ -5,6 +5,7 @@ import { upsertLocalRoom } from "@/lib/roomSystemUnified";
 import type { Room } from "@/types/room";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiJson } from "@/lib/api";
 
 export default function FriendCreatePage() {
   const router = useRouter();
@@ -83,58 +84,31 @@ export default function FriendCreatePage() {
     setError(null);
 
     try {
-      const res = await fetch('/api/friend/create', {
+      const data = await apiJson<any>('/friend/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roomSize: settings.roomSize,
-          nickname,
-          turnSeconds: settings.turnSeconds,
-          maxCucumbers: settings.maxCucumbers
-        })
-      }).catch((err) => {
-        console.warn('Create room network error:', err);
-        return new Response(JSON.stringify({ ok: false }), { status: 520 });
+        json: { roomSize: settings.roomSize, nickname: nickname, turnSeconds: settings.turnSeconds, maxCucumbers: settings.maxCucumbers }
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.ok && data.roomId) {
-          try {
-            const localRoom: Room = {
-              id: data.roomId,
-              size: settings.roomSize,
-              seats: Array.from({ length: settings.roomSize }, (_, index) =>
-                index === 0 ? { nickname } : null
-              ),
-              status: 'waiting',
-              createdAt: Date.now(),
-              turnSeconds: settings.turnSeconds,
-              maxCucumbers: settings.maxCucumbers
-            };
-            upsertLocalRoom(localRoom);
-          } catch {}
-          router.push(`/friend/room/${data.roomId}`);
-        } else {
-          setError('ルーム作成に失敗しました');
-        }
+      if (data?.ok && data?.roomId) {
+        try {
+          const localRoom: Room = {
+            id: data.roomId,
+            size: settings.roomSize,
+            seats: Array.from({ length: settings.roomSize }, (_, index) =>
+              index === 0 ? { nickname } : null
+            ),
+            status: 'waiting',
+            createdAt: Date.now(),
+            turnSeconds: settings.turnSeconds,
+            maxCucumbers: settings.maxCucumbers
+          };
+          upsertLocalRoom(localRoom);
+        } catch {}
+        router.push(`/friend/room/${data.roomId}`);
       } else {
-        switch (res.status) {
-          case 400:
-            setError('入力内容に問題があります');
-            break;
-          case 520:
-            setError('ネットワークエラーが発生しました');
-            break;
-          case 500:
-            setError('サーバーエラーが発生しました');
-            break;
-          default:
-            setError('ルーム作成に失敗しました');
-        }
+        setError('ルーム作成に失敗しました');
       }
-    } catch (err) {
-      setError('ネットワークエラーが発生しました');
+    } catch (e) {
+      setError('作成に失敗しました');
     } finally {
       setIsCreating(false);
     }

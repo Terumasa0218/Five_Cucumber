@@ -1,6 +1,7 @@
 'use client';
 
 import { getNickname } from "@/lib/profile";
+import { apiJson } from "@/lib/api";
 import { getRoom as getLocalRoom } from "@/lib/roomSystemUnified";
 import { Room } from "@/types/room";
 import Link from "next/link";

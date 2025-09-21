@@ -1,4 +1,17 @@
 {
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    // TEST: forbid numeric-only fetch URL usage that caused 404s like fetch("123456")
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "CallExpression[callee.name='fetch'] Literal[value]",
+        "message": "Do not call fetch() with a numeric-only path. Use apiJson('/api/...') via lib/api instead."
+      }
+    ]
+  }
+}
+{
   "root": true,
   "extends": ["next/core-web-vitals", "plugin:@typescript-eslint/recommended"],
   "parser": "@typescript-eslint/parser",

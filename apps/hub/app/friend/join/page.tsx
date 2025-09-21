@@ -5,6 +5,7 @@ import { upsertLocalRoom } from "@/lib/roomSystemUnified";
 import type { Room } from "@/types/room";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { apiJson } from "@/lib/api";
 
 export default function FriendJoinPage() {
   const router = useRouter();
@@ -32,47 +33,34 @@ export default function FriendJoinPage() {
     setError(null);
 
     try {
-      const res = await fetch('/api/friend/join', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId: roomCode.trim(), nickname })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.ok && data.roomId) {
-          try {
-            if (data.room) {
-              upsertLocalRoom(data.room as Room);
+      const data = await apiJson<any>('/friend/join', { method: 'POST', json: { roomId: roomCode.trim(), nickname } });
+      if (data.ok && data.roomId) {
+        try {
+          if (data.room) {
+            upsertLocalRoom(data.room as Room);
+          } else {
+            // 追加取得で保存を試みる
+            const rd = await apiJson<any>(`/friend/room/${data.roomId}`);
+            if (rd.ok && rd.room) {
+              upsertLocalRoom(rd.room as Room);
             } else {
-              // 追加取得で保存を試みる
-              const rf = await fetch(`/api/friend/room/${data.roomId}`);
-              if (rf.ok) {
-                const rd = await rf.json();
-                if (rd.ok && rd.room) {
-                  upsertLocalRoom(rd.room as Room);
-                } else {
-                  // 最終手段: 仮データ（ホスト席は空にして上書きを避ける）
-                  const fallbackRoom: Room = {
-                    id: data.roomId,
-                    size: 2,
-                    seats: [null, { nickname }],
-                    status: 'waiting',
-                    createdAt: Date.now(),
-                    turnSeconds: 15,
-                    maxCucumbers: 5
-                  };
-                  upsertLocalRoom(fallbackRoom);
-                }
-              }
+              const fallbackRoom: Room = {
+                id: data.roomId,
+                size: 2,
+                seats: [null, { nickname }],
+                status: 'waiting',
+                createdAt: Date.now(),
+                turnSeconds: 15,
+                maxCucumbers: 5
+              };
+              upsertLocalRoom(fallbackRoom);
             }
-          } catch {}
-          router.push(`/friend/room/${data.roomId}`);
-        } else {
-          setError('参加に失敗しました');
-        }
+          }
+        } catch {}
+        router.push(`/friend/room/${data.roomId}`);
       } else {
-        switch (res.status) {
+        const status = Number(String(data?.message).match(/\s(\d{3})\s/)?.[1] || 500);
+        switch (status) {
           case 404:
             setError('ルーム番号が違います');
             break;

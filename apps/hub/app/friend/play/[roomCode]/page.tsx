@@ -15,6 +15,7 @@ import { getNickname } from '@/lib/profile';
 import { useParams, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import '../../../cucumber/cpu/play/game.css';
+import { apiJson, apiUrl } from '@/lib/api';
 
 function FriendPlayContent() {
   const params = useParams();
@@ -59,17 +60,9 @@ function FriendPlayContent() {
   const fetchRoomConfig = async (): Promise<{ room: any; playerIndex: number } | null> => {
     try {
       console.log('[Friend Game] Fetching room config for:', roomCode);
-      const res = HAS_SERVER ? await fetch(`/api/friend/room/${roomCode}`) : new Response(JSON.stringify({ ok: false }), { status: 404 });
+      console.info('[PlayAPI] init fetch to', apiUrl(`/friend/room/${roomCode}`)); // TEST: debug URL
+      const data = HAS_SERVER ? await apiJson<any>(`/friend/room/${roomCode}`) : { ok: false };
       
-      if (!res.ok) {
-        if (res.status === 404) {
-          console.error('[Friend Game] Room not found:', roomCode);
-          throw new Error(`Room ${roomCode} not found`);
-        }
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-      
-      const data = await res.json();
       if (!data.ok || !data.room) {
         throw new Error('Invalid room data received');
       }
@@ -131,11 +124,7 @@ function FriendPlayContent() {
       if (room.status !== 'playing') {
         if (myIndex === 0) {
           try {
-            await fetch('/api/friend/status', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ roomId: roomCode, status: 'playing' })
-            });
+            await apiJson('/friend/status', { method: 'POST', json: { roomId: roomCode, status: 'playing' } });
             room.status = 'playing';
           } catch (e) {
             console.warn('[Friend Game] Failed to set playing status, will continue as host:', e);
@@ -146,11 +135,8 @@ function FriendPlayContent() {
           while (tries < 5) {
             await new Promise(r => setTimeout(r, 400));
             try {
-              const rf = await fetch(`/api/friend/room/${roomCode}`);
-              if (rf.ok) {
-                const d = await rf.json();
-                if (d?.room?.status === 'playing') { room.status = 'playing'; break; }
-              }
+              const d = await apiJson<any>(`/friend/room/${roomCode}`);
+              if (d?.room?.status === 'playing') { room.status = 'playing'; break; }
             } catch {}
             tries++;
           }
@@ -192,25 +178,25 @@ function FriendPlayContent() {
         setGameOver(false);
         setIsGameInitialized(true);
         console.log(`[Friend Game] Host initialized local state and posting snapshot`);
-        const res = await fetch(`/api/friend/game/${roomCode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'init', state, config }) });
-        if (res.ok) {
-          const data = await res.json();
+        try {
+          const data = await apiJson<any>(`/friend/game/${roomCode}`, { method: 'POST', json: { type: 'init', state, config } });
           if (data.ok && data.snapshot) {
             lastVersionRef.current = data.snapshot.version ?? 1;
           }
-        }
+        } catch {}
       } else {
         // 参加者はサーバーのスナップショットを取得するまで待機
-        const res = HAS_SERVER ? await fetch(`/api/friend/game/${roomCode}`) : new Response(JSON.stringify({ ok: false }), { status: 404 });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.ok && data.snapshot) {
-            const rng = new SeededRng(data.snapshot.config.seed);
-            gameRef.current = { state: data.snapshot.state, config: data.snapshot.config, controllers, rng };
-            setGameState(data.snapshot.state);
-            setIsGameInitialized(true);
-            lastVersionRef.current = data.snapshot.version ?? 1;
-          }
+        if (HAS_SERVER) {
+          try {
+            const data = await apiJson<any>(`/friend/game/${roomCode}`);
+            if (data.ok && data.snapshot) {
+              const rng = new SeededRng(data.snapshot.config.seed);
+              gameRef.current = { state: data.snapshot.state, config: data.snapshot.config, controllers, rng };
+              setGameState(data.snapshot.state);
+              setIsGameInitialized(true);
+              lastVersionRef.current = data.snapshot.version ?? 1;
+            }
+          } catch {}
         }
       }
 
@@ -227,19 +213,12 @@ function FriendPlayContent() {
 
           const r = await fetch(`/api/friend/game/${roomCode}`, {
             signal: controller.signal,
-            headers: {
-              'Cache-Control': 'no-cache',
-              'Pragma': 'no-cache'
-            }
+            headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
           });
           clearTimeout(timeoutId);
-
-          if (!r.ok) {
-            console.warn(`[Game Poll] Failed to fetch game state: ${r.status}`);
-            return;
-          }
-
+          if (!r.ok) { console.warn(`[Game Poll] Failed to fetch game state: ${r.status}`); return; }
           const d = await r.json();
+
           if (d.ok && d.snapshot) {
             if (!lastVersionRef.current || d.snapshot.version > lastVersionRef.current) {
               lastVersionRef.current = d.snapshot.version;
@@ -285,15 +264,14 @@ function FriendPlayContent() {
       
       console.log(`[Friend Game] Player ${currentPlayerIndex} plays card ${card}`);
       // サーバーに移譲
-      const post = await fetch(`/api/friend/game/${roomCode}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'move', move }) });
-      if (post.ok) {
-        const data = await post.json();
+      try {
+        const data = await apiJson<any>(`/friend/game/${roomCode}`, { method: 'POST', json: { type: 'move', move } });
         if (data.ok && data.snapshot) {
           lastVersionRef.current = data.snapshot.version ?? (lastVersionRef.current + 1);
           gameRef.current.state = data.snapshot.state;
           setGameState(data.snapshot.state);
         }
-      }
+      } catch {}
     } catch (error) {
       console.error('[Friend Game] Error during move:', error);
     } finally {
