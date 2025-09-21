@@ -33,10 +33,10 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
     }
   }, [currentPlayerIndex, state.currentPlayer, state.phase]);
   
-  // フレンド対戦の場合は参加者名を使用
+  // フレンド対戦の場合は mySeatIndex を基準に自分の表示名を決める
   const getPlayerName = (index: number) => {
     if (names && names[index]) return names[index];
-    if (index === 0) return 'あなた';
+    if (index === mySeatIndex) return 'あなた';
     return playerNames[index] || `プレイヤー${index + 1}`;
   };
 
@@ -110,7 +110,7 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
                   🃏 <span>{player.hand.length}</span>
                 </div>
               </div>
-              {i !== 0 && (
+              {i !== mySeatIndex && (
                 <div className="player-hand-visual">
                   {showAllHands ? (
                     // デバッグモード：実際のカード値を表示
@@ -135,13 +135,13 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
 
       {/* 自分の手札と名前（下辺） */}
       <section id="hand-dock" aria-label="自分の手札">
-        <div className="me-name">{getPlayerName(0)}</div>
+        <div className="me-name">{getPlayerName(mySeatIndex)}</div>
         <div className="hand">
-          {state.players[0]?.hand.map((card, index) => {
+          {state.players[mySeatIndex]?.hand.map((card, index) => {
             const isPlayable = state.fieldCard === null || card >= state.fieldCard;
-            const isMinCard = card === Math.min(...state.players[0].hand);
+            const isMinCard = card === Math.min(...state.players[mySeatIndex].hand);
             const isDiscard = !isPlayable && isMinCard;
-            const isMyTurn = currentPlayerIndex === 0;
+            const isMyTurn = currentPlayerIndex === mySeatIndex;
             
             // カードが送信中またはロックされているかチェック
             const isCardLocked = lockedCardId === card;

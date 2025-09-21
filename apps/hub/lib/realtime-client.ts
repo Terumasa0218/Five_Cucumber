@@ -11,13 +11,13 @@ export function makeClient(uid: string, channelName: string) {
       channel: channelName,
       rnd: Date.now().toString(),
     },
-    authCallback: async (tokenParams: any, callback: any) => {
+    authCallback: async (_tokenParams: any, callback: any) => {
       try {
         const qs = new URLSearchParams({ uid, channel: channelName, rnd: Date.now().toString() }).toString();
         const res = await fetch(`/api/ably/token?${qs}`, { headers: { 'cache-control': 'no-store' } });
         const data = await res.json();
         if (!res.ok || !data?.ok) throw new Error(data?.reason || 'auth-failed');
-        callback(null, data.tokenRequest);
+        callback(null, data.token);
       } catch (err) {
         console.error('[Ably] authCallback error:', err);
         callback(err, null);

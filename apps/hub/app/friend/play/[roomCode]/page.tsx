@@ -2,6 +2,7 @@
 
 import BattleLayout from '@/components/BattleLayout';
 import { EllipseTable, Timer } from '@/components/ui';
+import { apiJson, apiUrl } from '@/lib/api';
 import {
     createInitialState,
     GameConfig,
@@ -12,11 +13,10 @@ import {
     SeededRng
 } from '@/lib/game-core';
 import { getNickname } from '@/lib/profile';
+import { USE_SERVER_SYNC } from '@/lib/serverSync';
 import { useParams, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import '../../../cucumber/cpu/play/game.css';
-import { apiJson, apiUrl } from '@/lib/api';
-import { USE_SERVER_SYNC } from '@/lib/serverSync';
 
 function FriendPlayContent() {
   const params = useParams();
@@ -42,7 +42,7 @@ function FriendPlayContent() {
     seats: any[];
   } | null>(null);
   const useServer = USE_SERVER_SYNC;
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
+  const [mySeatIndex, setMySeatIndex] = useState<number>(0);
   
   const gameRef = useRef<{
     state: GameState;
@@ -87,7 +87,7 @@ function FriendPlayContent() {
         console.log('[Friend Game] Found player index:', playerIndex);
         
         if (playerIndex >= 0) {
-          setCurrentPlayerIndex(playerIndex);
+          setMySeatIndex(playerIndex);
           console.log('[Friend Game] Set current player index to:', playerIndex);
         } else {
           console.error('[Friend Game] Player not found in room seats!');
@@ -250,7 +250,7 @@ function FriendPlayContent() {
 
   // カードクリック処理
   const handleCardClick = async (card: number) => {
-    if (!gameRef.current || !gameState || gameRef.current.state.currentPlayer !== currentPlayerIndex || isSubmitting || isCardLocked) return;
+    if (!gameRef.current || !gameState || gameRef.current.state.currentPlayer !== mySeatIndex || isSubmitting || isCardLocked) return;
     
     setIsSubmitting(true);
     setIsCardLocked(true);
@@ -258,12 +258,12 @@ function FriendPlayContent() {
     
     try {
       const move: Move = {
-        player: currentPlayerIndex,
+        player: mySeatIndex,
         card,
         timestamp: Date.now()
       };
       
-      console.log(`[Friend Game] Player ${currentPlayerIndex} plays card ${card}`);
+      console.log(`[Friend Game] Player ${mySeatIndex} plays card ${card}`);
       // サーバーに移譲
       try {
         const data = await apiJson<any>(`/friend/game/${roomCode}`, { method: 'POST', json: { type: 'move', move } });
@@ -284,22 +284,22 @@ function FriendPlayContent() {
 
   // タイムアウト処理
   const handleTimeout = () => {
-    if (!gameState || gameOver || gameState.currentPlayer !== currentPlayerIndex) return;
+    if (!gameState || gameOver || gameState.currentPlayer !== mySeatIndex) return;
     
     // 制限時間切れ時のランダムカード選択
-    const legalMoves = getLegalMoves(gameState, currentPlayerIndex);
+    const legalMoves = getLegalMoves(gameState, mySeatIndex);
     if (legalMoves.length > 0) {
       // ランダムにカードを選択
       const randomIndex = Math.floor(Math.random() * legalMoves.length);
       const selectedCard = legalMoves[randomIndex];
-      console.log(`[Friend Timeout] Player ${currentPlayerIndex} auto-selecting random card: ${selectedCard} from legal moves:`, legalMoves);
+      console.log(`[Friend Timeout] Player ${mySeatIndex} auto-selecting random card: ${selectedCard} from legal moves:`, legalMoves);
       handleCardClick(selectedCard);
     } else {
       // 合法手がない場合は最小カードを選択
-      const hand = gameState.players[currentPlayerIndex].hand;
+        const hand = gameState.players[mySeatIndex].hand;
       if (hand.length > 0) {
         const minCard = Math.min(...hand);
-        console.log(`[Friend Timeout] Player ${currentPlayerIndex} no legal moves, selecting minimum card: ${minCard}`);
+        console.log(`[Friend Timeout] Player ${mySeatIndex} no legal moves, selecting minimum card: ${minCard}`);
         handleCardClick(minCard);
       }
     }
@@ -319,11 +319,11 @@ function FriendPlayContent() {
       if (!isVisible && !disconnectStartTime) {
         // ページが非表示になった時刻を記録
         setDisconnectStartTime(Date.now());
-        console.log(`[Friend] Player ${currentPlayerIndex} disconnected - starting 45s timer`);
+        console.log(`[Friend] Player ${mySeatIndex} disconnected - starting 45s timer`);
       } else if (isVisible && disconnectStartTime) {
         // ページが再表示された場合、切断タイマーをリセット
         setDisconnectStartTime(null);
-        console.log(`[Friend] Player ${currentPlayerIndex} reconnected - canceling disconnect timer`);
+        console.log(`[Friend] Player ${mySeatIndex} reconnected - canceling disconnect timer`);
       }
     };
 
@@ -332,21 +332,21 @@ function FriendPlayContent() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [disconnectStartTime, isGameInitialized, currentPlayerIndex]);
+  }, [disconnectStartTime, isGameInitialized, mySeatIndex]);
 
   // 切断タイマーの管理
   useEffect(() => {
     if (disconnectStartTime && isGameInitialized) {
       const timer = setTimeout(() => {
         // 45秒経過後、CPUに置き換え
-        console.log(`[Friend] 45 seconds elapsed - replacing player ${currentPlayerIndex} with CPU`);
-        setCpuReplacedPlayers(prev => new Set(prev).add(currentPlayerIndex));
+        console.log(`[Friend] 45 seconds elapsed - replacing player ${mySeatIndex} with CPU`);
+        setCpuReplacedPlayers(prev => new Set(prev).add(mySeatIndex));
         setDisconnectStartTime(null);
       }, 45000); // 45秒
 
       return () => clearTimeout(timer);
     }
-  }, [disconnectStartTime, currentPlayerIndex, isGameInitialized]);
+  }, [disconnectStartTime, mySeatIndex, isGameInitialized]);
 
   // ゲーム開始
   useEffect(() => {
@@ -372,7 +372,7 @@ function FriendPlayContent() {
 
   // タイマー管理
   useEffect(() => {
-    if (gameState && gameState.currentPlayer === currentPlayerIndex && gameState.phase === "AwaitMove" && !gameOver) {
+    if (gameState && gameState.currentPlayer === mySeatIndex && gameState.phase === "AwaitMove" && !gameOver) {
       const turnSeconds = getEffectiveTurnSeconds(gameRef.current?.config || { turnSeconds: 10 } as GameConfig);
       if (turnSeconds) {
         timeoutRef.current = setTimeout(handleTimeout, turnSeconds * 1000);
@@ -385,7 +385,7 @@ function FriendPlayContent() {
         timeoutRef.current = null;
       }
     };
-  }, [gameState?.currentPlayer, gameState?.phase, gameOver, currentPlayerIndex]);
+  }, [gameState?.currentPlayer, gameState?.phase, gameOver, mySeatIndex]);
 
   if (!gameState) {
     return (
@@ -425,7 +425,7 @@ function FriendPlayContent() {
           <div className="hud-center">
             <Timer
               turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
-              isActive={gameState.currentPlayer === currentPlayerIndex && gameState.phase === "AwaitMove"}
+              isActive={gameState.currentPlayer === mySeatIndex && gameState.phase === "AwaitMove"}
               onTimeout={handleTimeout}
             />
           </div>
@@ -438,13 +438,13 @@ function FriendPlayContent() {
         <EllipseTable
           state={gameState}
           config={gameRef.current?.config || {} as GameConfig}
-          currentPlayerIndex={currentPlayerIndex}
+          currentPlayerIndex={gameState.currentPlayer}
           onCardClick={handleCardClick}
           className={isCardLocked ? 'cards-locked' : ''}
           isSubmitting={isSubmitting}
           lockedCardId={lockedCardId}
-          names={roomConfig?.seats?.map((s: any, idx: number) => idx === currentPlayerIndex ? 'あなた' : (s?.nickname || `P${idx+1}`))}
-          mySeatIndex={currentPlayerIndex}
+          names={roomConfig?.seats?.map((s: any, idx: number) => idx === mySeatIndex ? 'あなた' : (s?.nickname || `P${idx+1}`))}
+          mySeatIndex={mySeatIndex}
         />
 
         {toast && (
@@ -464,9 +464,9 @@ function FriendPlayContent() {
         {/* デバッグ情報 */}
         {process.env.NODE_ENV === 'development' && (
           <div className="debug-info" style={{ position: 'fixed', top: '10px', right: '10px', background: 'rgba(0,0,0,0.8)', color: 'white', padding: '10px', fontSize: '12px' }}>
-            <div>Current Player Index: {currentPlayerIndex}</div>
+            <div>Current Player Index: {gameState?.currentPlayer}</div>
             <div>Game Current Player: {gameState?.currentPlayer}</div>
-            <div>Is My Turn: {gameState?.currentPlayer === currentPlayerIndex ? 'Yes' : 'No'}</div>
+            <div>Is My Turn: {gameState?.currentPlayer === mySeatIndex ? 'Yes' : 'No'}</div>
             <div>Game Initialized: {isGameInitialized ? 'Yes' : 'No'}</div>
           </div>
         )}
