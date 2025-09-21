@@ -8,10 +8,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { makeClient } from "@/lib/realtime-client";
+import { USE_SERVER_SYNC } from "@/lib/serverSync";
 
 export default function RoomWaitingPage() {
-  // 常にサーバーAPIを使い、失敗時のみローカルにフォールバック
-  const HAS_SERVER = true;
+  // 共有ストアがある場合のみサーバ同期
+  const useServer = USE_SERVER_SYNC;
   const params = useParams();
   const router = useRouter();
   const roomId = params.roomId as string;
@@ -38,7 +39,7 @@ export default function RoomWaitingPage() {
 
         const fetchRoom = async (retryCount = 0) => {
           try {
-            if (!HAS_SERVER) {
+            if (!useServer) {
               const local = getLocalRoom(roomId);
               if (local) {
                 setRoom(local);
@@ -125,19 +126,19 @@ export default function RoomWaitingPage() {
         const isMobile = /Mobile|iP(hone|od|ad)|Android|BlackBerry|IEMobile/.test(userAgent);
         console.log('[RoomPage] User agent:', userAgent, 'Mobile:', isMobile);
 
-        const pollInterval: ReturnType<typeof setInterval> | undefined = HAS_SERVER
+        const pollInterval: ReturnType<typeof setInterval> | undefined = useServer
           ? setInterval(fetchRoom, isMobile ? 2000 : 3000) // スマホではより短い間隔でポーリング
           : undefined;
 
         // デバッグ用: サーバーメモリの状況を確認
-        if (HAS_SERVER) {
+        if (useServer) {
           fetchRoom().then(() => {
             console.log('[RoomPage] Initial fetch completed');
           });
         }
 
         // Ablyクライアントでリアルタイム更新を受信
-        if (HAS_SERVER && currentNickname) {
+        if (useServer && currentNickname) {
           try {
             console.log(`[RoomPage] Initializing Ably client for room: ${roomId}, user: ${currentNickname}, mobile: ${isMobile}`);
 
@@ -200,7 +201,7 @@ export default function RoomWaitingPage() {
       if (pollInterval) clearInterval(pollInterval);
       // Ablyクライアントのクリーンアップは自動的に行われる
     };
-  }, [roomId, router, HAS_SERVER]);
+  }, [roomId, router, useServer]);
   // SSR/初期ハイドレーション差異を避けるため、マウント完了まで静的なスケルトンのみ表示
   if (!mounted) {
     return (

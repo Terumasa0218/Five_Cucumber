@@ -16,6 +16,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import '../../../cucumber/cpu/play/game.css';
 import { apiJson, apiUrl } from '@/lib/api';
+import { USE_SERVER_SYNC } from '@/lib/serverSync';
 
 function FriendPlayContent() {
   const params = useParams();
@@ -40,7 +41,7 @@ function FriendPlayContent() {
     maxCucumbers: number;
     seats: any[];
   } | null>(null);
-  const HAS_SERVER = (process.env.NEXT_PUBLIC_HAS_REDIS === '1') || Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) || process.env.NODE_ENV === 'development' || true; // Always enable for memory fallback
+  const useServer = USE_SERVER_SYNC;
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState<number>(0);
   
   const gameRef = useRef<{
@@ -61,7 +62,7 @@ function FriendPlayContent() {
     try {
       console.log('[Friend Game] Fetching room config for:', roomCode);
       console.info('[PlayAPI] init fetch to', apiUrl(`/friend/room/${roomCode}`)); // TEST: debug URL
-      const data = HAS_SERVER ? await apiJson<any>(`/friend/room/${roomCode}`) : { ok: false };
+      const data = useServer ? await apiJson<any>(`/friend/room/${roomCode}`) : { ok: false };
       
       if (!data.ok || !data.room) {
         throw new Error('Invalid room data received');
@@ -170,7 +171,7 @@ function FriendPlayContent() {
       const controllers = Array(room.size).fill(null).map((_, idx) => ({ type: 'human', name: idx === myIndex ? 'あなた' : (room.seats[idx]?.nickname || `P${idx+1}`) }));
 
       const isHost = myIndex === 0;
-      if (isHost) {
+        if (isHost) {
         const rng = new SeededRng(config.seed);
         const state = createInitialState(config, rng);
         gameRef.current = { state, config, controllers, rng };
@@ -184,9 +185,9 @@ function FriendPlayContent() {
             lastVersionRef.current = data.snapshot.version ?? 1;
           }
         } catch {}
-      } else {
-        // 参加者はサーバーのスナップショットを取得するまで待機
-        if (HAS_SERVER) {
+        } else {
+          // 参加者はサーバーのスナップショットを取得するまで待機
+          if (useServer) {
           try {
             const data = await apiJson<any>(`/friend/game/${roomCode}`);
             if (data.ok && data.snapshot) {
@@ -205,7 +206,7 @@ function FriendPlayContent() {
         clearInterval(pollRef.current);
         pollRef.current = null;
       }
-      const poll = HAS_SERVER ? setInterval(async () => {
+      const poll = useServer ? setInterval(async () => {
         try {
           // スマホでのネットワーク遅延を考慮してタイムアウトを設定
           const controller = new AbortController();

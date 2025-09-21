@@ -4,6 +4,8 @@ export const revalidate = 0;
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
+import { HAS_SHARED_STORE } from '@/lib/serverSync';
+import { json } from '@/lib/http';
 import { kv } from '@vercel/kv';
 import { isRedisAvailable, isDevelopmentWithMemoryFallback } from '@/lib/redis';
 import { Room } from '@/types/room';
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       );
     }
 
-    // ルーム作成（共有ストア優先、ハング回避のためタイムアウト付き。失敗時はメモリにフォールバック）
+    // ルーム作成（共有ストア優先、共有ストアが無い環境ではメモリ禁止＝クライアント同期へ誘導）
     // 6桁IDを重複しないように最大100回まで試行
     let id = '';
     for (let i = 0; i < 100; i++) {
@@ -98,9 +100,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
     const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     const hasRedisAvailable = isRedisAvailable();
-    // 本番は VERCEL_ENV==='production' のみ。preview/development ではメモリフォールバックを許可
     const isProd = process.env.VERCEL_ENV === 'production';
-    const useMemoryFallback = !hasFirestoreEnv && !hasRedisAvailable && !isProd;
+    const allowMemoryFallback = !HAS_SHARED_STORE && !isProd; // サーバ同期が無い時のみ開発で許可
 
     let persisted = false;
     let storageUsed = '';
@@ -135,34 +136,15 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     if (!persisted) {
-      // 本番ではメモリフォールバックを禁止（サーバーレスで共有されないため）
-      if (isProd) {
-        console.error('[API] No persistent storage available in production');
-        return NextResponse.json({ ok: false, reason: 'server-error', detail: 'No persistent storage in production' }, { status: 500, headers: noStore });
+      // メモリフォールバックは原則禁止（サーバレスで共有されない）。開発のみ明示許可時に限る。
+      if (!allowMemoryFallback) {
+        return NextResponse.json({ ok: false, reason: 'no-shared-store' }, { status: 503, headers: noStore });
       }
-      // 開発環境ではメモリフォールバックを使用
-      console.log('[API] Using memory fallback for room:', id, 'reason:', useMemoryFallback ? 'no storage available' : 'development mode');
       try {
-        const { getAllServerRooms } = await import('@/lib/roomSystemUnified');
-        const allServerRooms = getAllServerRooms();
-        console.log('[API] Server memory rooms count before save:', allServerRooms.length);
-        console.log('[API] Server memory rooms IDs before save:', allServerRooms.map(r => r.id));
-
         putRoomToMemory(room);
         storageUsed = 'Memory';
-        console.log('[API] Successfully created room in memory');
-
-        const allServerRoomsAfter = getAllServerRooms();
-        console.log('[API] Server memory rooms count after save:', allServerRoomsAfter.length);
-        console.log('[API] Server memory rooms IDs after save:', allServerRoomsAfter.map(r => r.id));
-        console.log('[API] Room details:', JSON.stringify(room, null, 2));
       } catch (e) {
-        console.error('[API] Memory fallback failed:', e);
-        return NextResponse.json({
-          ok: false,
-          reason: 'server-error',
-          detail: 'Failed to create room in any storage'
-        }, { status: 500, headers: noStore });
+        return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500, headers: noStore });
       }
     }
 

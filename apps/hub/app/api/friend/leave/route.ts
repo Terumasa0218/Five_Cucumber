@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
+import { HAS_SHARED_STORE } from '@/lib/serverSync';
+import { json } from '@/lib/http';
 import { isRedisAvailable } from '@/lib/redis';
 import { realtime } from '@/lib/realtime';
 import { kv } from '@vercel/kv';
 
 const keyOf = (id: string) => `friend:room:${id}`;
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -14,7 +20,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const { roomId, nickname } = body as { roomId?: string; nickname?: string };
 
     if (!roomId || !nickname || !nickname.trim()) {
-      return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400 });
+      return json({ ok: false, reason: 'bad-request' }, 400);
     }
 
     const rid = roomId.trim();
@@ -23,10 +29,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // 共有ストアからルームを検索（Firestore -> Redis/KV -> Memory）
     let room = await getRoomById(rid);
     if (!room && isRedisAvailable()) room = await getRoomByIdRedis(rid);
-    if (!room) room = getRoomFromMemory(rid);
+    if (!room && HAS_SHARED_STORE) room = getRoomFromMemory(rid);
 
     if (!room) {
-      return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });
+      return json({ ok: false, reason: 'not-found' }, 404);
     }
 
     const idx = room.seats.findIndex(s => s?.nickname === name);
@@ -46,7 +52,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         } catch {}
       }
 
-      if (!persisted) {
+      if (!persisted && HAS_SHARED_STORE) {
         putRoomToMemory(room);
       }
 
@@ -63,10 +69,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         await realtime.publishToMany(rid, members, 'room_updated', () => ({ room, event: 'player_left', leftPlayer: name }));
       } catch {}
     }
-    return NextResponse.json({ ok: true }, { status: 200 });
+    return json({ ok: true }, 200);
   } catch (error) {
     console.error('[API] leave room error:', error);
-    return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });
+    return json({ ok: false, reason: 'server-error' }, 500);
   }
 }
 

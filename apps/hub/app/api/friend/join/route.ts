@@ -4,6 +4,7 @@ export const revalidate = 0;
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
+import { HAS_SHARED_STORE } from '@/lib/serverSync';
 import { isRedisAvailable, isDevelopmentWithMemoryFallback, redis } from '@/lib/redis';
 import { realtime } from '@/lib/realtime';
 import { JoinRoomRequest, RoomResponse } from '@/types/room';
@@ -71,10 +72,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         console.warn('[API] join: KV get failed, falling back:', e);
       }
 
-      // 2) KVが無い場合は既存ストアから取得し、更新後に必ずKVへ同期
+      // 2) KVが無い場合は既存ストアから取得し、更新後に必ずKVへ同期（共有ストアが無い場合はメモリ禁止）
       let room = await getRoomById(rid);
       if (!room) room = await getRoomByIdRedis(rid);
-      if (!room) room = getRoomFromMemory(rid);
+      if (!room && HAS_SHARED_STORE) room = getRoomFromMemory(rid);
       if (!room) return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404, headers: noStore });
       if (room.status !== 'waiting') return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423, headers: noStore });
 
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       const isProd = process.env.VERCEL_ENV === 'production';
       if (hasFirestoreEnv) { try { await putRoom(room); } catch {} }
       if (hasRedisAvailable) { try { await putRoomRedis(room); } catch {} }
-      if (!hasFirestoreEnv && !hasRedisAvailable && !isProd) { putRoomToMemory(room); }
+      if (!hasFirestoreEnv && !hasRedisAvailable && !isProd && HAS_SHARED_STORE) { putRoomToMemory(room); }
 
       // 3) 最後に必ずKVへ書き戻す
       try {

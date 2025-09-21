@@ -8,6 +8,7 @@ import {
   saveRoomGameSnapshotRedis
 } from '@/lib/roomsRedis';
 import type { RoomGameSnapshot } from '@/types/room';
+import { HAS_SHARED_STORE } from '@/lib/serverSync';
 
 const HAS_FIRESTORE = Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
 const HAS_REDIS = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
@@ -17,6 +18,10 @@ export type GameSnapshot = RoomGameSnapshot;
 const memoryStore: Map<string, GameSnapshot> = new Map();
 
 async function loadSnapshot(roomId: string): Promise<GameSnapshot | null> {
+  // 共有ストアが無い環境ではサーバ同期を無効化（メモリ使用禁止）
+  if (!HAS_SHARED_STORE) {
+    return null;
+  }
   const local = memoryStore.get(roomId);
   if (local) return local;
 
@@ -44,15 +49,15 @@ async function loadSnapshot(roomId: string): Promise<GameSnapshot | null> {
     }
   }
 
-  // 共有ストアが利用できない場合はメモリストレージを返す（開発環境用）
-  const fallback = memoryStore.get(roomId) ?? null;
-  if (fallback) {
-    console.log('[FriendGameStore] Using memory fallback for game snapshot:', roomId);
-  }
-  return fallback;
+  // 共有ストアが利用できない場合のメモリフォールバックは禁止
+  return null;
 }
 
 async function persistSnapshot(roomId: string, snapshot: GameSnapshot): Promise<void> {
+  if (!HAS_SHARED_STORE) {
+    // サーバ同期が無い場合は保存自体を行わない（クライアント同期へ）
+    return;
+  }
   memoryStore.set(roomId, snapshot);
 
   let persisted = false;
@@ -75,9 +80,7 @@ async function persistSnapshot(roomId: string, snapshot: GameSnapshot): Promise<
     }
   }
 
-  if (!persisted) {
-    console.log('[FriendGameStore] Using memory fallback for game persistence:', roomId);
-  }
+  // メモリのみの永続は禁止（共有ストアが前提）
 }
 
 export async function getGame(roomId: string): Promise<GameSnapshot | null> {

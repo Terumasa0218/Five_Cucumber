@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { json } from '@/lib/http';
 import { updateRoom } from '@/lib/roomsStore';
 import { updateRoomRedis } from '@/lib/roomsRedis';
 import { updateRoomStatus, getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
@@ -7,13 +8,17 @@ import { kv } from '@vercel/kv';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body = await req.json();
     const { roomId, status } = body as { roomId?: string; status?: 'waiting' | 'playing' | 'closed' };
 
     if (!roomId || !status) {
-      return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400 });
+      return json({ ok: false, reason: 'bad-request' }, 400);
     }
 
     const rid = roomId.trim();
@@ -26,7 +31,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       if (room) {
         room.status = status;
         await kv.set(keyOf(rid), room, { ex: 60 * 30 });
-        return NextResponse.json({ ok: true }, { status: 200 });
+        return json({ ok: true }, 200);
       }
     } catch (e) {
       console.warn('[API] Status KV update failed or room not found in KV, falling back:', e);
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           await kv.set(keyOf(rid), r, { ex: 60 * 30 });
         }
       } catch {}
-      return NextResponse.json({ ok: true }, { status: 200 });
+      return json({ ok: true }, 200);
     } catch {
       // ignore
     }
@@ -60,7 +65,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             syncedToKv = true;
           }
         } catch {}
-        return NextResponse.json({ ok: true }, { status: 200 });
+        return json({ ok: true }, 200);
       }
     }
 
@@ -74,13 +79,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           await kv.set(keyOf(rid), memoryRoom, { ex: 60 * 30 });
           syncedToKv = true;
         } catch {}
-        return NextResponse.json({ ok: true }, { status: 200 });
+      return json({ ok: true }, 200);
       }
     }
 
     const ok = updateRoomStatus(rid, status);
     if (!ok) {
-      return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });
+      return json({ ok: false, reason: 'not-found' }, 404);
     }
     try {
       const r = await kv.get<any>(keyOf(rid));
@@ -91,10 +96,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     } catch {}
 
-    return NextResponse.json({ ok: true }, { status: 200 });
+    return json({ ok: true }, 200);
   } catch (error) {
     console.error('[API] status update error:', error);
-    return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });
+    return json({ ok: false, reason: 'server-error' }, 500);
   }
 }
 
