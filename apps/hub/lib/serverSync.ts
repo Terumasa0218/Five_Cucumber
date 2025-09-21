@@ -3,14 +3,17 @@
 const isBrowser = typeof window !== 'undefined';
 
 // Server-side detection (secrets available only on the server)
+// Vercel KV / Redis on Vercel / Upstash Redis / legacy vars を幅広く検出
 export const hasKV =
   !!process.env.KV_REST_API_URL ||
   !!process.env.KV_URL ||
-  !!process.env.UPSTASH_KV_REST_URL;
+  !!process.env.UPSTASH_KV_REST_URL ||
+  !!process.env.VERCEL_REDIS_URL;
 
 export const hasRedis =
   !!process.env.UPSTASH_REDIS_REST_URL ||
-  !!process.env.REDIS_URL;
+  !!process.env.REDIS_URL ||
+  !!process.env.VERCEL_REDIS_URL;
 
 // Public flags (embedded into client bundle when defined)
 const publicUseServer = (process.env.NEXT_PUBLIC_USE_SERVER === '1' || process.env.NEXT_PUBLIC_USE_SERVER === 'true');

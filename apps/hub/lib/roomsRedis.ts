@@ -11,9 +11,9 @@ export async function getRoomByIdRedis(roomId: string): Promise<Room | null> {
 
   try {
     console.log('[Redis] Getting room from KV:', key(roomId));
-    const s = await redis.get<string>(key(roomId));
-    if (!s) return null;
-    return JSON.parse(s) as Room;
+    const obj = await redis.get<Room>(key(roomId));
+    if (!obj) return null;
+    return obj as Room;
   } catch (error) {
     console.warn('[Redis] Failed to get room from KV:', error);
     return null;
@@ -28,7 +28,7 @@ export async function putRoomRedis(room: Room): Promise<void> {
 
   try {
     console.log('[Redis] Saving room to KV:', key(room.id));
-    await redis.set(key(room.id), JSON.stringify(room));
+    await redis.set(key(room.id), room);
   } catch (error) {
     console.warn('[Redis] Failed to save room to KV:', error);
     throw error;
@@ -43,11 +43,10 @@ export async function updateRoomRedis(roomId: string, patch: Partial<Room>): Pro
 
   try {
     console.log('[Redis] Updating room in KV:', key(roomId));
-    const s = await redis.get<string>(key(roomId));
-    if (!s) return false;
-    const current = JSON.parse(s) as Room;
+    const current = await redis.get<Room>(key(roomId));
+    if (!current) return false;
     const next = { ...current, ...patch } as Room;
-    await redis.set(key(roomId), JSON.stringify(next));
+    await redis.set(key(roomId), next);
     return true;
   } catch (error) {
     console.warn('[Redis] Failed to update room in KV:', error);

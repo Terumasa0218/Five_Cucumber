@@ -71,13 +71,12 @@ async function persistSnapshot(roomId: string, snapshot: GameSnapshot): Promise<
     }
   }
 
-  if (isRedisAvailable()) {
-    try {
-      await saveRoomGameSnapshotRedis(roomId, snapshot);
-      persisted = true;
-    } catch (error) {
-      console.warn('[FriendGameStore] Failed to persist snapshot to Redis:', error);
-    }
+  // 共有ストアが利用可能であれば、必ず Redis/KV への保存を試みる
+  try {
+    await saveRoomGameSnapshotRedis(roomId, snapshot);
+    persisted = true;
+  } catch (error) {
+    console.warn('[FriendGameStore] Failed to persist snapshot to Redis/KV:', error);
   }
 
   // 共有ストアへの永続に失敗した場合はエラーにする（早期検知）
