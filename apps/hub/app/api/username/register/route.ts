@@ -57,6 +57,11 @@ export async function POST(req: NextRequest) {
     await kv.set(`user:${id}`, { id, nickname, createdAt: now });
     await kv.set(keyOwner, nickname, { ex: MAX_AGE });
 
+    // プロフィール完了フラグを必ず付与（middleware通過用）
+    const opts = { httpOnly: true, sameSite: 'lax' as const, secure: true, path: '/', maxAge: MAX_AGE };
+    const jar2 = cookies();
+    jar2.set('hasProfile', '1', opts);
+
     console.log('[username/register] registered', { id, nickname });
     return NextResponse.json({ ok: true, id, nickname });
   } catch (err) {
