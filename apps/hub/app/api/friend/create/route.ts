@@ -1,5 +1,6 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
@@ -8,6 +9,8 @@ import { isRedisAvailable, isDevelopmentWithMemoryFallback } from '@/lib/redis';
 import { Room } from '@/types/room';
 import { CreateRoomRequest, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
+
+const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
 
 export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
   try {
@@ -26,7 +29,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       console.error('[API] JSON parse error:', parseError);
       return NextResponse.json(
         { ok: false, reason: 'invalid-json', detail: 'Invalid JSON in request body' },
-        { status: 400 }
+        { status: 400, headers: noStore }
       );
     }
     
@@ -36,28 +39,28 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     if (!nickname || typeof nickname !== 'string' || !nickname.trim()) {
       return NextResponse.json(
         { ok: false, reason: 'bad-request' },
-        { status: 400 }
+        { status: 400, headers: noStore }
       );
     }
 
     if (!roomSize || typeof roomSize !== 'number' || roomSize < 2 || roomSize > 6) {
       return NextResponse.json(
         { ok: false, reason: 'bad-request' },
-        { status: 400 }
+        { status: 400, headers: noStore }
       );
     }
 
     if (typeof turnSeconds !== 'number' || turnSeconds < 0) {
       return NextResponse.json(
         { ok: false, reason: 'bad-request' },
-        { status: 400 }
+        { status: 400, headers: noStore }
       );
     }
 
     if (!maxCucumbers || typeof maxCucumbers !== 'number' || maxCucumbers < 4 || maxCucumbers > 7) {
       return NextResponse.json(
         { ok: false, reason: 'bad-request' },
-        { status: 400 }
+        { status: 400, headers: noStore }
       );
     }
 
@@ -73,7 +76,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       if (!exists) { id = cand; break; }
     }
     if (!id) {
-      return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500 });
+      return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500, headers: noStore });
     }
     const room: Room = {
       id,
@@ -135,7 +138,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       // 本番ではメモリフォールバックを禁止（サーバーレスで共有されないため）
       if (isProd) {
         console.error('[API] No persistent storage available in production');
-        return NextResponse.json({ ok: false, reason: 'server-error', detail: 'No persistent storage in production' }, { status: 500 });
+        return NextResponse.json({ ok: false, reason: 'server-error', detail: 'No persistent storage in production' }, { status: 500, headers: noStore });
       }
       // 開発環境ではメモリフォールバックを使用
       console.log('[API] Using memory fallback for room:', id, 'reason:', useMemoryFallback ? 'no storage available' : 'development mode');
@@ -159,7 +162,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
           ok: false,
           reason: 'server-error',
           detail: 'Failed to create room in any storage'
-        }, { status: 500 });
+        }, { status: 500, headers: noStore });
       }
     }
 
@@ -173,13 +176,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       console.warn('[API] KV persist failed:', e);
     }
 
-    return NextResponse.json({ ok: true, roomId }, { status: 200 });
+    return NextResponse.json({ ok: true, roomId }, { status: 200, headers: noStore });
 
   } catch (error) {
     console.error('Room creation error:', error);
     return NextResponse.json(
       { ok: false, reason: 'server-error', detail: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      { status: 500, headers: noStore }
     );
   }
 }

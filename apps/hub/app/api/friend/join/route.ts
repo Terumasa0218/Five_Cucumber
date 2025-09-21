@@ -1,5 +1,6 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
@@ -10,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 
 const keyOf = (id: string) => `friend:room:${id}`;
+const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
 
 export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
   try {
@@ -19,10 +21,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     const roomId = String((body as any).roomId ?? (body as any).code ?? (body as any).roomCode ?? '');
 
     if (!nickname || typeof nickname !== 'string' || !nickname.trim()) {
-      return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400 });
+      return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400, headers: noStore });
     }
     if (!roomId || typeof roomId !== 'string' || !roomId.trim()) {
-      return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400 });
+      return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400, headers: noStore });
     }
 
     const rid = roomId.trim();
@@ -47,12 +49,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         const kvRoom = await kv.get<any>(keyOf(rid));
         if (kvRoom) {
           if (kvRoom.status !== 'waiting') {
-            return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423 });
+            return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423, headers: noStore });
           }
           const already = kvRoom.seats.some((s: any) => s?.nickname === name);
           if (!already) {
             const emptyIndex = kvRoom.seats.findIndex((s: any) => s === null);
-            if (emptyIndex === -1) return NextResponse.json({ ok: false, reason: 'full' }, { status: 409 });
+            if (emptyIndex === -1) return NextResponse.json({ ok: false, reason: 'full' }, { status: 409, headers: noStore });
             kvRoom.seats[emptyIndex] = { nickname: name };
             await kv.set(keyOf(rid), kvRoom, { ex: 60 * 30 });
           }
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
             await realtime.publishToMany(rid, members, 'room_updated', () => ({ room: kvRoom, event: 'player_joined', joinedPlayer: name }));
           } catch {}
 
-          return NextResponse.json({ ok: true, roomId: rid, room: kvRoom }, { status: 200 });
+          return NextResponse.json({ ok: true, roomId: rid, room: kvRoom }, { status: 200, headers: noStore });
         }
       } catch (e) {
         console.warn('[API] join: KV get failed, falling back:', e);
@@ -73,13 +75,13 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       let room = await getRoomById(rid);
       if (!room) room = await getRoomByIdRedis(rid);
       if (!room) room = getRoomFromMemory(rid);
-      if (!room) return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404 });
-      if (room.status !== 'waiting') return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423 });
+      if (!room) return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404, headers: noStore });
+      if (room.status !== 'waiting') return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423, headers: noStore });
 
       const already = room.seats.some(s => s?.nickname === name);
       if (!already) {
         const emptyIndex = room.seats.findIndex(s => s === null);
-        if (emptyIndex === -1) return NextResponse.json({ ok: false, reason: 'full' }, { status: 409 });
+        if (emptyIndex === -1) return NextResponse.json({ ok: false, reason: 'full' }, { status: 409, headers: noStore });
         room.seats[emptyIndex] = { nickname: name };
       }
 
@@ -103,7 +105,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         await realtime.publishToMany(rid, members, 'room_updated', () => ({ room, event: 'player_joined', joinedPlayer: name }));
       } catch {}
 
-      return NextResponse.json({ ok: true, roomId: rid, room }, { status: 200 });
+      return NextResponse.json({ ok: true, roomId: rid, room }, { status: 200, headers: noStore });
     } finally {
       if (locked) {
         try {
@@ -115,7 +117,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
   } catch (e) {
     const msg = (e as Error)?.message;
     const status = msg === 'not-found' ? 404 : msg === 'full' ? 409 : msg === 'locked' ? 423 : msg === 'persist-failed' ? 500 : 500;
-    return NextResponse.json({ ok: false, reason: msg ?? 'server-error' }, { status });
+    return NextResponse.json({ ok: false, reason: msg ?? 'server-error' }, { status, headers: noStore });
   }
 }
 
