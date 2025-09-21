@@ -5,7 +5,13 @@ export function makeClient(uid: string, channelName: string) {
   console.log('[Ably] Creating client for user:', uid, 'channel:', channelName);
 
   const client = new Ably.Realtime.Promise({
-    authUrl: `/api/ably/token?uid=${encodeURIComponent(uid)}&channel=${encodeURIComponent(channelName)}`,
+    authUrl: `/api/ably/token`,
+    authParams: {
+      uid,
+      channel: channelName,
+      rnd: Date.now().toString(),
+    },
+    clientId: uid,
     autoConnect: true,
     // スマホ対応: タイムアウトと再接続設定を強化
     transportParams: {
