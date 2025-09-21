@@ -15,6 +15,7 @@ export interface Translations {
   homeTitle: string;
   homeSubtitle: string;
   welcomeMessage: string;
+  nicknameUnset: string;
   cpuBattle: string;
   friendBattle: string;
   onlineBattle: string;
@@ -79,6 +80,7 @@ const translations: Record<Language, Translations> = {
     homeTitle: 'ホーム',
     homeSubtitle: '遊び方を選んでください。',
     welcomeMessage: 'ようこそ、{name}さん！',
+    nicknameUnset: 'ユーザー名: 未設定',
     cpuBattle: 'CPU対戦',
     friendBattle: 'フレンド対戦',
     onlineBattle: 'オンライン対戦',
@@ -142,6 +144,7 @@ const translations: Record<Language, Translations> = {
     homeTitle: 'Home',
     homeSubtitle: 'Choose how to play.',
     welcomeMessage: 'Welcome, {name}!',
+    nicknameUnset: 'Username: Not set',
     cpuBattle: 'CPU Battle',
     friendBattle: 'Friend Battle',
     onlineBattle: 'Online Battle',

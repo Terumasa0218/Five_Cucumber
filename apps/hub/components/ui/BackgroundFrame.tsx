@@ -23,12 +23,12 @@ export function BackgroundFrame({
   className,
 }: BackgroundFrameProps) {
   return (
-    <div
-      className={mergeClassNames(
-        "relative min-h-[100svh] flex flex-col font-body text-[#f8fafc]",
-        className
-      )}
-    >
+        <div
+          className={mergeClassNames(
+            "relative min-h-[100svh] flex flex-col font-body",
+            className
+          )}
+        >
       <Image
         src={src}
         alt=""

@@ -33,21 +33,21 @@ export default function Home() {
 
   return (
     <BackgroundFrame src="/images/home1.png" priority objectPosition="center">
-      <div className="max-w-[960px] mx-auto flex flex-col gap-12">
+      <div className="max-w-[960px] mx-auto flex flex-col gap-12 text-[#f8fafc]">
         {/* Hero */}
-        <section className="flex flex-col items-center text-center gap-4">
-          <h1 className="font-heading text-[clamp(22px,4vw,36px)]">
+        <section className="flex flex-col items-center text-center gap-4 backdrop-blur-sm bg-black/20 border border-white/10 rounded-3xl p-8">
+          <h1 className="font-heading text-[clamp(22px,4vw,36px)] text-[#1a1a1a] drop-shadow-[0_2px_4px_rgba(255,255,255,0.8)]">
             {t("homeTitle")}
           </h1>
-          <p className="font-body text-[clamp(14px,1.6vw,18px)] text-white/80">
+          <p className="font-body text-[clamp(14px,1.6vw,18px)] text-[#2d2d2d] drop-shadow-[0_1px_2px_rgba(255,255,255,0.6)]">
             {t("homeSubtitle")}
           </p>
           {nickname ? (
-            <p className="bg-white/10 border border-white/20 rounded-full px-4 py-2">
+            <p className="bg-emerald-500/90 text-emerald-950 border border-emerald-400 rounded-full px-4 py-2 font-semibold shadow-lg">
               {t("welcomeMessage", { name: nickname })}
             </p>
           ) : (
-            <p className="font-body text-white/60">ユーザー名: 未設定</p>
+            <p className="font-body text-[#4a4a4a] bg-white/60 rounded-full px-4 py-2">{t("nicknameUnset")}</p>
           )}
         </section>
 
@@ -55,19 +55,19 @@ export default function Home() {
         <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-center">
           <Link
             href="/cucumber/cpu/settings"
-            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-white bg-blue-600 border-2 border-blue-500 hover:bg-blue-700 hover:border-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 shadow-lg hover:shadow-xl transition-all"
           >
             {t("cpuBattle")}
           </Link>
           <Link
             href="/friend"
-            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-white bg-emerald-600 border-2 border-emerald-500 hover:bg-emerald-700 hover:border-emerald-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 shadow-lg hover:shadow-xl transition-all"
           >
             {t("friendBattle")}
           </Link>
           <Link
             href="/rules"
-            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-white bg-purple-600 border-2 border-purple-500 hover:bg-purple-700 hover:border-purple-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500 shadow-lg hover:shadow-xl transition-all"
           >
             {t("rules")}
           </Link>
