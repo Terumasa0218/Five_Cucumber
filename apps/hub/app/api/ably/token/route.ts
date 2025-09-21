@@ -1,61 +1,59 @@
-import { NextRequest, NextResponse } from 'next/server'
-import Ably from 'ably'
+import Ably from 'ably/promises';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-function json(data: any, init?: number | ResponseInit) {
-  const initObj: ResponseInit = typeof init === 'number' ? { status: init } : (init ?? {})
-  return NextResponse.json(data, {
-    headers: { 'cache-control': 'no-store' },
-    ...initObj,
-  })
+function sanitizeChannel(raw: string) {
+  // Ably のチャネル名として無難な範囲に制限（英数/アンダースコア/ハイフン/コロン/スラッシュ/ワイルドカード）
+  return (raw || '').replace(/[^-\w:/*]/g, '').slice(0, 128) || 'room-*';
 }
 
 export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const uid = url.searchParams.get('uid') || 'anon';
+  const channel = sanitizeChannel(url.searchParams.get('channel') || 'room-*');
+
   try {
-    if (!process.env.ABLY_API_KEY) {
-      console.error('[ably/token] missing ABLY_API_KEY')
-      return json({ ok: false, reason: 'missing-ably-key' }, 500)
+    const key = process.env.ABLY_API_KEY;
+    if (!key) {
+      throw new Error('ABLY_API_KEY is not set in environment.');
     }
 
-    const url = new URL(req.url)
-    const uid = url.searchParams.get('uid')?.trim()
-    const channel = url.searchParams.get('channel')?.trim()
+    // REST クライアント（Node ランタイム前提）
+    const rest = new Ably.Rest({ key });
 
-    if (!uid || !channel) {
-      console.warn('[ably/token] missing params', { uid: !!uid, channel: !!channel })
-      return json({ ok: false, reason: 'missing-params' }, 400)
-    }
-
-    // チャンネル名は room-<6桁> のみ許可
-    if (!/^room-\d{6}$/.test(channel)) {
-      console.warn('[ably/token] invalid channel', channel)
-      return json({ ok: false, reason: 'invalid-channel' }, 400)
-    }
-
-    if (uid.length > 32) {
-      return json({ ok: false, reason: 'invalid-uid' }, 400)
-    }
-
-    const rest = new (Ably as any).Rest(process.env.ABLY_API_KEY)
-
-    const capability = { [channel]: ['publish', 'subscribe', 'presence', 'history'] }
+    // このチャンネルで publish / subscribe / presence を許可
+    const capability = {
+      [channel]: ['publish', 'subscribe', 'presence'],
+    } as Record<string, string[]>;
 
     const tokenRequest = await rest.auth.createTokenRequest({
       clientId: uid,
       capability: JSON.stringify(capability),
-      ttl: 60 * 60 * 1000,
-    })
+      ttl: 60 * 60 * 1000, // 1h
+    });
 
-    return json(tokenRequest, 200)
+    // デバッグログ（Vercel Runtime Logs に出る）
+    console.log('[ABLY_TOKEN][OK]', { uid, channel });
+
+    return NextResponse.json({ ok: true, tokenRequest });
   } catch (err: any) {
-    console.error('[ably/token] error', err)
-    return json({ ok: false, reason: 'server-error', message: err?.message }, 500)
+    // 何が落ちているかを可視化
+    console.error('[ABLY_TOKEN][ERROR]', {
+      message: err?.message,
+      stack: err?.stack,
+    });
+    return NextResponse.json(
+      { ok: false, reason: 'server-error', message: String(err?.message || err) },
+      { status: 500 },
+    );
   }
 }
 
-export const POST = GET
+// CORS/プリフライト不要のはずだが、念のため 200 を返す
+export async function OPTIONS() {
+  return NextResponse.json({ ok: true });
+}
 
 
