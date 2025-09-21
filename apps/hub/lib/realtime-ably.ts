@@ -20,47 +20,35 @@ export const ablyAdapter: RealtimeAdapter = {
   async publishToUser(roomId, uid, event, payload) {
     try {
       const rest = getRest();
-      const ch = rest.channels.get(`room-${roomId}-u-${uid}`);
-      console.log('[Ably] Publishing to user:', roomId, uid, event);
+      const ch = rest.channels.get(`room-${roomId}`);
+      console.log('[Ably] Publishing to room (user-targeted payload):', roomId, uid, event);
       await new Promise<void>((resolve, reject) => {
-        ch.publish(event, payload, (err: any) => (err ? reject(err) : resolve()));
+        ch.publish(event, { ...payload, __targetUid: uid }, (err: any) => (err ? reject(err) : resolve()));
       });
     } catch (error) {
-      console.error('[Ably] Failed to publish to user:', error);
+      console.error('[Ably] Failed to publish to user via room channel:', error);
       throw error;
     }
   },
   async publishToMany(roomId, uids, event, build) {
     try {
       const rest = getRest();
-      console.log('[Ably] Publishing to many users:', roomId, uids.length, event, 'uids:', uids);
+      const ch = rest.channels.get(`room-${roomId}`);
+      console.log('[Ably] Publishing to room for many users:', roomId, uids.length, event);
 
       if (uids.length === 0) {
         console.log('[Ably] No users to publish to, skipping');
         return;
       }
 
-      await Promise.all(
-        uids.map((uid) => {
-          const ch = rest.channels.get(`room-${roomId}-u-${uid}`);
-          console.log('[Ably] Publishing to channel:', `room-${roomId}-u-${uid}`);
-          return new Promise<void>((resolve, reject) => {
-            ch.publish(event, build(uid), (err: any) => {
-              if (err) {
-                console.error('[Ably] Failed to publish to user:', uid, 'error:', err);
-                reject(err);
-              } else {
-                resolve();
-              }
-            });
-          });
-        })
-      );
+      const messages = uids.map((uid) => ({ name: event, data: { ...build(uid), __targetUid: uid } }));
+      await new Promise<void>((resolve, reject) => {
+        ch.publish(messages as any, (err: any) => (err ? reject(err) : resolve()));
+      });
 
-      console.log('[Ably] Successfully published to all users');
+      console.log('[Ably] Successfully published to room channel');
     } catch (error) {
-      console.error('[Ably] Failed to publish to many users:', error);
-      // 個別のパブリッシュ失敗は致命的ではないので、ログだけ出力して続行
+      console.error('[Ably] Failed to publish to room channel:', error);
       console.warn('[Ably] Some publishes may have failed, but continuing...');
     }
   },

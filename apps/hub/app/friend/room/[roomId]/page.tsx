@@ -141,7 +141,7 @@ export default function RoomWaitingPage() {
             console.log(`[RoomPage] Initializing Ably client for room: ${roomId}, user: ${currentNickname}, mobile: ${isMobile}`);
 
             const ablyClient = makeClient(currentNickname, `room-${roomId}`);
-            const channel = ablyClient.channels.get(`room-${roomId}-u-${currentNickname}`);
+            const channel = ablyClient.channels.get(`room-${roomId}`);
 
             // スマホ対応: チャネル状態を監視
             channel.on('attaching', () => {
