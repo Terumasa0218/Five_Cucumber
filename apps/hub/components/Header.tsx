@@ -23,14 +23,22 @@ export default function Header(){
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-transparent border-b border-gray-200/50 backdrop-blur-sm">
-      <div className="container mx-auto px-4 flex items-center justify-between py-4">
+    <header className="header header--antique">
+      <div className="header-content">
         {/* 左：タイトル */}
         <div></div>
 
         {/* 右：ユーザー名表示 */}
-        <div className="text-sm text-gray-600">
-          {nickname || '未設定'}
+        <div className="header-user">
+          {nickname ? (
+            <span className="header-user__badge">
+              {nickname}
+            </span>
+          ) : (
+            <span className="header-user__placeholder">
+              未設定
+            </span>
+          )}
         </div>
       </div>
     </header>

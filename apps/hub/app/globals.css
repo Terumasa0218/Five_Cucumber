@@ -168,6 +168,13 @@
   z-index: 100;
 }
 
+.header--antique {
+  background: rgba(245, 240, 230, 0.95);
+  border-bottom: 2px solid var(--antique-border);
+  box-shadow: 0 2px 16px var(--antique-shadow);
+  backdrop-filter: blur(8px);
+}
+
 .header-content {
   display: flex;
   align-items: center;
@@ -240,6 +247,30 @@
   font-size: var(--font-size-xl);
   cursor: pointer;
   padding: var(--space-sm);
+}
+
+.header-user {
+  display: flex;
+  align-items: center;
+}
+
+.header-user__badge {
+  background: var(--antique-forest);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);
+}
+
+.header-user__placeholder {
+  background: var(--antique-brass);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 /* Mobile menu */
@@ -1604,6 +1635,148 @@ body[data-bg="battle"]::before {
 .participant.current-player {
   background: rgba(255, 210, 122, 0.3);
   border: 1px solid rgba(255, 210, 122, 0.5);
+}
+
+/* === ホームページ専用スタイル === */
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(24px, 4vw, 48px);
+  color: var(--antique-ink);
+}
+
+.home-hero {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vw, 20px);
+  background: rgba(245, 240, 230, 0.95);
+  border: 2px solid var(--antique-border);
+  box-shadow: 0 8px 32px var(--antique-shadow);
+}
+
+.home-hero__title {
+  font-family: 'Shippori Mincho', serif;
+  font-size: clamp(28px, 5vw, 48px);
+  font-weight: 700;
+  color: var(--antique-ink);
+  text-shadow: 0 2px 8px rgba(43, 43, 43, 0.1);
+  margin: 0;
+}
+
+.home-hero__subtitle {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: clamp(16px, 2.2vw, 22px);
+  color: var(--antique-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.home-hero__welcome {
+  display: inline-block;
+  background: var(--antique-forest);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: clamp(14px, 1.8vw, 18px);
+  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.3);
+  margin: 0;
+}
+
+.home-hero__placeholder {
+  display: inline-block;
+  background: var(--antique-brass);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 9999px;
+  font-weight: 500;
+  font-size: clamp(14px, 1.8vw, 18px);
+  margin: 0;
+}
+
+.home-actions {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vw, 20px);
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .home-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+.home-actions__button {
+  min-width: 200px;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: clamp(16px, 2vw, 20px);
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.home-actions__button--cpu {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  border: 2px solid #1e40af;
+}
+
+.home-actions__button--cpu:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+}
+
+.home-actions__button--friend {
+  background: linear-gradient(135deg, #059669, #047857);
+  color: white;
+  border: 2px solid #065f46;
+}
+
+.home-actions__button--friend:hover {
+  background: linear-gradient(135deg, #047857, #064e3b);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.4);
+}
+
+.home-actions__button--rules {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: white;
+  border: 2px solid #5b21b6;
+}
+
+.home-actions__button--rules:hover {
+  background: linear-gradient(135deg, #6d28d9, #5b21b6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.4);
+}
+
+.home-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(16px, 3vw, 32px);
+  font-size: clamp(14px, 1.8vw, 18px);
+}
+
+.home-footer-links__item {
+  background: none;
+  border: none;
+  color: var(--antique-forest);
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  font-size: inherit;
+}
+
+.home-footer-links__item:hover {
+  color: var(--antique-forest-hover);
 }
 
 /* 楕円卓用の追加スタイル */
