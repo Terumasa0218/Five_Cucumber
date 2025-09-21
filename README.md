@@ -382,6 +382,17 @@ Set the following in your Firebase project:
 - `NEXT_PUBLIC_FIREBASE_*` - Client-side Firebase config
 - `FIREBASE_*` - Server-side Firebase admin config
 
+Client-side server sync flags (Vercel Project Settings → Environment Variables):
+
+- `NEXT_PUBLIC_HAS_SHARED_STORE` = `1` (or `true`) to enable server sync (API/Ably) in browser when shared store is configured
+- `NEXT_PUBLIC_USE_SERVER` = `1` (optional force enable)
+
+Server-side secrets (do not expose publicly):
+
+- `KV_REST_API_URL`, `KV_REST_API_TOKEN` (Vercel KV / Upstash KV)
+- `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (Upstash Redis)
+- `ABLY_API_KEY`
+
 ## 🤝 Contributing
 
 1. Fork the repository
