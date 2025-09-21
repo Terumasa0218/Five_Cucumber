@@ -9,9 +9,9 @@ import {
 } from '@/lib/roomsRedis';
 import type { RoomGameSnapshot } from '@/types/room';
 import { HAS_SHARED_STORE } from '@/lib/serverSync';
+import { isRedisAvailable } from '@/lib/redis';
 
 const HAS_FIRESTORE = Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
-const HAS_REDIS = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 
 export type GameSnapshot = RoomGameSnapshot;
 
@@ -37,7 +37,7 @@ async function loadSnapshot(roomId: string): Promise<GameSnapshot | null> {
     }
   }
 
-  if (HAS_REDIS) {
+  if (isRedisAvailable()) {
     try {
       const snap = await getRoomGameSnapshotRedis(roomId);
       if (snap) {
@@ -71,7 +71,7 @@ async function persistSnapshot(roomId: string, snapshot: GameSnapshot): Promise<
     }
   }
 
-  if (HAS_REDIS) {
+  if (isRedisAvailable()) {
     try {
       await saveRoomGameSnapshotRedis(roomId, snapshot);
       persisted = true;
@@ -80,7 +80,10 @@ async function persistSnapshot(roomId: string, snapshot: GameSnapshot): Promise<
     }
   }
 
-  // メモリのみの永続は禁止（共有ストアが前提）
+  // 共有ストアへの永続に失敗した場合はエラーにする（早期検知）
+  if (!persisted) {
+    throw new Error('persist-failed');
+  }
 }
 
 export async function getGame(roomId: string): Promise<GameSnapshot | null> {
