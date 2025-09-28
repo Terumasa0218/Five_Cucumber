@@ -2086,6 +2086,114 @@ body[data-bg="battle"]::before {
   backdrop-filter: blur(4px);
 }
 
+/* === ホームランディング（画像デザイン準拠） === */
+.home-landing{
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  justify-items: center;
+  align-content: start;
+  padding: clamp(16px,4vw,32px);
+}
+
+.home-landing__meta{
+  width: min(1100px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: clamp(12px,2vh,20px);
+}
+
+.home-landing__links{
+  display: flex;
+  gap: clamp(10px, 2vw, 20px);
+}
+
+.home-landing__link{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: var(--antique-ink);
+  text-decoration: none;
+  border: 1px solid transparent;
+  background: rgba(245,240,230,0.65);
+}
+
+.home-landing__link:hover{
+  border-color: var(--antique-border);
+  background: rgba(245,240,230,0.9);
+}
+
+.home-landing__username{
+  color: var(--antique-ink);
+  font-weight: 700;
+  background: rgba(245,240,230,0.75);
+  padding: 8px 14px;
+  border-radius: 9999px;
+  border: 1px solid var(--antique-border);
+}
+
+.home-landing__title{
+  font-family: 'Shippori Mincho', serif;
+  font-weight: 700;
+  font-size: clamp(28px,5vw,56px);
+  color: var(--antique-ink);
+  margin: clamp(12px,2vh,20px) 0;
+  text-align: center;
+}
+
+.home-landing__cta{
+  width: min(1100px, 100%);
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: clamp(12px,2vh,16px);
+  margin-top: clamp(8px,2vh,16px);
+}
+
+.home-landing__button{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 260px;
+  height: 72px;
+  border-radius: 16px;
+  font-size: clamp(18px,2.2vw,24px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: #fff;
+  border: 2px solid rgba(0,0,0,0.15);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+  padding: 0 24px;
+}
+
+.home-landing__button--cpu{
+  background: linear-gradient(180deg, #62b14f 0%, #2e7d32 100%);
+  border-color: rgba(46,125,50,0.35);
+}
+
+.home-landing__button--friend{
+  background: linear-gradient(180deg, #5aa74a 0%, #256d2a 100%);
+  border-color: rgba(37,109,42,0.35);
+}
+
+.home-landing__button:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.25);
+  filter: saturate(1.05);
+}
+
+.home-landing__hint{
+  color: var(--antique-ink);
+  font-size: clamp(12px,1.6vw,16px);
+  text-align: center;
+  margin: -6px 0 6px;
+}
+
 /* === ホームページ専用スタイル === */
 .home-page {
   display: flex;

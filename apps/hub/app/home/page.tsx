@@ -32,45 +32,43 @@ export default function Home() {
   }, [t]);
 
   return (
-    <BackgroundFrame src="/images/home1.png" priority objectPosition="center">
-      <div className="home-page safe-zone">
-        {/* Hero */}
-        <section className="home-hero card">
-          <h1 className="home-hero__title">
-            {t("homeTitle")}
-          </h1>
-          <p className="home-hero__subtitle">
-            {t("homeSubtitle")}
-          </p>
-          {nickname ? (
-            <p className="home-hero__welcome">
-              {t("welcomeMessage", { name: nickname })}
-            </p>
-          ) : (
-            <p className="home-hero__placeholder">{t("nicknameUnset")}</p>
-          )}
-        </section>
+    <BackgroundFrame src="/images/home13.png" priority objectPosition="center">
+      <div className="home-landing">
+        <header className="home-landing__meta">
+          <nav className="home-landing__links">
+            <Link href="/rules" className="home-landing__link">
+              <span>📖</span>
+              <span>ルール説明</span>
+            </Link>
+            <button
+              onClick={() => changeLanguage(language === "ja" ? "en" : "ja")}
+              className="home-landing__link"
+            >
+              <span>🌐</span>
+              <span>言語切替</span>
+            </button>
+          </nav>
+          <div className="home-landing__username">{nickname || t("nicknameUnset")}</div>
+        </header>
 
-        {/* CTA */}
-        <section className="home-actions">
+        <h1 className="home-landing__title">5本のきゅうり</h1>
+
+        <section className="home-landing__cta">
           <Link
             href="/cucumber/cpu/settings"
-            className="btn-primary home-actions__button home-actions__button--cpu"
+            className="home-landing__button home-landing__button--cpu"
           >
-            {t("cpuBattle")}
+            CPU対戦
           </Link>
+          <p className="home-landing__hint">習うより慣れろ！まずはCPUとやってみよう！</p>
+
           <Link
             href="/friend"
-            className="btn-primary home-actions__button home-actions__button--friend"
+            className="home-landing__button home-landing__button--friend"
           >
-            {t("friendBattle")}
+            フレンド対戦
           </Link>
-          <Link
-            href="/rules"
-            className="btn-primary home-actions__button home-actions__button--rules"
-          >
-            {t("rules")}
-          </Link>
+          <p className="home-landing__hint">いつでも！どこでも！友達と！</p>
         </section>
 
         {process.env.NODE_ENV === "development" && (
@@ -81,19 +79,6 @@ export default function Home() {
             <p className="opacity-80">allow: 許可 / passed: 認証済み / required: 未認証→/setup</p>
           </div>
         )}
-
-        {/* Footer links */}
-        <section className="home-footer-links">
-          <Link href="/rules" className="home-footer-links__item">
-            {t("rules")}
-          </Link>
-          <button
-            onClick={() => changeLanguage(language === "ja" ? "en" : "ja")}
-            className="home-footer-links__item"
-          >
-            {t("language")}
-          </button>
-        </section>
       </div>
     </BackgroundFrame>
   );
