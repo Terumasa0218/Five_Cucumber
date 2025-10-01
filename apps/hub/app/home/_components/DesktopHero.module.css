@@ -1,45 +1,27 @@
-.hero { position: relative; min-height: 100dvh; width: 100%; }
-.desktop { position: relative; min-height: 100dvh; width: 100%; }
-
-.hero { position: relative; min-height: 100dvh; isolation: isolate; }
-.inner { position: relative; min-height: 100dvh; display: grid; place-items: center; }
-.inner :is(hr, .divider, .line, .an-line) { display: none !important; border: 0 !important; }
-
-.inner { position: relative; min-height: 100dvh; display: grid; place-items: center; }
-
-.heroCard { position: relative; border-radius: clamp(28px, 5vw, 40px); padding: clamp(48px, 7vw, 72px) clamp(24px, 6vw, 64px) clamp(40px, 6vw, 56px); display: flex; flex-direction: column; align-items: center; gap: clamp(28px, 5vw, 48px); text-align: center; isolation: isolate; box-shadow: 0 48px 110px rgba(17, 63, 21, 0.22); overflow: hidden; }
-.heroBackground { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: -2; }
-.heroBackgroundImage { object-fit: cover; object-position: center; filter: brightness(1.05); }
-.heroCard::before { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.7) 45%, rgba(255, 255, 255, 0.95) 100%); z-index: -1; }
-
-.heroRibbon { width: 100%; display: flex; justify-content: center; }
-.heroRibbonArt { width: clamp(220px, 45%, 340px); max-width: 360px; }
-
-.heroContent { display: flex; flex-direction: column; align-items: center; gap: clamp(16px, 4vw, 28px); }
-.heroTitle { font-size: clamp(44px, 9vw, 84px); letter-spacing: 0.08em; color: var(--fc-ivory, #FFF8DC); text-shadow: 0 1px 2px rgba(0,0,0,.35), 0 20px 40px rgba(6, 32, 12, 0.28); margin: 0; }
-.actions { display: grid; gap: clamp(14px,3vw,18px); width: min(100%, 460px); margin: 0 auto; }
-.note { margin: 0; color: var(--fc-ivory, #FFF8DC); text-shadow: 0 1px 2px rgba(0,0,0,.25); }
-
-.ctaButtons { display: flex; flex-direction: column; gap: clamp(16px, 3vw, 24px); width: min(100%, 460px); }
-/* グローバルボタンに勝つ固有クラス */
-.fcHero_btn { all: unset; display: inline-block; cursor: pointer; padding: clamp(10px, 2.6vw, 12px) clamp(16px, 4.2vw, 24px); border-radius: 12px; border: 2px solid var(--fc-gold, #FFD700); color: var(--fc-ivory, #FFF8DC); background: linear-gradient(180deg, var(--fc-green-500, #43A047), var(--fc-green-700, #2E7D32)); box-shadow: 0 4px 10px rgba(0,0,0,.35); text-decoration: none; font-weight: 700; letter-spacing: .02em; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
-.fcHero_btn.secondary { background: linear-gradient(180deg, var(--fc-green-400, #4CAF50), var(--fc-green-600, #388E3C)); }
-.fcHero_btn:hover { filter: brightness(1.05); }
-.fcHero_btn:active { transform: translateY(1px); }
-.heroCopy { display: none; }
-
-/* 位置固定用ユーティリティ */
-.sideLeft { position: absolute; left: clamp(12px, 4vw, 32px); top: clamp(64px, 10vh, 120px); display: grid; gap: 8px; }
-.linkMinor { color: var(--fc-ivory, #FFF8DC); text-decoration: underline; }
-.userBox { position: absolute; right: clamp(12px, 4vw, 32px); top: clamp(24px, 5vh, 48px); display: inline-flex; gap: 6px; color: var(--fc-ivory, #FFF8DC); }
-.userName { color: var(--fc-gold, #FFD700); text-decoration: underline; }
-
-@media (max-width: 720px) {
-  .desktop { padding-block: clamp(32px, 12vw, 64px); }
-  .desktopHeader { justify-content: center; }
-  .usernameChip { padding-inline: clamp(20px, 8vw, 32px); }
-  .heroCard { padding: clamp(40px, 12vw, 60px) clamp(16px, 8vw, 28px); }
-  .ctaButtons { width: 100%; }
-}
+/* Anima 準拠の完全版 */
+.hero { position: relative; min-height: 100dvh; width: 100%; isolation: isolate; display:flex; align-items:center; justify-content:center; padding: clamp(32px,6vw,88px) clamp(16px,8vw,120px); background: radial-gradient(circle at 20% 20%, rgba(246,255,228,.85), rgba(246,255,228,0) 65%), var(--fc-forest-950,#0b2413); overflow:hidden; }
+.backgroundImage { object-fit:cover; object-position:center; filter: brightness(.82) saturate(.95); z-index:-2; }
+.overlay { position:absolute; inset:0; z-index:-1; background: linear-gradient(180deg, rgba(213,239,215,.55) 0%, rgba(213,239,215,.35) 45%, rgba(31,81,48,.35) 100%); mix-blend-mode: lighten; opacity:.75; }
+.inner { position:relative; min-height: clamp(560px,80vh,840px); width:min(100%,960px); display:grid; place-items:center; text-align:center; padding: clamp(32px,8vw,72px) clamp(24px,9vw,96px); border-radius: clamp(24px,5vw,48px); background: rgba(244,251,234,.82); box-shadow: 0 42px 120px rgba(6,40,18,.28); backdrop-filter: blur(14px); gap: clamp(24px,5vw,56px); }
+.title { margin:0; font-size: clamp(48px,12vw,96px); font-weight:700; letter-spacing:.08em; color: var(--fc-ivory,#fff8dc); text-shadow:0 20px 40px rgba(0,0,0,.35); }
+.actions { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: clamp(14px,4vw,32px); align-items:center; width:min(100%,520px); }
+.btn { display:inline-flex; align-items:center; justify-content:center; padding: clamp(16px,4vw,24px) clamp(20px,6vw,40px); border-radius: clamp(16px,4vw,28px); border:2px solid var(--fc-gold,#ffd700); font-size:clamp(20px,4vw,32px); font-weight:700; letter-spacing:.05em; color: var(--fc-ivory,#fff8dc); text-decoration:none; text-shadow:0 8px 22px rgba(0,0,0,.32); box-shadow:0 24px 44px rgba(6,32,12,.38); transition: transform .2s ease, box-shadow .2s ease; position:relative; overflow:hidden; }
+.btn::before { content:""; position:absolute; inset: clamp(3px,.9vw,6px); border-radius:inherit; border:3px solid rgba(255,255,255,.58); }
+.btn:hover { transform: translateY(-4px); box-shadow:0 32px 56px rgba(6,32,12,.46); }
+.btn:active { transform: translateY(0); box-shadow:0 22px 40px rgba(6,32,12,.32); }
+.btn:focus-visible { outline:3px solid var(--fc-gold,#ffd700); outline-offset:4px; }
+.primary { background: linear-gradient(180deg, var(--fc-green-400,#84b226) 0%, var(--fc-forest-900,#1f5130) 100%); }
+.secondary { background: linear-gradient(180deg, var(--fc-amber-400,#f5b24d) 0%, var(--fc-amber-700,#d67a06) 100%); box-shadow:0 24px 44px rgba(126,62,8,.35); }
+.note { margin:0; font-size:clamp(14px,3vw,18px); line-height:1.6; color: rgba(255,248,220,.92); text-shadow:0 12px 24px rgba(0,0,0,.35); }
+.sideLeft { position:absolute; left:clamp(16px,6vw,72px); top:clamp(80px,12vh,160px); display:grid; gap:clamp(8px,2vw,16px); text-align:left; }
+.linkMinor { color: var(--fc-ivory,#fff8dc); font-weight:600; letter-spacing:.04em; text-decoration:underline; text-underline-offset:4px; transition:opacity .2s ease; }
+.linkMinor:hover { opacity:.8; }
+.userBox { position:absolute; right:clamp(16px,6vw,72px); top:clamp(32px,8vh,120px); display:inline-flex; align-items:center; gap:8px; padding:10px clamp(18px,4vw,28px); border-radius:999px; background: rgba(255,255,255,.82); box-shadow: 0 16px 38px rgba(0,0,0,.25); }
+.userLabel { font-size:clamp(14px,2.8vw,18px); color: var(--fc-forest-700,#2d6138); letter-spacing:.04em; }
+.userName { color: var(--fc-forest-950,#0f301a); font-weight:700; letter-spacing:.08em; text-decoration:none; }
+.userName:hover { text-decoration:underline; }
+.userName:focus-visible { outline:3px solid var(--fc-gold,#ffd700); outline-offset:4px; border-radius:6px; }
+@media (max-width: 960px) { .inner{ padding: clamp(32px,10vw,64px) clamp(20px,8vw,48px); width:min(100%,720px);} .actions{ grid-template-columns:1fr;} .sideLeft{ position:static; order:-1; text-align:center;} .userBox{ position:static; order:-2;} }
+@media (max-width: 640px) { .hero{ padding: clamp(24px,12vw,48px) clamp(12px,7vw,32px);} .inner{ gap: clamp(20px,6vw,40px);} .note{ font-size:clamp(13px,4vw,16px);} }
 
 
