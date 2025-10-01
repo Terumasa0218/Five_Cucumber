@@ -28,7 +28,7 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
 
         <div className={styles.userBox}>
           <span className={styles.userLabel}>ユーザー：</span>
-          <Link href="/account/username" className={styles.userName} aria-label={`${username}のアカウントページを開く`}>{username}</Link>
+          <Link href="/setup" className={styles.userName} aria-label={`${username}のアカウント設定ページを開く`}>{username}</Link>
         </div>
       </div>
     </section>

@@ -170,7 +170,7 @@
 
 .header--antique {
   background: rgba(245, 240, 230, 0.95);
-  border-bottom: 2px solid var(--antique-border);
+  border-bottom: 0;
   box-shadow: 0 2px 16px var(--antique-shadow);
   backdrop-filter: blur(8px);
 }

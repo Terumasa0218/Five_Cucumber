@@ -1,5 +1,6 @@
 /* Anima 準拠の完全版 */
 .hero { position: relative; min-height: 100dvh; width: 100%; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+.hero::before { content:""; position:absolute; inset:0; box-shadow: none; border:none; }
 .backgroundImage { position:absolute; inset:0; object-fit:cover; object-position:center; z-index:-1; }
 .inner { position:relative; min-height: 100dvh; width:100%; display:grid; place-items:center; text-align:center; padding: clamp(32px,8vw,72px) clamp(24px,9vw,96px); gap: clamp(24px,5vw,56px); }
 .title { margin:0; font-size: clamp(48px,12vw,96px); font-weight:700; letter-spacing:.08em; color: var(--fc-ivory,#fff8dc); text-shadow:0 20px 40px rgba(0,0,0,.35); }
