@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import LanguageToggle from "./LanguageToggle";
 import styles from "./DesktopHero.module.css";
 
 type Props = { username?: string };
@@ -52,7 +53,7 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
         {/* 左リンク列 */}
         <nav className={styles.sideLeft} aria-label="helper links">
           <Link href="/rules" className={styles.linkMinor}>📖ルール説明</Link>
-          <Link href="/lang" className={styles.linkMinor}>🌐言語切替</Link>
+          <LanguageToggle className={styles.linkMinor} />
         </nav>
         {/* 右上ユーザー枠 */}
         <div className={styles.userBox}><span>USER:</span><span className={styles.userName}>{username}</span></div>
