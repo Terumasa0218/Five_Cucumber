@@ -4,13 +4,13 @@ import "./style.css";
 export const Desktop = ({ username = "GUEST" }) => {
   return (
     <section className="desktop">
-      <img className="bg" alt="Home" src="/home/home13-1.png" />
+      <img className="bg" alt="Home" src="/assets/home13.png" />
       <div className="inner">
         <nav className="sideLeft">
-          <a className="linkMinor" href="#rules">📖ルール説明</a>
-          <a className="linkMinor" href="#lang">🌐言語切替</a>
+          <a className="linkMinor" href="#rules">ルール説明</a>
+          <a className="linkMinor" href="#lang">言語切替</a>
         </nav>
-        <div className="userBox">USER:<span className="userName">{username}</span></div>
+        <div className="userBox">ユーザー:<span className="userName">{username}</span></div>
         <div className="hero">
           <h1 className="title">５本のきゅうり</h1>
           <p className="subtitle">習うより慣れろ！まずはCPUとやってみよう！</p>

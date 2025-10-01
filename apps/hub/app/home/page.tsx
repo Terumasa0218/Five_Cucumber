@@ -32,7 +32,7 @@ export default function Home() {
   }, [t]);
 
   return (
-    <BackgroundFrame src="/images/home13.png" priority objectPosition="center">
+    <>
       <DesktopHero username={nickname || t("nicknameUnset")} />
       {process.env.NODE_ENV === "development" && (
         <div className="debug-section">
@@ -42,6 +42,6 @@ export default function Home() {
           <p className="opacity-80">allow: 許可 / passed: 認証済み / required: 未認証→/setup</p>
         </div>
       )}
-    </BackgroundFrame>
+    </>
   );
 }

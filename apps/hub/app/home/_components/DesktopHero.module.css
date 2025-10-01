@@ -1,8 +1,7 @@
 /* Anima 準拠の完全版 */
-.hero { position: relative; min-height: 100dvh; width: 100%; isolation: isolate; display:flex; align-items:center; justify-content:center; padding: clamp(32px,6vw,88px) clamp(16px,8vw,120px); background: radial-gradient(circle at 20% 20%, rgba(246,255,228,.85), rgba(246,255,228,0) 65%), var(--fc-forest-950,#0b2413); overflow:hidden; }
-.backgroundImage { object-fit:cover; object-position:center; filter: brightness(.82) saturate(.95); z-index:-2; }
-.overlay { position:absolute; inset:0; z-index:-1; background: linear-gradient(180deg, rgba(213,239,215,.55) 0%, rgba(213,239,215,.35) 45%, rgba(31,81,48,.35) 100%); mix-blend-mode: lighten; opacity:.75; }
-.inner { position:relative; min-height: clamp(560px,80vh,840px); width:min(100%,960px); display:grid; place-items:center; text-align:center; padding: clamp(32px,8vw,72px) clamp(24px,9vw,96px); border-radius: clamp(24px,5vw,48px); background: rgba(244,251,234,.82); box-shadow: 0 42px 120px rgba(6,40,18,.28); backdrop-filter: blur(14px); gap: clamp(24px,5vw,56px); }
+.hero { position: relative; min-height: 100dvh; width: 100%; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+.backgroundImage { position:absolute; inset:0; object-fit:cover; object-position:center; z-index:-1; }
+.inner { position:relative; min-height: 100dvh; width:100%; display:grid; place-items:center; text-align:center; padding: clamp(32px,8vw,72px) clamp(24px,9vw,96px); gap: clamp(24px,5vw,56px); }
 .title { margin:0; font-size: clamp(48px,12vw,96px); font-weight:700; letter-spacing:.08em; color: var(--fc-ivory,#fff8dc); text-shadow:0 20px 40px rgba(0,0,0,.35); }
 .actions { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: clamp(14px,4vw,32px); align-items:center; width:min(100%,520px); }
 .btn { display:inline-flex; align-items:center; justify-content:center; padding: clamp(16px,4vw,24px) clamp(20px,6vw,40px); border-radius: clamp(16px,4vw,28px); border:2px solid var(--fc-gold,#ffd700); font-size:clamp(20px,4vw,32px); font-weight:700; letter-spacing:.05em; color: var(--fc-ivory,#fff8dc); text-decoration:none; text-shadow:0 8px 22px rgba(0,0,0,.32); box-shadow:0 24px 44px rgba(6,32,12,.38); transition: transform .2s ease, box-shadow .2s ease; position:relative; overflow:hidden; }
@@ -21,7 +20,7 @@
 .userName { color: var(--fc-forest-950,#0f301a); font-weight:700; letter-spacing:.08em; text-decoration:none; }
 .userName:hover { text-decoration:underline; }
 .userName:focus-visible { outline:3px solid var(--fc-gold,#ffd700); outline-offset:4px; border-radius:6px; }
-@media (max-width: 960px) { .inner{ padding: clamp(32px,10vw,64px) clamp(20px,8vw,48px); width:min(100%,720px);} .actions{ grid-template-columns:1fr;} .sideLeft{ position:static; order:-1; text-align:center;} .userBox{ position:static; order:-2;} }
+@media (max-width: 960px) { .inner{ padding: clamp(32px,10vw,64px) clamp(20px,8vw,48px);} .actions{ grid-template-columns:1fr;} .sideLeft{ position:static; order:-1; text-align:center;} .userBox{ position:static; order:-2;} }
 @media (max-width: 640px) { .hero{ padding: clamp(24px,12vw,48px) clamp(12px,7vw,32px);} .inner{ gap: clamp(20px,6vw,40px);} .note{ font-size:clamp(13px,4vw,16px);} }
 
 
