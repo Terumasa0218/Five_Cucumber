@@ -113,7 +113,7 @@ export async function applyServerMove(roomId: string, move: Move): Promise<GameS
   // ラウンド継続中は RNG 状態をスナップショットに保持して再利用する
   // なければ初期化（初回のみ）
   // @ts-ignore 既存型を壊さないために付加プロパティとして保持
-  const rngState = (snap as any).rngState as number[] | undefined;
+  const rngState = (snap as any).rngState as { seed: number; state: number } | undefined;
   const rng = rngState ? SeededRng.fromState(rngState) : new SeededRng(snap.config.seed ?? Date.now());
   const result = applyMove(snap.state, move, snap.config, rng);
   if (!result.success) return snap; // ignore illegal moves but keep existing state

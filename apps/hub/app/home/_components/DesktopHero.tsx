@@ -7,22 +7,9 @@ type Props = { username?: string };
 export default function DesktopHero({ username = "GUEST" }: Props) {
   return (
     <section className={styles.desktop}>
-      <div className={styles.desktopInner}>
-        <header className={styles.desktopHeader}>
-          <span className={styles.usernameChip}>{username}</span>
-        </header>
-
-        <article className={styles.heroCard}>
-          <div className={styles.heroBackground} aria-hidden="true">
-            <Image
-              src="/home/home13-1.png"
-              alt=""
-              fill
-              priority
-              sizes="(max-width: 768px) 100vw, 1024px"
-              className={styles.heroBackgroundImage}
-            />
-          </div>
+      {/* 背景を全面に */}
+      <Image src="/home/home13-1.png" alt="" fill priority sizes="100vw" className={styles.heroBackgroundImage} />
+      <div className={styles.inner}>
 
           <div className={styles.heroRibbon} aria-hidden="true">
             <svg
@@ -62,30 +49,19 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
           </div>
 
           <div className={styles.ctaButtons}>
-            <Link href="/play/cpu" className={`${styles.fcHero_btn}`}>CPU対戦</Link>
+            <Link href="/play/cpu" className={styles.fcHero_btn}>CPU対戦</Link>
             <Link href="/play/friend" className={`${styles.fcHero_btn} ${styles.secondary}`}>
               フレンド対戦
             </Link>
           </div>
 
-          <div className={styles.heroLinks}>
-            <Link href="/rules" className={styles.linkButton}>
-              <span aria-hidden="true">📖</span>ルール説明
-            </Link>
-            <Link href="/lang" className={styles.linkButton}>
-              <span aria-hidden="true">🌐</span>言語切替
-            </Link>
-          </div>
-          {/* 固定位置のリンク/ユーザー名（必要に応じて使用） */}
-          <div className={styles.sideLeft}>
-            <Link href="/rules" className={styles.linkMinor}>📖ルール説明</Link>
-            <Link href="/lang" className={styles.linkMinor}>🌐言語切替</Link>
-          </div>
-          <div className={styles.userBox}>
-            <span>USER:</span>
-            <span className={styles.userName}>{username}</span>
-          </div>
-        </article>
+        {/* 左リンク列 */}
+        <nav className={styles.sideLeft} aria-label="helper links">
+          <Link href="/rules" className={styles.linkMinor}>📖ルール説明</Link>
+          <Link href="/lang" className={styles.linkMinor}>🌐言語切替</Link>
+        </nav>
+        {/* 右上ユーザー枠 */}
+        <div className={styles.userBox}><span>USER:</span><span className={styles.userName}>{username}</span></div>
       </div>
     </section>
   );
