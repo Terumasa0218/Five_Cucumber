@@ -1,26 +1,11 @@
-.desktop {
-  min-height: 100dvh;
-  width: 100%;
-  background: radial-gradient(
-    circle at 20% 20%,
-    var(--fc-ivory-soft, #f6ffe4) 0%,
-    var(--fc-ivory, #fff8dc) 55%,
-    var(--fc-cream, #f2f6ef) 100%
-  );
-  display: flex;
-  justify-content: center;
-  box-sizing: border-box;
-  padding: clamp(32px, 6vw, 80px) clamp(16px, 6vw, 72px);
-  position: relative;
-}
+.hero { position: relative; min-height: 100dvh; width: 100%; }
+.desktop { position: relative; min-height: 100dvh; width: 100%; }
 
 .hero { position: relative; min-height: 100dvh; isolation: isolate; }
 .inner { position: relative; min-height: 100dvh; display: grid; place-items: center; }
 .inner :is(hr, .divider, .line, .an-line) { display: none !important; border: 0 !important; }
 
-.desktopInner { width: min(100%, 1080px); display: flex; flex-direction: column; gap: clamp(24px, 5vw, 48px); }
-.desktopHeader { display: flex; justify-content: flex-end; }
-.usernameChip { display: inline-flex; align-items: center; justify-content: center; padding: 10px clamp(24px, 5vw, 32px); border-radius: 999px; background: rgba(255, 255, 255, 0.85); box-shadow: 0 20px 40px rgba(31, 81, 48, 0.18); color: var(--fc-forest-900, #1f5130); font-size: clamp(15px, 2vw, 22px); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.inner { position: relative; min-height: 100dvh; display: grid; place-items: center; }
 
 .heroCard { position: relative; border-radius: clamp(28px, 5vw, 40px); padding: clamp(48px, 7vw, 72px) clamp(24px, 6vw, 64px) clamp(40px, 6vw, 56px); display: flex; flex-direction: column; align-items: center; gap: clamp(28px, 5vw, 48px); text-align: center; isolation: isolate; box-shadow: 0 48px 110px rgba(17, 63, 21, 0.22); overflow: hidden; }
 .heroBackground { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; z-index: -2; }
@@ -32,9 +17,8 @@
 
 .heroContent { display: flex; flex-direction: column; align-items: center; gap: clamp(16px, 4vw, 28px); }
 .heroTitle { font-size: clamp(44px, 9vw, 84px); letter-spacing: 0.08em; color: var(--fc-ivory, #FFF8DC); text-shadow: 0 1px 2px rgba(0,0,0,.35), 0 20px 40px rgba(6, 32, 12, 0.28); margin: 0; }
-.heroCopy { display: flex; flex-direction: column; gap: clamp(10px, 3vw, 18px); max-width: min(100%, 640px); }
-.heroSubtitle { margin: 0; font-size: clamp(20px, 3vw, 30px); font-weight: 500; line-height: 1.6; letter-spacing: 0.01em; color: var(--fc-ivory, #FFF8DC); opacity: .9; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
-.heroSubtext { margin: 0; font-size: clamp(18px, 2.5vw, 26px); font-weight: 600; letter-spacing: 0.08em; line-height: 1.5; color: var(--fc-ivory, #FFF8DC); text-transform: uppercase; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.actions { display: grid; gap: clamp(14px,3vw,18px); width: min(100%, 460px); margin: 0 auto; }
+.note { margin: 0; color: var(--fc-ivory, #FFF8DC); text-shadow: 0 1px 2px rgba(0,0,0,.25); }
 
 .ctaButtons { display: flex; flex-direction: column; gap: clamp(16px, 3vw, 24px); width: min(100%, 460px); }
 /* グローバルボタンに勝つ固有クラス */
@@ -42,10 +26,7 @@
 .fcHero_btn.secondary { background: linear-gradient(180deg, var(--fc-green-400, #4CAF50), var(--fc-green-600, #388E3C)); }
 .fcHero_btn:hover { filter: brightness(1.05); }
 .fcHero_btn:active { transform: translateY(1px); }
-.heroLinks { display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 2.5vw, 18px); font-weight: 600; letter-spacing: 0.05em; }
-.linkButton { display: inline-flex; align-items: center; gap: 8px; color: var(--fc-forest-900, #1f5130); text-decoration: none; padding: 10px 16px; border-radius: 999px; background: rgba(255, 255, 255, 0.75); box-shadow: 0 12px 28px rgba(31, 81, 48, 0.14); font-size: clamp(16px, 2.3vw, 22px); text-transform: uppercase; transition: transform 0.2s ease, box-shadow 0.2s ease; }
-.linkButton:hover { transform: translateY(-2px); box-shadow: 0 18px 36px rgba(31, 81, 48, 0.2); }
-.linkButton:focus-visible { outline: 3px solid var(--fc-gold, #ffd700); outline-offset: 4px; }
+.heroCopy { display: none; }
 
 /* 位置固定用ユーティリティ */
 .sideLeft { position: absolute; left: clamp(12px, 4vw, 32px); top: clamp(64px, 10vh, 120px); display: grid; gap: 8px; }
