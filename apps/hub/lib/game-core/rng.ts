@@ -67,6 +67,13 @@ export class SeededRng {
   setState(state: RngState): void {
     this.state = state.state;
   }
+
+  // 状態オブジェクトからRNGを復元
+  static fromState(state: RngState): SeededRng {
+    const rng = new SeededRng(state.seed);
+    rng.setState(state);
+    return rng;
+  }
 }
 
 // グローバルRNGインスタンス

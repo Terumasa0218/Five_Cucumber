@@ -527,8 +527,8 @@ function CpuPlayContent() {
               isActive: idx === gameState.currentPlayer,
             }))}
             currentPlayerId={String(gameState.currentPlayer)}
-            fieldCards={((gameState as any).table?.field || []).map(String)}
-            discardCards={((gameState as any).table?.discard || []).map(String)}
+            fieldCards={(gameState.fieldCard !== null ? [String(gameState.fieldCard)] : [])}
+            discardCards={gameState.sharedGraveyard.map((c) => String(c))}
             onCardSelect={(card) => handleCardClick(Number(card))}
             lockedCardId={lockedCardId !== null ? String(lockedCardId) : null}
             isSubmitting={isSubmitting}

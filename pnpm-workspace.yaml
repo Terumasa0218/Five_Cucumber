@@ -3,4 +3,4 @@ packages:
   - 'packages/*'
   - 'games/*'
   - 'functions'
-  - 'homeUI'
+  - 'homeUI'  # non-pnpm workspace; exclude from turbo by no build tasks

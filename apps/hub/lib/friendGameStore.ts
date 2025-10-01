@@ -110,7 +110,11 @@ export async function applyServerMove(roomId: string, move: Move): Promise<GameS
   const snap = await loadSnapshot(roomId);
   if (!snap) return null;
 
-  const rng = new SeededRng(snap.config.seed ?? Date.now());
+  // ラウンド継続中は RNG 状態をスナップショットに保持して再利用する
+  // なければ初期化（初回のみ）
+  // @ts-ignore 既存型を壊さないために付加プロパティとして保持
+  const rngState = (snap as any).rngState as number[] | undefined;
+  const rng = rngState ? SeededRng.fromState(rngState) : new SeededRng(snap.config.seed ?? Date.now());
   const result = applyMove(snap.state, move, snap.config, rng);
   if (!result.success) return snap; // ignore illegal moves but keep existing state
 
@@ -130,6 +134,8 @@ export async function applyServerMove(roomId: string, move: Move): Promise<GameS
     version: snap.version + 1,
     updatedAt: Date.now()
   };
+  // @ts-ignore 付加プロパティに RNG 状態を保存
+  (updated as any).rngState = rng.getState();
   await persistSnapshot(roomId, updated);
   return updated;
 }

@@ -49,7 +49,7 @@ export function BattleTable({ players, currentPlayerId, fieldCards, discardCards
       <div className="bg-emerald-900/30 border border-emerald-200/20 rounded-[999px] aspect-[5/2] mx-auto w-full max-w-[960px] flex items-center justify-center">
         <div className="grid gap-3 justify-items-center">
           <div className="flex gap-3">
-            {fieldCards.map((card) => {
+            {fieldCards.map((card, idx) => {
               const disabled = !!lockedCardId || isSubmitting;
               const cardNode = (
                 <div className="aspect-[3/4] w-[clamp(72px,8vw,104px)] rounded-2xl border border-white/15 bg-white/10 backdrop-blur-sm flex items-center justify-center">
@@ -58,7 +58,7 @@ export function BattleTable({ players, currentPlayerId, fieldCards, discardCards
               );
               return onCardSelect ? (
                 <button
-                  key={card}
+                  key={`field-${idx}-${card}`}
                   disabled={disabled}
                   className={mergeClassNames(disabled ? "opacity-50 pointer-events-none" : undefined)}
                   onClick={() => onCardSelect(card)}
@@ -66,13 +66,13 @@ export function BattleTable({ players, currentPlayerId, fieldCards, discardCards
                   {cardNode}
                 </button>
               ) : (
-                <div key={card}>{cardNode}</div>
+                <div key={`field-${idx}-${card}`}>{cardNode}</div>
               );
             })}
           </div>
           <div className="flex gap-3 opacity-80">
-            {discardCards.map((card) => (
-              <div key={card} className="aspect-[3/4] w-[clamp(56px,6vw,88px)] rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm grid place-items-center">
+            {discardCards.map((card, idx) => (
+              <div key={`discard-${idx}-${card}`} className="aspect-[3/4] w-[clamp(56px,6vw,88px)] rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm grid place-items-center">
                 <span className="font-mono text-xs">{card}</span>
               </div>
             ))}
