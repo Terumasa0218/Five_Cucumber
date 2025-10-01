@@ -7,7 +7,8 @@
     "apps/*",
     "packages/*",
     "games/*",
-    "functions"
+    "functions",
+    "homeUI"
   ],
   "scripts": {
     "prepare": "node -e \"process.exit(0)\"",
@@ -21,7 +22,8 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "vercel:check": "node tooling/check-next-output.cjs"
+    "vercel:check": "node tooling/check-next-output.cjs",
+    "assets:exists": "node tooling/check-home-assets.cjs"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
