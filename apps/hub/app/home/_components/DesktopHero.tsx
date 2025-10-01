@@ -6,7 +6,7 @@ type Props = { username?: string };
 
 export default function DesktopHero({ username = "GUEST" }: Props) {
   return (
-    <section className={styles.desktop}>
+    <section className={styles.hero}>
       {/* 背景を全面に */}
       <Image src="/home/home13-1.png" alt="" fill priority sizes="100vw" className={styles.heroBackgroundImage} />
       <div className={styles.inner}>
@@ -42,17 +42,11 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
 
           <div className={styles.heroContent}>
             <h1 className={styles.heroTitle}>５本のきゅうり</h1>
-            <div className={styles.heroCopy}>
-              <p className={styles.heroSubtitle}>習うより慣れろ！まずはCPUとやってみよう！</p>
-              <p className={styles.heroSubtext}>いつでも！どこでも！友達と！</p>
+            <div className={styles.actions}>
+              <Link href="/play/cpu" className={styles.fcHero_btn}>CPU対戦</Link>
+              <Link href="/play/friend" className={`${styles.fcHero_btn} ${styles.secondary}`}>フレンド対戦</Link>
             </div>
-          </div>
-
-          <div className={styles.ctaButtons}>
-            <Link href="/play/cpu" className={styles.fcHero_btn}>CPU対戦</Link>
-            <Link href="/play/friend" className={`${styles.fcHero_btn} ${styles.secondary}`}>
-              フレンド対戦
-            </Link>
+            <p className={styles.note}>習うより慣れろ！まずはCPUとやってみよう！ いつでも！どこでも！友達と！</p>
           </div>
 
         {/* 左リンク列 */}
