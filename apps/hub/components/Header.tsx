@@ -23,6 +23,10 @@ export default function Header(){
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  if (pathname?.startsWith('/home')) {
+    return null;
+  }
+
   return (
     <header className="header header--antique">
       <div className="header-content">

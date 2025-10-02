@@ -13,11 +13,11 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
 
         <div className={styles.heroContent}>
           <h1 className={styles.title}>５本のきゅうり</h1>
-          <div className={styles.actions}>
+          <p className={styles.subtitle}>習うより慣れろ！まずはCPUとやってみよう！</p>
+          <p className={styles.note}>いつでも！どこでも！友達と！</p>
+          <div className={styles.cta}>
             <Link href="/play/cpu" className={`${styles.btn} ${styles.primary}`} aria-label="CPU対戦を始める">CPU対戦</Link>
-            <p className={styles.note}>習うより慣れろ！まずはCPUとやってみよう！</p>
             <Link href="/play/friend" className={`${styles.btn} ${styles.secondary}`} aria-label="フレンド対戦を始める">フレンド対戦</Link>
-            <p className={styles.note}>いつでも！どこでも！友達と！</p>
           </div>
         </div>
 
