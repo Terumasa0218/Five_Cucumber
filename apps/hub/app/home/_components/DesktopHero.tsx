@@ -7,7 +7,7 @@ type Props = { username?: string };
 
 export default function DesktopHero({ username = "GUEST" }: Props) {
   return (
-    <section className={styles.hero}>
+    <section className={styles.hero + ' home-hero-fonts'}>
       <div className={styles.inner}>
         <Image src="/assets/home13.png" alt="" fill priority sizes="100vw" className={styles.backgroundImage} />
 

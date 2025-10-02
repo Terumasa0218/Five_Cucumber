@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Header from "../components/Header";
+import Script from 'next/script';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -45,36 +46,41 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja" data-theme="light">
       <body>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function(){
-                if (typeof window==='undefined') return;
-                window.addEventListener('unhandledrejection', function(e){
-                  var msg = String(e && e.reason && e.reason.message || e && e.reason || e);
-                  if (msg && msg.indexOf('The message port closed before a response was received') !== -1) {
-                    e.preventDefault();
-                    return false;
+        <Script id="suppress-extension-noise" strategy="beforeInteractive">
+          {`
+            (function(){
+              if (typeof window==='undefined') return;
+              function muteMessage(msg){
+                return msg && String(msg).indexOf('The message port closed before a response was received') !== -1;
+              }
+              window.addEventListener('unhandledrejection', function(e){
+                var msg = e && e.reason && (e.reason.message || e.reason);
+                if (muteMessage(msg)) { e.preventDefault(); return false; }
+              });
+              window.addEventListener('error', function(e){
+                var msg = e && (e.message || (e.error && e.error.message));
+                if (muteMessage(msg)) { e.preventDefault(); return false; }
+              }, true);
+            })();
+          `}
+        </Script>
+        <Script id="build-badge-ping" strategy="afterInteractive">
+          {`
+            (function(){
+              try {
+                fetch('/api/ping', { cache: 'no-store' }).then(function(r){
+                  var xb = r.headers.get('x-build');
+                  var badge = document.querySelector('[data-build-badge]');
+                  if (badge) badge.setAttribute('data-build-x', xb||'');
+                  var built='${COMMIT}';
+                  if (xb && xb !== built && !sessionStorage.getItem('fc_reload_once')){
+                    sessionStorage.setItem('fc_reload_once','1'); location.reload();
                   }
-                });
-                // TEST: ping build header and auto-reload once if mismatched
-                try {
-                  fetch('/api/ping', { cache: 'no-store' }).then(async (r)=>{
-                    const xb = r.headers.get('x-build');
-                    console.info('[BuildCheck] x-build:', xb);
-                    const badge = document.querySelector('[data-build-badge]');
-                    if (badge) badge.setAttribute('data-build-x', xb||'');
-                    var built = '${COMMIT}';
-                    if (xb && xb !== built && !sessionStorage.getItem('fc_reload_once')) {
-                      sessionStorage.setItem('fc_reload_once','1');
-                      location.reload();
-                    }
-                  }).catch(function(err){ console.warn('[BuildCheck] ping failed', err); });
-                } catch (e) { console.warn('[BuildCheck] error', e); }
-              })();
-            `,
-          }}
-        />
+                }).catch(function(err){ console.warn('[BuildCheck] ping failed', err); });
+              } catch(e){ console.warn('[BuildCheck] error', e); }
+            })();
+          `}
+        </Script>
         {/* 浮遊ナビ（背景の空白域に左右配置） */}
         <Header />
         {children}

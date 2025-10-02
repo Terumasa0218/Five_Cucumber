@@ -21,6 +21,11 @@
   --panel-border: rgba(255, 255, 255, 0.18);
 }
 
+/* Home hero specific font override */
+.home-hero-fonts, .home-hero-fonts * {
+  font-family: 'Shippori Mincho', 'Noto Sans JP', system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+}
+
 /* === アンティーク調フォント === */
 .font-heading {
   font-family: 'Shippori Mincho', serif;
