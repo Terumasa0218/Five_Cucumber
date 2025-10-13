@@ -16,8 +16,8 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
           <p className={styles.subtitle}>習うより慣れろ！まずはCPUとやってみよう！</p>
           <p className={styles.note}>いつでも！どこでも！友達と！</p>
           <div className={styles.cta}>
-            <Link href="/play/cpu" className={`${styles.btn} ${styles.primary}`} aria-label="CPU対戦を始める">CPU対戦</Link>
-            <Link href="/play/friend" className={`${styles.btn} ${styles.secondary}`} aria-label="フレンド対戦を始める">フレンド対戦</Link>
+            <Link href="/cucumber/cpu/settings" className={`${styles.btn} ${styles.primary}`} aria-label="CPU対戦を始める">CPU対戦</Link>
+            <Link href="/friend/create" className={`${styles.btn} ${styles.secondary}`} aria-label="フレンド対戦を始める">フレンド対戦</Link>
           </div>
         </div>
 
