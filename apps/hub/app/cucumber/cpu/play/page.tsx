@@ -53,17 +53,15 @@ function CpuPlayContent() {
     return `cpu-game-state-${players}-${turnSeconds}-${maxCucumbers}-${cpuLevel}`;
   }, []);
   
-  // ゲーム状態を保存（リロード時の復元用のみ）
+  // ゲーム状態を保存（コントローラ等のインスタンスは保存しない）
   const saveGameState = useCallback(() => {
     if (!gameRef.current || !gameState || isProcessingRef.current) return;
-    
     try {
       const gameStateKey = getGameStateKey(searchParams);
+      const rngState = gameRef.current.rng.getState();
       const saveData = {
-        gameRef: {
-          ...gameRef.current,
-          rng: gameRef.current.rng.getState()
-        },
+        config: gameRef.current.config,
+        rngState,
         gameState,
         gameOver,
         gameOverData,
@@ -111,22 +109,21 @@ function CpuPlayContent() {
           // 5分以内のセーブデータのみ復元
           if (age < 5 * 60 * 1000) {
             console.log('[Game] Restoring from saved state (age:', Math.round(age / 1000), 'seconds)');
-            
-            // RNG状態を復元
+            // RNG復元とコントローラ再構築
             const { SeededRng } = require('@/lib/game-core');
-            const restoredRng = new SeededRng();
-            restoredRng.setState(parsed.gameRef.rng);
-            
-            gameRef.current = {
-              ...parsed.gameRef,
-              rng: restoredRng
-            };
-            
-            setGameState(parsed.gameState);
+            const restoredRng = new SeededRng(parsed.config?.seed);
+            if (parsed.rngState) restoredRng.setState(parsed.rngState);
+
+            // URLパラメータ or 保存されたconfigでテーブルを再生成
+            const { config, controllers, humanController } = createCpuTableFromUrlParams(searchParams);
+            const state = parsed.gameState as GameState;
+
+            gameRef.current = { state, config, controllers, rng: restoredRng, humanController };
+            setGameState(state);
             setGameOver(parsed.gameOver || false);
             setGameOverData(parsed.gameOverData || []);
-            
-            console.log('[Game] State restored successfully');
+
+            console.log('[Game] State restored successfully with rebuilt controllers');
             return;
           } else {
             console.log('[Game] Saved state too old, starting fresh');
