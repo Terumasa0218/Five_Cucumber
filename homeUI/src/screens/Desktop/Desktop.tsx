@@ -1,40 +1,34 @@
 import React from "react";
 import "./style.css";
 
-export const Desktop = (): JSX.Element => {
+export type DesktopProps = { username?: string };
+
+export const Desktop = ({ username = "GUEST" }: DesktopProps): JSX.Element => {
   return (
-    <div className="desktop">
-      <img className="home" alt="Home" src="/img/home13-1.png" />
+    <section className="desktop">
+      <img className="bg" alt="Home" src="/img/home13-1.png" />
 
-      <img
-        className="text-on-a-path"
-        alt="Text on a path"
-        src="/img/text-on-a-path.png"
-      />
+      <div className="inner">
+        <nav className="sideLeft" aria-label="helper links">
+          <a className="linkMinor" href="#rules">📖ルール説明</a>
+          <a className="linkMinor" href="#lang">🌐言語切替</a>
+        </nav>
 
-      <div className="frame">
-        <div className="text-wrapper">CPU対戦</div>
+        <div className="userBox">
+          ユーザー:<span className="userName">{username}</span>
+        </div>
+
+        <div className="hero">
+          <h1 className="title">５本のきゅうり</h1>
+          <p className="subtitle">習うより慣れろ！まずはCPUとやってみよう！</p>
+          <p className="note">いつでも！どこでも！友達と！</p>
+
+          <div className="cta">
+            <a className="fcHero_btn" href="#cpu">CPU対戦</a>
+            <a className="fcHero_btn secondary" href="#friend">フレンド対戦</a>
+          </div>
+        </div>
       </div>
-
-      <div className="div-wrapper">
-        <div className="div">フレンド対戦</div>
-      </div>
-
-      <div className="text-wrapper-2">５本のきゅうり</div>
-
-      <div className="text-wrapper-3">
-        習うより慣れろ！まずはCPUとやってみよう！
-      </div>
-
-      <div className="text-wrapper-4">いつでも！どこでも！友達と！</div>
-
-      <div className="text-wrapper-5">📖ルール説明</div>
-
-      <div className="text-wrapper-6">🌐言語切替</div>
-
-      <div className="USERNAME">
-        {"{"}USERNAME{"}"}
-      </div>
-    </div>
+    </section>
   );
 };

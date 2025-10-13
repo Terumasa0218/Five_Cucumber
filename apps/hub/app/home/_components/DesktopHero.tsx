@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import LanguageToggle from "./LanguageToggle";
 import styles from "./DesktopHero.module.css";
+import LanguageToggle from "./LanguageToggle";
 
 type Props = { username?: string };
 
