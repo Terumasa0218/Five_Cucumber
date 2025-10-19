@@ -83,9 +83,15 @@ export default function FriendCreatePage() {
     setError(null);
 
     try {
+      const payload = {
+        roomSize: Number(settings.roomSize),
+        nickname: nickname,
+        turnSeconds: Number(settings.turnSeconds),
+        maxCucumbers: Number(settings.maxCucumbers)
+      };
       const data = await apiJson<any>('/friend/create', {
         method: 'POST',
-        json: { roomSize: settings.roomSize, nickname: nickname, turnSeconds: settings.turnSeconds, maxCucumbers: settings.maxCucumbers }
+        json: payload
       });
       if (data?.ok && data?.roomId) {
         try {
@@ -104,10 +110,13 @@ export default function FriendCreatePage() {
         } catch {}
         router.push(`/friend/room/${data.roomId}`);
       } else {
-        setError('ルーム作成に失敗しました');
+        const reason = data?.reason || 'unknown-error';
+        const detail = data?.detail ? ` (${data.detail})` : '';
+        setError(`ルーム作成に失敗しました: ${reason}${detail}`);
       }
-    } catch (e) {
-      setError('作成に失敗しました');
+    } catch (e: any) {
+      const msg = e?.message ? ` (${e.message})` : '';
+      setError(`作成に失敗しました${msg}`);
     } finally {
       setIsCreating(false);
     }

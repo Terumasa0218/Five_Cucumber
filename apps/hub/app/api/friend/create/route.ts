@@ -13,6 +13,16 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
 
+// 値が number か、数値文字列なら number を返し、その他は null
+function parseNumberish(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
   try {
     // リクエストボディの取得と検証
@@ -36,6 +46,31 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     
     const { roomSize, nickname, turnSeconds, maxCucumbers } = body;
 
+    // 数値フィールドの正規化
+    const nRoomSize = parseNumberish(roomSize);
+    if (nRoomSize === null) {
+      return NextResponse.json(
+        { ok: false, reason: 'bad-request', detail: 'invalid roomSize' },
+        { status: 400, headers: noStore }
+      );
+    }
+
+    const nTurnSeconds = parseNumberish(turnSeconds);
+    if (nTurnSeconds === null) {
+      return NextResponse.json(
+        { ok: false, reason: 'bad-request', detail: 'invalid turnSeconds' },
+        { status: 400, headers: noStore }
+      );
+    }
+
+    const nMaxCucumbers = parseNumberish(maxCucumbers);
+    if (nMaxCucumbers === null) {
+      return NextResponse.json(
+        { ok: false, reason: 'bad-request', detail: 'invalid maxCucumbers' },
+        { status: 400, headers: noStore }
+      );
+    }
+
     // 共有ストレージが無い環境では原則ブロックするが、開発用メモリフォールバックが許可される場合は通す
     const allowMemoryFallback = isDevelopmentWithMemoryFallback();
     if (!HAS_SHARED_STORE && !allowMemoryFallback) {
@@ -51,23 +86,23 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       );
     }
 
-    if (!roomSize || typeof roomSize !== 'number' || roomSize < 2 || roomSize > 6) {
+    if (!nRoomSize || nRoomSize < 2 || nRoomSize > 6) {
       return NextResponse.json(
-        { ok: false, reason: 'bad-request' },
+        { ok: false, reason: 'bad-request', detail: 'invalid roomSize' },
         { status: 400, headers: noStore }
       );
     }
 
-    if (typeof turnSeconds !== 'number' || turnSeconds < 0) {
+    if (nTurnSeconds < 0) {
       return NextResponse.json(
-        { ok: false, reason: 'bad-request' },
+        { ok: false, reason: 'bad-request', detail: 'invalid turnSeconds' },
         { status: 400, headers: noStore }
       );
     }
 
-    if (!maxCucumbers || typeof maxCucumbers !== 'number' || maxCucumbers < 4 || maxCucumbers > 7) {
+    if (!nMaxCucumbers || nMaxCucumbers < 4 || nMaxCucumbers > 7) {
       return NextResponse.json(
-        { ok: false, reason: 'bad-request' },
+        { ok: false, reason: 'bad-request', detail: 'invalid maxCucumbers' },
         { status: 400, headers: noStore }
       );
     }
@@ -87,12 +122,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
     const room: Room = {
       id,
-      size: roomSize,
-      seats: Array.from({ length: roomSize }, () => null),
+      size: nRoomSize,
+      seats: Array.from({ length: nRoomSize }, () => null),
       status: 'waiting',
       createdAt: Date.now(),
-      turnSeconds,
-      maxCucumbers
+      turnSeconds: nTurnSeconds,
+      maxCucumbers: nMaxCucumbers
     };
     room.seats[0] = { nickname: nickname.trim() };
 

@@ -32,6 +32,15 @@ describe('friend create API memory fallback', () => {
     expect(json.ok).toBe(true);
   });
 
+  it('accepts numeric strings and returns 200', async () => {
+    process.env.NODE_ENV = 'development';
+    const req = makeReq({ roomSize: '4', nickname: 'dev', turnSeconds: '15', maxCucumbers: '5' } as any);
+    const res = await POST(req as any);
+    const json = await res.json();
+    expect(res.status).toBe(200);
+    expect(json.ok).toBe(true);
+  });
+
   it('returns 503 without shared store in production', async () => {
     process.env.NODE_ENV = 'production';
     const req = makeReq({ roomSize: 2, nickname: 'prod', turnSeconds: 15, maxCucumbers: 5 });
