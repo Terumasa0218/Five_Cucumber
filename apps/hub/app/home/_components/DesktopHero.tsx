@@ -9,9 +9,10 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
   return (
     <section className={styles.hero + ' home-hero-fonts'}>
       <Image src="/home/home13-1.png" alt="ホーム画面の背景" fill priority sizes="100vw" className={styles.backgroundImage} />
+      <Image src="/home/text-on-a-path.png" alt="" role="presentation" priority sizes="35vw" className={styles.ribbon} />
       <div className={styles.inner}>
         <nav className={styles.sideLeft} aria-label="helper links">
-          <Link href="/rules" className={styles.linkMinor}>ルール説明</Link>
+          <Link href="/rules" className={styles.linkMinor}>📖<span aria-hidden="true"> </span>ルール説明</Link>
           <LanguageToggle className={styles.linkMinor} />
         </nav>
 

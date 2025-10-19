@@ -17,14 +17,17 @@
 .secondary { background: linear-gradient(180deg, var(--fc-amber-400,#f5b24d) 0%, var(--fc-amber-700,#d67a06) 100%); box-shadow:0 24px 44px rgba(126,62,8,.35); }
 .note { margin:0; font-size:clamp(14px,3vw,18px); line-height:1.6; color: rgba(255,248,220,.92); text-shadow:0 12px 24px rgba(0,0,0,.35); }
 .sideLeft { position:absolute; left:clamp(16px,6vw,72px); top:clamp(80px,12vh,160px); display:grid; gap:clamp(8px,2vw,16px); text-align:left; }
-.linkMinor { color: var(--fc-ivory,#fff8dc); font-weight:600; letter-spacing:.04em; text-decoration:underline; text-underline-offset:4px; transition:opacity .2s ease; background:none; border:none; padding:0; font: inherit; }
+.linkMinor { color: var(--fc-ivory,#fff8dc); font-weight:600; letter-spacing:.04em; text-decoration:underline; text-underline-offset:4px; transition:opacity .2s ease; background:none; border:none; padding:0; font: inherit; display:inline-flex; gap:.35em; align-items:center; }
 .linkMinor:hover { opacity:.8; }
-.userBox { position:absolute; right:clamp(16px,6vw,72px); top:clamp(32px,8vh,120px); display:inline-flex; align-items:center; gap:8px; padding:10px clamp(18px,4vw,28px); border-radius:999px; background: rgba(255,255,255,.82); box-shadow: 0 16px 38px rgba(0,0,0,.25); }
-.userLabel { font-size:clamp(14px,2.8vw,18px); color: var(--fc-forest-700,#2d6138); letter-spacing:.04em; }
-.userName { color: var(--fc-forest-950,#0f301a); font-weight:700; letter-spacing:.08em; text-decoration:none; }
+.userBox { position:absolute; right:clamp(16px,6vw,72px); top:clamp(32px,8vh,120px); display:inline-flex; align-items:center; gap:8px; padding:0; background:none; box-shadow:none; }
+.userLabel { font-size:clamp(14px,2.8vw,18px); color:#fff8dc; letter-spacing:.04em; }
+.userName { color:#ffd700; font-weight:700; letter-spacing:.08em; text-decoration:underline; }
 .userName:hover { text-decoration:underline; }
 .userName:focus-visible { outline:3px solid var(--fc-gold,#ffd700); outline-offset:4px; border-radius:6px; }
 @media (max-width: 960px) { .inner{ padding: clamp(32px,10vw,64px) clamp(20px,8vw,48px);} .actions{ grid-template-columns:1fr;} .sideLeft{ position:static; order:-1; text-align:center;} .userBox{ position:static; order:-2;} }
 @media (max-width: 640px) { .hero{ padding: clamp(24px,12vw,48px) clamp(12px,7vw,32px);} .inner{ gap: clamp(20px,6vw,40px);} .note{ font-size:clamp(13px,4vw,16px);} }
+
+/* Curved ribbon text image */
+.ribbon { position:absolute; top:clamp(12%,18vw,28%); left:50%; transform:translateX(-50%); width:35vw; height:auto; pointer-events:none; }
 
 
