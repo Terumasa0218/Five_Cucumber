@@ -1,3 +1,22 @@
+### Ably quick check
+
+診断: 本番URLで Ably トークンAPIと環境健全性を確認します（秘密は出力しません）。
+
+```bash
+# Production example
+BASE_URL=https://<your-prod-domain> npm run check:ably
+```
+
+判定基準:
+- 200 OK: サーバが ABLY_API_KEY を参照可能。クライアント側は NEXT_PUBLIC_HAS_SHARED_STORE=1 なども確認。
+- 500 no-ably-key: ランタイムでキーが見えていません（Vercel Production に設定して再デプロイ）。
+- 401: キー不整合/失効の可能性（Ably ダッシュボードの Key ID を確認）。
+- 403: キー権限不足（publish/subscribe/history 権限を付与）。
+- 429/402: レート/プラン上限。
+
+ヘルスエンドポイント（App Router）:
+- `GET /api/health/env` → `{ hasAbly, hasSharedStore, env, runtime, branch }`
+
 # Five Cucumber – 5本のきゅうり
 
 A multi-game web application featuring the Five Cucumbers card game, built with Next.js, TypeScript, and Firebase.

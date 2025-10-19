@@ -11,6 +11,7 @@
     "homeUI"
   ],
   "scripts": {
+    "check:ably": "node scripts/check-ably.mjs",
     "prepare": "node -e \"process.exit(0)\"",
     "postinstall": "pnpm -w run copy:assets",
     "copy:assets": "shx rm -rf apps/hub/public/assets && shx mkdir -p apps/hub/public && shx cp -r assets apps/hub/public/",
