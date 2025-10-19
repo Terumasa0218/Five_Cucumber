@@ -1,7 +1,7 @@
 "use client";
 
 import BattleLayout from '@/components/BattleLayout';
-import { BattleHud, BattleTable, GameFooter, Timer } from '@/components/ui';
+import { BattleHud, EllipseTable, GameFooter, Timer } from '@/components/ui';
 import { delay, runAnimation } from '@/lib/animQueue';
 import {
     applyMove,
@@ -514,39 +514,17 @@ function CpuPlayContent() {
           onExit={handleBackToHome}
         />
 
-        <div className="flex-1 flex">
-          <BattleTable
-            players={gameState.players.map((p, idx) => ({
-              id: String(idx),
-              name: idx === 0 ? 'You' : `CPU ${idx}`,
-              cucumbers: p.cucumbers,
-              you: idx === 0,
-              isActive: idx === gameState.currentPlayer,
-            }))}
-            currentPlayerId={String(gameState.currentPlayer)}
-            fieldCards={(gameState.fieldCard !== null ? [String(gameState.fieldCard)] : [])}
-            discardCards={gameState.sharedGraveyard.map((c) => String(c))}
-            onCardSelect={(card) => handleCardClick(Number(card))}
-            lockedCardId={lockedCardId !== null ? String(lockedCardId) : null}
-            isSubmitting={isSubmitting}
-          >
-            {showTrickCompletion && (
-              <div className="absolute inset-0 grid place-items-center text-center">
-                <div className="rounded-2xl bg-black/50 border border-white/10 px-6 py-4">
-                  トリック完了！
-                </div>
-              </div>
-            )}
-
-            {showCucumberAward && (
-              <div className="absolute inset-x-0 bottom-4 grid place-items-center">
-                <div className="rounded-full bg-black/40 border border-white/10 px-4 py-2 text-sm">
-                  🥒 お漬物きゅうり付与！ プレイヤー{showCucumberAward.player}: {showCucumberAward.cucumbers}本
-                </div>
-              </div>
-            )}
-          </BattleTable>
-        </div>
+        <EllipseTable
+          state={gameState}
+          config={gameRef.current?.config || ({} as any)}
+          currentPlayerIndex={gameState.currentPlayer}
+          onCardClick={(card:number)=>handleCardClick(Number(card))}
+          className={isCardLocked ? 'cards-locked' : ''}
+          isSubmitting={isSubmitting}
+          lockedCardId={lockedCardId}
+          names={gameState.players.map((_, idx) => (idx === 0 ? 'あなた' : `CPU ${idx}`))}
+          mySeatIndex={0}
+        />
 
         {gameOver ? (
           <GameFooter>
