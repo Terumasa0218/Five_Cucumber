@@ -4,8 +4,9 @@ export const revalidate = 0;
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 // memory fallback is prohibited for server APIs
-import { isRedisAvailable } from '@/lib/redis';
+import { isRedisAvailable, isDevelopmentWithMemoryFallback } from '@/lib/redis';
 import { HAS_SHARED_STORE } from '@/lib/serverSync';
+import { putRoomToMemory } from '@/lib/roomSystemUnified';
 import { CreateRoomRequest, Room, RoomResponse } from '@/types/room';
 import { kv } from '@vercel/kv';
 import { NextRequest, NextResponse } from 'next/server';
@@ -35,8 +36,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     
     const { roomSize, nickname, turnSeconds, maxCucumbers } = body;
 
-    // 共有ストレージが無い環境ではサーバ同期を提供しない
-    if (!HAS_SHARED_STORE) {
+    // 共有ストレージが無い環境では原則ブロックするが、開発用メモリフォールバックが許可される場合は通す
+    const allowMemoryFallback = isDevelopmentWithMemoryFallback();
+    if (!HAS_SHARED_STORE && !allowMemoryFallback) {
+      console.warn('[API] No shared store available and memory fallback not allowed. Blocking request.');
       return NextResponse.json({ ok: false, reason: 'no-shared-store' }, { status: 503, headers: noStore });
     }
 
@@ -102,12 +105,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
     const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     const hasRedisAvailable = isRedisAvailable();
-    const isProd = process.env.VERCEL_ENV === 'production';
+    const isProd = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
 
     let persisted = false;
     let storageUsed = '';
 
-    console.log('[API] Storage availability:', { firestore: hasFirestoreEnv, redis: hasRedisAvailable });
+    console.log('[API] Storage availability:', { firestore: hasFirestoreEnv, redis: hasRedisAvailable, HAS_SHARED_STORE, allowMemoryFallback, isProd });
 
     if (hasFirestoreEnv) {
       try {
@@ -133,7 +136,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     if (!persisted) {
-      return NextResponse.json({ ok: false, reason: 'no-shared-store' }, { status: 503, headers: noStore });
+      if (allowMemoryFallback && !isProd) {
+        console.warn('[API] Persist failed; using memory fallback for development');
+        try { putRoomToMemory(room); persisted = true; storageUsed = 'memory-fallback'; }
+        catch (e) { console.error('[API] Memory fallback putRoom failed:', e); }
+      }
+      if (!persisted) {
+        return NextResponse.json({ ok: false, reason: 'no-shared-store' }, { status: 503, headers: noStore });
+      }
     }
 
     // 決定した部屋IDを文字列に統一して KV に必ず保存（TTL 30分）
@@ -146,7 +156,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       console.warn('[API] KV persist failed:', e);
     }
 
-    return NextResponse.json({ ok: true, roomId }, { status: 200, headers: noStore });
+    return NextResponse.json({ ok: true, roomId, storage: storageUsed || 'unknown' }, { status: 200, headers: noStore });
 
   } catch (error) {
     console.error('Room creation error:', error);
