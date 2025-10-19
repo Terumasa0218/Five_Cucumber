@@ -89,7 +89,7 @@ export default function FriendCreatePage() {
         turnSeconds: Number(settings.turnSeconds),
         maxCucumbers: Number(settings.maxCucumbers)
       };
-      const data = await apiJson<any>('/friend/create', {
+      const data = await apiJson<any>('/api/friend/create', {
         method: 'POST',
         json: payload
       });
