@@ -6,15 +6,15 @@ import styles from './DesktopHero.module.css';
 type Props = { className?: string };
 
 export default function LanguageToggle({ className }: Props) {
-  const { language, changeLanguage, t } = useI18n();
+  const { language, changeLanguage } = useI18n();
   return (
     <button
       type="button"
       className={className ?? styles.linkMinor}
       onClick={() => changeLanguage(language === 'ja' ? 'en' : 'ja')}
-      aria-label={t('language')}
+      aria-label="言語を切り替える"
     >
-      🌐 {t('language')}
+      🌐 言語切替
     </button>
   );
 }
