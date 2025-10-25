@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const ALLOW = [
+  /^\/api\/friend\/create$/,
   /^\/setup/,
   /^\/_next\//,
   /^\/assets\//,

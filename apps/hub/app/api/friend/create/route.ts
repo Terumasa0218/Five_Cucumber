@@ -4,9 +4,9 @@ export const revalidate = 0;
 import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 // memory fallback is prohibited for server APIs
-import { isRedisAvailable, isDevelopmentWithMemoryFallback } from '@/lib/redis';
-import { hasSharedStore } from '@/lib/sharedStore';
+import { isDevelopmentWithMemoryFallback, isRedisAvailable } from '@/lib/redis';
 import { putRoomToMemory } from '@/lib/roomSystemUnified';
+import { hasSharedStore } from '@/lib/sharedStore';
 import { CreateRoomRequest, Room, RoomResponse } from '@/types/room';
 import { kv } from '@vercel/kv';
 import { NextRequest, NextResponse } from 'next/server';
