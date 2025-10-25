@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
+import { getRoomByIdRedis, putRoomRedis, putRoomRedisTcp } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 // memory fallback is prohibited for server APIs
 import { isDevelopmentWithMemoryFallback } from '@/lib/redis';
@@ -164,7 +164,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
     if (hasRedisAvailable) {
       try {
-        await putRoomRedis(room);
+        // Prefer KV/REST writer first; if it silently isn't configured, fall back to TCP when REDIS_URL exists
+        if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN || process.env.VERCEL_REDIS_URL && process.env.VERCEL_REDIS_TOKEN) {
+          await putRoomRedis(room);
+        } else if (process.env.REDIS_URL) {
+          await putRoomRedisTcp(room);
+        } else {
+          await putRoomRedis(room);
+        }
         persisted = true;
         storageUsed = 'Redis/KV';
         console.log('[API] Room saved to Redis/KV successfully');
