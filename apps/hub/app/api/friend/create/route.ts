@@ -5,7 +5,7 @@ import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 // memory fallback is prohibited for server APIs
 import { isRedisAvailable, isDevelopmentWithMemoryFallback } from '@/lib/redis';
-import { HAS_SHARED_STORE } from '@/lib/serverSync';
+import { hasSharedStore } from '@/lib/sharedStore';
 import { putRoomToMemory } from '@/lib/roomSystemUnified';
 import { CreateRoomRequest, Room, RoomResponse } from '@/types/room';
 import { kv } from '@vercel/kv';
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
     // 共有ストレージが無い環境では原則ブロックするが、開発用メモリフォールバックが許可される場合は通す
     const allowMemoryFallback = isDevelopmentWithMemoryFallback();
-    if (!HAS_SHARED_STORE && !allowMemoryFallback) {
+    if (!hasSharedStore() && !allowMemoryFallback) {
       console.warn('[API] No shared store available and memory fallback not allowed. Blocking request.');
       return NextResponse.json({ ok: false, reason: 'no-shared-store' }, { status: 503, headers: noStore });
     }
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     let persisted = false;
     let storageUsed = '';
 
-    console.log('[API] Storage availability:', { firestore: hasFirestoreEnv, redis: hasRedisAvailable, HAS_SHARED_STORE, allowMemoryFallback, isProd });
+    console.log('[API] Storage availability:', { firestore: hasFirestoreEnv, redis: hasRedisAvailable, hasShared: hasSharedStore(), allowMemoryFallback, isProd });
 
     if (hasFirestoreEnv) {
       try {
