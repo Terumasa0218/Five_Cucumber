@@ -1,5 +1,5 @@
-import { redis, isRedisAvailable } from './redis';
 import type { Room, RoomGameSnapshot } from '@/types/room';
+import { isRedisAvailable, redis } from './redis';
 
 const key = (id: string) => `room:${id}`;
 
