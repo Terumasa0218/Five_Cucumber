@@ -108,7 +108,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     for (let i = 0; i < 100; i++) {
       const cand = String(Math.floor(100000 + Math.random() * 900000));
       const existsInFirestore = await getRoomById?.(cand);
-      const existsInKv = await kvExists(`friend:room:${cand}`);
+      let existsInKv = false;
+      try {
+        existsInKv = await kvExists(`friend:room:${cand}`);
+      } catch (kvError: unknown) {
+        const detail = kvError instanceof Error ? kvError.message : 'unknown';
+        console.error('[API] KV persist failed:', kvError);
+        return NextResponse.json(
+          { ok: false, reason: 'kv-failed', detail },
+          { status: 503, headers: noStore }
+        );
+      }
       const exists = existsInFirestore || existsInKv;
       if (!exists) { id = cand; break; }
     }
