@@ -1,15 +1,9 @@
-export const runtime = 'nodejs';
+export const runtime = 'node';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-import { getRoomByIdRedis, putRoomRedis, putRoomRedisTcp } from '@/lib/roomsRedis';
-import { getRoomById, putRoom } from '@/lib/roomsStore';
-// memory fallback is prohibited for server APIs
-import { isDevelopmentWithMemoryFallback } from '@/lib/redis';
-import { isSharedStoreAvailable } from '@/lib/redisAvail';
-import { putRoomToMemory } from '@/lib/roomSystemUnified';
-import { hasSharedStore } from '@/lib/sharedStore';
+import { kvExists, kvSaveJSON } from '@/lib/kv';
+import { getRoomById } from '@/lib/roomsStore';
 import { CreateRoomRequest, Room, RoomResponse } from '@/types/room';
-import { kv } from '@vercel/kv';
 import { NextRequest, NextResponse } from 'next/server';
 
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
@@ -73,25 +67,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     // 共有ストレージが無い環境では原則ブロックするが、開発用メモリフォールバックが許可される場合は通す
-    const flags = {
-      kv: !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN,
-      upstash: !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN,
-      vercelRedis: !!process.env.VERCEL_REDIS_URL && !!process.env.VERCEL_REDIS_TOKEN,
-      redisTcp: !!process.env.REDIS_URL,
-    };
-    console.log('[API] storage flags', flags);
-
-    const allowMemoryFallback = isDevelopmentWithMemoryFallback();
-    const sharedConfigured = hasSharedStore();
-    const sharedAvailable = await isSharedStoreAvailable();
-    const sharedStoreDiag = { sharedConfigured, sharedAvailable, allowMemoryFallback, flags };
-    console.log('[API] Shared store diagnostics:', sharedStoreDiag);
-    if (!sharedConfigured && !sharedAvailable && !allowMemoryFallback) {
-      console.warn('[API] No shared store available and memory fallback not allowed. Blocking request.');
-      return NextResponse.json(
-        { ok: false, reason: 'no-shared-store', detail: sharedStoreDiag },
-        { status: 503, headers: noStore }
-      );
+    const hasKvConfig = !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
+    if (!hasKvConfig) {
+      console.warn('[API] KV not configured; rejecting room creation.');
+      return NextResponse.json({ ok: false, reason: 'no-shared-store' }, { status: 503, headers: noStore });
     }
 
     // バリデーション
@@ -129,8 +108,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     for (let i = 0; i < 100; i++) {
       const cand = String(Math.floor(100000 + Math.random() * 900000));
       const existsInFirestore = await getRoomById?.(cand);
-      const existsInRedis = await getRoomByIdRedis?.(cand);
-      const exists = existsInFirestore || existsInRedis;
+      const existsInKv = await kvExists(`friend:room:${cand}`);
+      const exists = existsInFirestore || existsInKv;
       if (!exists) { id = cand; break; }
     }
     if (!id) {
@@ -147,77 +126,28 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     };
     room.seats[0] = { nickname: nickname.trim() };
 
-    const withTimeout = async <T,>(p: Promise<T>, ms: number): Promise<T> => {
-      return await Promise.race([
-        p,
-        new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
-      ]);
-    };
+    const roomId = String(room.id ?? id);
+    const key = `friend:room:${roomId}`;
 
-    const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-    const hasRedisAvailable = await isSharedStoreAvailable();
-    const isProd = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
-
-    let persisted = false;
-    let storageUsed = '';
-
-    console.log('[API] Storage availability:', { firestore: hasFirestoreEnv, redis: hasRedisAvailable, hasShared: hasSharedStore(), allowMemoryFallback, isProd });
-
-    if (hasFirestoreEnv) {
-      try {
-        await withTimeout(putRoom(room), 2000);
-        persisted = true;
-        storageUsed = 'Firestore';
-        console.log('[API] Room saved to Firestore successfully');
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        console.warn('[API] Firestore putRoom failed or timed out:', msg);
-      }
-    }
-
-    if (hasRedisAvailable) {
-      try {
-        // Prefer KV/REST writer first; if it silently isn't configured, fall back to TCP when REDIS_URL exists
-        if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN || process.env.VERCEL_REDIS_URL && process.env.VERCEL_REDIS_TOKEN) {
-          await putRoomRedis(room);
-        } else if (process.env.REDIS_URL) {
-          await putRoomRedisTcp(room);
-        } else {
-          await putRoomRedis(room);
-        }
-        persisted = true;
-        storageUsed = 'Redis/KV';
-        console.log('[API] Room saved to Redis/KV successfully');
-      } catch (e) {
-        console.warn('[API] Redis putRoom failed:', e);
-      }
-    }
-
-    if (!persisted) {
-      if (allowMemoryFallback && !isProd) {
-        console.warn('[API] Persist failed; using memory fallback for development');
-        try { putRoomToMemory(room); persisted = true; storageUsed = 'memory-fallback'; }
-        catch (e) { console.error('[API] Memory fallback putRoom failed:', e); }
-      }
-      if (!persisted) {
+    try {
+      await kvSaveJSON(key, room, 60 * 60);
+      const ok = await kvExists(key);
+      if (!ok) {
+        console.error('[API] KV verification failed for key:', key);
         return NextResponse.json(
-          { ok: false, reason: 'no-shared-store', detail: { ...sharedStoreDiag, persisted } },
-          { status: 503, headers: noStore }
+          { ok: false, reason: 'persist-failed' },
+          { status: 500, headers: noStore }
         );
       }
-    }
-
-    // 決定した部屋IDを文字列に統一して KV に必ず保存（TTL 30分）
-    const roomId = String(room.id ?? id);
-    try {
-      const key = `friend:room:${roomId}`;
-      await kv.set(key, room, { ex: 60 * 30 });
-      console.log('[API] Room persisted to KV:', key);
     } catch (e) {
-      console.warn('[API] KV persist failed:', e);
+      console.error('[API] KV persist failed:', e);
+      return NextResponse.json(
+        { ok: false, reason: 'persist-failed' },
+        { status: 500, headers: noStore }
+      );
     }
 
-    return NextResponse.json({ ok: true, roomId, storage: storageUsed || 'unknown' }, { status: 200, headers: noStore });
+    return NextResponse.json({ ok: true, roomId, storage: 'kv' }, { status: 200, headers: noStore });
 
   } catch (error) {
     console.error('Room creation error:', error);

@@ -18,7 +18,7 @@
     "@five-cucumber/sdk": "workspace:*",
     "@five-cucumber/ui": "workspace:*",
     "@upstash/redis": "^1.28.4",
-    "@vercel/kv": "^3.0.0",
+    "@vercel/kv": "^1.0.0",
     "ably": "^1.2.48",
     "firebase": "^10.7.0",
     "i18next": "^23.7.0",
