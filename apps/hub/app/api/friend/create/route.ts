@@ -5,7 +5,7 @@ import { getRoomByIdRedis, putRoomRedis, putRoomRedisTcp } from '@/lib/roomsRedi
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 // memory fallback is prohibited for server APIs
 import { isDevelopmentWithMemoryFallback } from '@/lib/redis';
-import { isRedisAvailable as isRedisAvailableTCP } from '@/lib/redisAvail';
+import { isSharedStoreAvailable } from '@/lib/redisAvail';
 import { putRoomToMemory } from '@/lib/roomSystemUnified';
 import { hasSharedStore } from '@/lib/sharedStore';
 import { CreateRoomRequest, Room, RoomResponse } from '@/types/room';
@@ -73,10 +73,18 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     }
 
     // 共有ストレージが無い環境では原則ブロックするが、開発用メモリフォールバックが許可される場合は通す
+    const flags = {
+      kv: !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN,
+      upstash: !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN,
+      vercelRedis: !!process.env.VERCEL_REDIS_URL && !!process.env.VERCEL_REDIS_TOKEN,
+      redisTcp: !!process.env.REDIS_URL,
+    };
+    console.log('[API] storage flags', flags);
+
     const allowMemoryFallback = isDevelopmentWithMemoryFallback();
     const sharedConfigured = hasSharedStore();
-    const redisReachable = await isRedisAvailableTCP();
-    if (!sharedConfigured && !redisReachable && !allowMemoryFallback) {
+    const sharedAvailable = await isSharedStoreAvailable();
+    if (!sharedConfigured && !sharedAvailable && !allowMemoryFallback) {
       console.warn('[API] No shared store available and memory fallback not allowed. Blocking request.');
       return NextResponse.json({ ok: false, reason: 'no-shared-store' }, { status: 503, headers: noStore });
     }
@@ -142,7 +150,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     };
 
     const hasFirestoreEnv = !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-    const hasRedisAvailable = await isRedisAvailableTCP();
+    const hasRedisAvailable = await isSharedStoreAvailable();
     const isProd = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
 
     let persisted = false;
