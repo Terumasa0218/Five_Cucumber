@@ -84,9 +84,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     const allowMemoryFallback = isDevelopmentWithMemoryFallback();
     const sharedConfigured = hasSharedStore();
     const sharedAvailable = await isSharedStoreAvailable();
+    const sharedStoreDiag = { sharedConfigured, sharedAvailable, allowMemoryFallback, flags };
+    console.log('[API] Shared store diagnostics:', sharedStoreDiag);
     if (!sharedConfigured && !sharedAvailable && !allowMemoryFallback) {
       console.warn('[API] No shared store available and memory fallback not allowed. Blocking request.');
-      return NextResponse.json({ ok: false, reason: 'no-shared-store' }, { status: 503, headers: noStore });
+      return NextResponse.json(
+        { ok: false, reason: 'no-shared-store', detail: sharedStoreDiag },
+        { status: 503, headers: noStore }
+      );
     }
 
     // バリデーション
@@ -195,7 +200,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         catch (e) { console.error('[API] Memory fallback putRoom failed:', e); }
       }
       if (!persisted) {
-        return NextResponse.json({ ok: false, reason: 'no-shared-store' }, { status: 503, headers: noStore });
+        return NextResponse.json(
+          { ok: false, reason: 'no-shared-store', detail: { ...sharedStoreDiag, persisted } },
+          { status: 503, headers: noStore }
+        );
       }
     }
 

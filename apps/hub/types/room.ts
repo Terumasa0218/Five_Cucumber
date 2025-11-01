@@ -43,5 +43,6 @@ export interface RoomResponse {
   roomId?: string;
   room?: Room;
   reason?: string;
+  detail?: unknown;
 }
 
