@@ -1,12 +1,27 @@
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 import { kvExists, kvSaveJSON } from '@/lib/kv';
 import { getRoomById } from '@/lib/roomsStore';
 import { CreateRoomRequest, Room, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
+
+function kvFailureResponse(error: unknown) {
+  const err = error as { message?: string; status?: number; data?: unknown; response?: { data?: unknown } } | undefined;
+  const msg = err?.message ?? (typeof error === 'string' ? error : String(error ?? 'unknown'));
+  const status = err?.status;
+  const data = err?.data ?? err?.response?.data;
+
+  console.error('[API] KV persist failed:', { msg, status, data });
+
+  return NextResponse.json(
+    { ok: false, reason: 'kv-failed', detail: msg, status, data },
+    { status: 503, headers: noStore }
+  );
+}
 
 // 値が number か、数値文字列なら number を返し、その他は null
 function parseNumberish(value: unknown): number | null {
@@ -108,7 +123,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     for (let i = 0; i < 100; i++) {
       const cand = String(Math.floor(100000 + Math.random() * 900000));
       const existsInFirestore = await getRoomById?.(cand);
-      const existsInKv = await kvExists(`friend:room:${cand}`);
+      let existsInKv = false;
+      try {
+        existsInKv = await kvExists(`friend:room:${cand}`);
+      } catch (kvError: unknown) {
+        return kvFailureResponse(kvError);
+      }
       const exists = existsInFirestore || existsInKv;
       if (!exists) { id = cand; break; }
     }
@@ -133,18 +153,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       await kvSaveJSON(key, room, 60 * 60);
       const ok = await kvExists(key);
       if (!ok) {
-        console.error('[API] KV verification failed for key:', key);
-        return NextResponse.json(
-          { ok: false, reason: 'persist-failed' },
-          { status: 500, headers: noStore }
-        );
+        return kvFailureResponse(new Error('KV verification failed'));
       }
-    } catch (e) {
-      console.error('[API] KV persist failed:', e);
-      return NextResponse.json(
-        { ok: false, reason: 'persist-failed' },
-        { status: 500, headers: noStore }
-      );
+    } catch (error: unknown) {
+      return kvFailureResponse(error);
     }
 
     return NextResponse.json({ ok: true, roomId, storage: 'kv' }, { status: 200, headers: noStore });
@@ -156,5 +168,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       { status: 500, headers: noStore }
     );
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ ok: false, message: 'Use POST' }, { status: 405, headers: noStore });
 }
 
