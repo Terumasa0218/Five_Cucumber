@@ -3,21 +3,28 @@ const base = (process.env.BASE_URL || '').replace(/\/$/, '');
 if (!base) { console.error('Set BASE_URL'); process.exit(2); }
 
 (async () => {
+  let diagExitCode = 0;
   try {
-    const diagResp = await fetch(base + '/api/diag/shared-store', { cache: 'no-store' });
+    const diagResp = await fetch(base + '/api/_diag/shared-store', { cache: 'no-store' });
     if (diagResp.ok) {
       const diag = await diagResp.json();
       console.log('ℹ️  shared-store diag:', {
         hasKV: !!diag.hasKV,
-        hasUpstash: !!diag.hasUpstash,
         hasVercelRedisRest: !!diag.hasVercelRedisRest,
-        hasRedisTcp: !!diag.hasRedisTcp
+        canPersist: !!diag.canPersist,
+        detail: diag.detail ?? null
       });
+      if (!diag.canPersist) {
+        console.log('⚠️  shared-store cannot persist data');
+        diagExitCode = 1;
+      }
     } else {
       console.log('⚠️  shared-store diag failed', diagResp.status);
+      diagExitCode = 1;
     }
   } catch (err) {
     console.log('⚠️  shared-store diag request error', err);
+    diagExitCode = 1;
   }
 
   const r = await fetch(base + '/api/friend/create', {
@@ -28,7 +35,7 @@ if (!base) { console.error('Set BASE_URL'); process.exit(2); }
   const txt = await r.text();
   if (r.status === 200 || r.status === 201) {
     console.log('✅ friend/create: success', r.status);
-    process.exit(0);
+    process.exit(diagExitCode);
   }
   if (r.status === 503 && /no-shared-store/i.test(txt)) {
     console.log('❌ 503 no-shared-store (shared store env not detected at runtime)');
@@ -37,7 +44,7 @@ if (!base) { console.error('Set BASE_URL'); process.exit(2); }
   } else {
     console.log(`❌ ${r.status}: ${txt.slice(0,200)}`);
   }
-  process.exit(1);
+  process.exit(Math.max(diagExitCode, 1));
 })();
 
 

@@ -133,17 +133,19 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       await kvSaveJSON(key, room, 60 * 60);
       const ok = await kvExists(key);
       if (!ok) {
-        console.error('[API] KV verification failed for key:', key);
+        const detail = 'KV verification failed';
+        console.error('[API] KV persist failed:', detail, 'for key:', key);
         return NextResponse.json(
-          { ok: false, reason: 'persist-failed' },
-          { status: 500, headers: noStore }
+          { ok: false, reason: 'kv-failed', detail },
+          { status: 503, headers: noStore }
         );
       }
-    } catch (e) {
-      console.error('[API] KV persist failed:', e);
+    } catch (e: any) {
+      const detail = e?.message ?? 'unknown';
+      console.error('[API] KV persist failed:', detail);
       return NextResponse.json(
-        { ok: false, reason: 'persist-failed' },
-        { status: 500, headers: noStore }
+        { ok: false, reason: 'kv-failed', detail },
+        { status: 503, headers: noStore }
       );
     }
 
@@ -156,5 +158,9 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       { status: 500, headers: noStore }
     );
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ ok: false, message: 'Use POST' }, { status: 405, headers: noStore });
 }
 
