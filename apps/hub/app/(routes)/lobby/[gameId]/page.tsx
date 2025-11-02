@@ -1,9 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 // AuthProvider削除済みのため、ダミーのuseAuth実装
 const useAuth = () => ({ user: null as any });
-import { useRouter, useSearchParams } from 'next/navigation';
 
 function genCode(){ return String(Math.floor(Math.random()*100000)).padStart(5,'0'); }
 
@@ -77,7 +76,13 @@ export default function LobbyPage({ params }: { params: { gameId:string } }){
               onClick={()=>alert(`TODO: ルーム ${code} に参加`)}>
               参加する
             </button>
-            <Link href="/home" className="rounded-xl px-4 py-2 border">戻る</Link>
+            <button
+              type="button"
+              className="rounded-xl px-4 py-2 border"
+              onClick={() => router.push('/home')}
+            >
+              戻る
+            </button>
           </div>
         </section>
       </div>
