@@ -1,9 +1,17 @@
-import { Cucumber5Card, Cucumber5State, GameEvent, GameHandle } from '@five-cucumber/sdk';
+import { Cucumber5Card, Cucumber5State, GameEvent } from '@five-cucumber/sdk';
+
+export type Cucumber5ViewAction = {
+  type: 'card:select';
+  card: Cucumber5Card;
+  cardIndex: number;
+  playerIndex: number;
+};
 
 export interface Cucumber5ViewOptions {
-  players: { id: string; name: string; isCPU?: boolean }[];
+  state: Cucumber5State;
   locale: string;
   onEvent: (e: GameEvent) => void;
+  onRequestAction?: (action: Cucumber5ViewAction) => void;
 }
 
 /**
@@ -74,78 +82,72 @@ export class CircularLayout {
 /**
  * Cucumber5 Game View Implementation
  */
-export class Cucumber5View implements GameHandle {
+interface SeatElements {
+  root: HTMLElement;
+  name: HTMLElement;
+  cucumbers: HTMLElement;
+  cards: HTMLElement;
+  handVisual: HTMLElement;
+  graveyard: HTMLElement;
+}
+
+export class Cucumber5View {
   private element: HTMLElement;
   private state: Cucumber5State;
+  private locale: string;
   private onEvent: (e: GameEvent) => void;
+  private onRequestAction?: (action: Cucumber5ViewAction) => void;
   private layout: CircularLayout | null = null;
-  private animationFrame: number | null = null;
-  private isDisposed = false;
+  private seatsContainer: HTMLElement | null = null;
+  private seatElements: SeatElements[] = [];
+  private fieldCardContainer: HTMLElement | null = null;
+  private sharedGraveyardContainer: HTMLElement | null = null;
+  private trickCardsContainer: HTMLElement | null = null;
+  private playerHandElement: HTMLElement | null = null;
+  private timerElement: HTMLElement | null = null;
+  private roundElement: HTMLElement | null = null;
+  private turnElement: HTMLElement | null = null;
+  private phaseElement: HTMLElement | null = null;
+  private orientationWarningElement: HTMLElement | null = null;
+  private resizeObserver: ResizeObserver | null = null;
+  private orientationMedia: MediaQueryList | null = null;
+  private orientationListener: ((event: MediaQueryListEvent) => void) | null = null;
+  private windowResizeHandler: (() => void) | null = null;
+  private layoutFrame: number | null = null;
+  private isPortraitOrientation = false;
+  private disposed = false;
 
   constructor(element: HTMLElement, options: Cucumber5ViewOptions) {
     this.element = element;
+    this.state = options.state;
+    this.locale = options.locale;
     this.onEvent = options.onEvent;
-    
-    // Initialize game state
-    this.state = this.initializeState(options.players);
-    
-    this.setupView();
-    this.startRenderLoop();
-  }
+    this.onRequestAction = options.onRequestAction;
 
-  private initializeState(players: { id: string; name: string; isCPU?: boolean }[]): Cucumber5State {
-    return {
-      players: players.map((player, index) => ({
-        id: player.id,
-        name: player.name,
-        isCPU: player.isCPU,
-        hand: [],
-        graveyard: [],
-        cucumbers: 0
-      })),
-      currentPlayer: 0,
-      fieldCard: null,
-      sharedGraveyard: [],
-      round: 1,
-      trick: 1,
-      trickCards: [],
-      timeLeft: 30,
-      phase: 'dealing',
-      turn: 1,
-      data: {}
-    };
+    this.setupView();
+    this.renderAll();
+    this.setupLayoutListeners();
+    this.setupOrientationHandling();
   }
 
   private setupView(): void {
     this.element.innerHTML = '';
     this.element.className = 'cucumber5-game';
-    
-    // Create game container
+
     const gameContainer = document.createElement('div');
     gameContainer.className = 'game-container';
     this.element.appendChild(gameContainer);
 
-    // Create table
     const table = document.createElement('div');
     table.className = 'game-table';
     gameContainer.appendChild(table);
 
-    // Create player seats
     this.createPlayerSeats(table);
-
-    // Create center area
     this.createCenterArea(table);
-
-    // Create player hand
     this.createPlayerHand(gameContainer);
-
-    // Create HUD
     this.createHUD(gameContainer);
+    this.createOrientationWarning();
 
-    // Add event listeners
-    this.setupEventListeners();
-
-    // Inject styles
     this.injectStyles();
   }
 
@@ -154,73 +156,76 @@ export class Cucumber5View implements GameHandle {
     seatsContainer.className = 'seats-container';
     table.appendChild(seatsContainer);
 
-    this.state.players.forEach((player, index) => {
-      const seat = document.createElement('div');
-      seat.className = `seat seat--player-${index}`;
-      seat.innerHTML = `
-        <div class="seat__info">
-          <div class="seat__name">${player.name}</div>
-          <div class="seat__cucumbers">🥒 ${player.cucumbers}</div>
-          <div class="seat__cards">${player.hand.length} cards</div>
-        </div>
-        <div class="seat__hand-visual">
-          ${player.hand.map(() => '<div class="seat__mini-card"></div>').join('')}
-        </div>
-        <div class="seat__graveyard">
-          ${player.graveyard.map(card => `<div class="seat__graveyard-card">${card.number}</div>`).join('')}
-        </div>
-      `;
-      seatsContainer.appendChild(seat);
+    this.seatsContainer = seatsContainer;
+    this.seatElements = [];
+
+    this.state.players.forEach((_, index) => {
+      const seatRefs = this.buildSeatElement(index);
+      seatsContainer.appendChild(seatRefs.root);
+      this.seatElements.push(seatRefs);
     });
+  }
+
+  private buildSeatElement(index: number): SeatElements {
+    const seat = document.createElement('div');
+    seat.className = `seat seat--player-${index}`;
+
+    seat.innerHTML = `
+      <div class="seat__info">
+        <div class="seat__name"></div>
+        <div class="seat__cucumbers"></div>
+        <div class="seat__cards"></div>
+      </div>
+      <div class="seat__hand-visual"></div>
+      <div class="seat__graveyard"></div>
+    `;
+
+    return {
+      root: seat,
+      name: seat.querySelector('.seat__name') as HTMLElement,
+      cucumbers: seat.querySelector('.seat__cucumbers') as HTMLElement,
+      cards: seat.querySelector('.seat__cards') as HTMLElement,
+      handVisual: seat.querySelector('.seat__hand-visual') as HTMLElement,
+      graveyard: seat.querySelector('.seat__graveyard') as HTMLElement
+    };
   }
 
   private createCenterArea(table: HTMLElement): void {
     const centerArea = document.createElement('div');
     centerArea.className = 'center-area';
-    centerArea.innerHTML = `
-      <div class="field-area">
-        <div class="field-card">
-          ${this.state.fieldCard ? `
-            <div class="card">
-              <div class="card__number">${this.state.fieldCard.number}</div>
-              <div class="card__cucumbers">${'🥒'.repeat(this.state.fieldCard.cucumbers)}</div>
-            </div>
-          ` : '<div class="field-empty">No card</div>'}
-        </div>
-      </div>
-      <div class="graveyard-area">
-        <div class="graveyard-cards">
-          ${this.state.sharedGraveyard.map(card => `
-            <div class="graveyard-card">
-              <div class="card__number">${card.number}</div>
-              <div class="card__cucumbers">${'🥒'.repeat(card.cucumbers)}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
+
+    const fieldArea = document.createElement('div');
+    fieldArea.className = 'field-area';
+    const fieldCard = document.createElement('div');
+    fieldCard.className = 'field-card';
+    fieldArea.appendChild(fieldCard);
+    centerArea.appendChild(fieldArea);
+    this.fieldCardContainer = fieldCard;
+
+    const trickArea = document.createElement('div');
+    trickArea.className = 'trick-area';
+    const trickCards = document.createElement('div');
+    trickCards.className = 'trick-cards';
+    trickArea.appendChild(trickCards);
+    centerArea.appendChild(trickArea);
+    this.trickCardsContainer = trickCards;
+
+    const graveyardArea = document.createElement('div');
+    graveyardArea.className = 'graveyard-area';
+    const graveyardCards = document.createElement('div');
+    graveyardCards.className = 'graveyard-cards';
+    graveyardArea.appendChild(graveyardCards);
+    centerArea.appendChild(graveyardArea);
+    this.sharedGraveyardContainer = graveyardCards;
+
     table.appendChild(centerArea);
   }
 
   private createPlayerHand(container: HTMLElement): void {
     const playerHand = document.createElement('div');
     playerHand.className = 'player-hand';
-    
-    const player = this.state.players[0];
-    if (player) {
-      player.hand.forEach((card, index) => {
-        const cardElement = document.createElement('div');
-        cardElement.className = 'player-hand__card';
-        cardElement.innerHTML = `
-          <div class="player-hand__card-number">${card.number}</div>
-          <div class="player-hand__card-cucumbers">${'🥒'.repeat(card.cucumbers)}</div>
-        `;
-        cardElement.addEventListener('click', () => this.onCardClick(card, index));
-        playerHand.appendChild(cardElement);
-      });
-    }
-    
     container.appendChild(playerHand);
+    this.playerHandElement = playerHand;
   }
 
   private createHUD(container: HTMLElement): void {
@@ -228,93 +233,391 @@ export class Cucumber5View implements GameHandle {
     hud.className = 'game-hud';
     hud.innerHTML = `
       <div class="game-hud__left">
-        <div class="round-indicator">
-          第${this.state.round}回戦<br />
-          第${this.state.trick}ラウンド
-        </div>
-        <div class="timer-display ${this.state.timeLeft <= 5 ? 'timer-display--warning' : ''}">
-          TIME ${Math.max(0, this.state.timeLeft)}
-        </div>
+        <div class="round-indicator"></div>
+        <div class="timer-display"></div>
       </div>
       <div class="game-hud__center">
         <div class="game-title">🥒 ５本のきゅうり 🥒</div>
       </div>
       <div class="game-hud__right">
-        <!-- Additional HUD elements -->
+        <div class="hud-turn"></div>
+        <div class="hud-phase"></div>
       </div>
     `;
     container.appendChild(hud);
+
+    this.roundElement = hud.querySelector('.round-indicator') as HTMLElement;
+    this.timerElement = hud.querySelector('.timer-display') as HTMLElement;
+    this.turnElement = hud.querySelector('.hud-turn') as HTMLElement;
+    this.phaseElement = hud.querySelector('.hud-phase') as HTMLElement;
   }
 
-  private setupEventListeners(): void {
-    // Add any necessary event listeners here
+  private createOrientationWarning(): void {
+    const warning = document.createElement('div');
+    warning.className = 'orientation-warning';
+    warning.innerHTML = `
+      <div class="orientation-warning__content">
+        <div class="orientation-warning__icon">📱</div>
+        <div class="orientation-warning__text">
+          <p>端末を横向きにしてください</p>
+          <p>Please rotate your device</p>
+        </div>
+      </div>
+    `;
+    this.element.appendChild(warning);
+    this.orientationWarningElement = warning;
   }
 
-  private onCardClick(card: Cucumber5Card, index: number): void {
-    if (this.state.currentPlayer !== 0) return;
-    
-    // Emit card play event
-    this.onEvent({
-      type: 'card:play',
-      timestamp: Date.now(),
-      gameId: 'cucumber5',
-      data: { card, playerIndex: 0, cardIndex: index }
+  private renderAll(): void {
+    if (this.disposed) return;
+
+    this.ensureSeatElements();
+    this.renderSeats();
+    this.renderFieldCard();
+    this.renderSharedGraveyard();
+    this.renderTrickCards();
+    this.renderPlayerHand();
+    this.renderHUD();
+    this.scheduleLayoutRefresh();
+  }
+
+  setState(state: Cucumber5State): void {
+    if (this.disposed) return;
+    this.state = state;
+    this.renderAll();
+  }
+
+  patchState(partial: Partial<Cucumber5State>): void {
+    if (this.disposed) return;
+    this.state = { ...this.state, ...partial };
+    this.renderAll();
+  }
+
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+
+    if (this.layoutFrame !== null) {
+      cancelAnimationFrame(this.layoutFrame);
+      this.layoutFrame = null;
+    }
+
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+
+    if (this.windowResizeHandler && typeof window !== 'undefined') {
+      window.removeEventListener('resize', this.windowResizeHandler);
+      this.windowResizeHandler = null;
+    }
+
+    if (this.orientationMedia && this.orientationListener) {
+      if (typeof this.orientationMedia.removeEventListener === 'function') {
+        this.orientationMedia.removeEventListener('change', this.orientationListener);
+      } else if (typeof this.orientationMedia.removeListener === 'function') {
+        this.orientationMedia.removeListener(this.orientationListener);
+      }
+    }
+
+    this.orientationMedia = null;
+    this.orientationListener = null;
+    this.seatElements = [];
+    this.element.innerHTML = '';
+  }
+
+  private ensureSeatElements(): void {
+    if (!this.seatsContainer) return;
+
+    if (this.seatElements.length === this.state.players.length) {
+      return;
+    }
+
+    this.seatsContainer.innerHTML = '';
+    this.seatElements = [];
+
+    this.state.players.forEach((_, index) => {
+      const seat = this.buildSeatElement(index);
+      this.seatsContainer!.appendChild(seat.root);
+      this.seatElements.push(seat);
     });
   }
 
-  private startRenderLoop(): void {
-    const render = () => {
-      if (this.isDisposed) return;
-      
-      this.updateLayout();
-      this.updateView();
-      
-      this.animationFrame = requestAnimationFrame(render);
-    };
-    
-    render();
+  private renderSeats(): void {
+    this.state.players.forEach((player, index) => {
+      const seat = this.seatElements[index];
+      if (!seat) return;
+
+      seat.name.textContent = player.name;
+      seat.cucumbers.textContent = `🥒 ${player.cucumbers}`;
+      seat.cards.textContent = `手札: ${player.hand.length}枚`;
+
+      seat.handVisual.innerHTML = new Array(player.hand.length)
+        .fill(null)
+        .map(() => '<div class="seat__mini-card"></div>')
+        .join('');
+
+      seat.graveyard.innerHTML = player.graveyard
+        .map(card => `<div class="seat__graveyard-card">${card.number}</div>`)
+        .join('');
+
+      seat.root.classList.toggle('seat--current', this.state.currentPlayer === index);
+    });
   }
 
-  private updateLayout(): void {
-    if (!this.layout) {
-      const rect = this.element.getBoundingClientRect();
-      this.layout = new CircularLayout(rect.width, rect.height);
+  private renderFieldCard(): void {
+    if (!this.fieldCardContainer) return;
+
+    this.fieldCardContainer.innerHTML = '';
+
+    if (!this.state.fieldCard) {
+      const empty = document.createElement('div');
+      empty.className = 'field-empty';
+      empty.textContent = 'No card';
+      this.fieldCardContainer.appendChild(empty);
+      return;
     }
-    
+
+    const cardElement = this.createCardElement(this.state.fieldCard);
+    this.fieldCardContainer.appendChild(cardElement);
+  }
+
+  private renderSharedGraveyard(): void {
+    if (!this.sharedGraveyardContainer) return;
+
+    this.sharedGraveyardContainer.innerHTML = '';
+
+    this.state.sharedGraveyard.forEach(card => {
+      const graveCard = document.createElement('div');
+      graveCard.className = 'graveyard-card';
+
+      const number = document.createElement('div');
+      number.className = 'card__number';
+      number.textContent = `${card.number}`;
+
+      const cucumbers = document.createElement('div');
+      cucumbers.className = 'card__cucumbers';
+      cucumbers.textContent = '🥒'.repeat(card.cucumbers);
+
+      graveCard.appendChild(number);
+      graveCard.appendChild(cucumbers);
+
+      this.sharedGraveyardContainer!.appendChild(graveCard);
+    });
+  }
+
+  private renderTrickCards(): void {
+    if (!this.trickCardsContainer) return;
+
+    this.trickCardsContainer.innerHTML = '';
+
+    this.state.trickCards.forEach(({ player, card }) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'trick-card';
+
+      const label = document.createElement('div');
+      label.className = 'trick-card__player';
+      label.textContent = this.state.players[player]?.name ?? `P${player + 1}`;
+
+      const cardElement = this.createCardElement(card);
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(cardElement);
+
+      this.trickCardsContainer!.appendChild(wrapper);
+    });
+  }
+
+  private renderPlayerHand(): void {
+    if (!this.playerHandElement) return;
+
+    this.playerHandElement.innerHTML = '';
+
+    const player = this.state.players[0];
+    if (!player) return;
+
+    player.hand.forEach((card, index) => {
+      const cardElement = document.createElement('div');
+      cardElement.className = 'player-hand__card';
+
+      const number = document.createElement('div');
+      number.className = 'player-hand__card-number';
+      number.textContent = `${card.number}`;
+
+      const cucumbers = document.createElement('div');
+      cucumbers.className = 'player-hand__card-cucumbers';
+      cucumbers.textContent = '🥒'.repeat(card.cucumbers);
+
+      cardElement.appendChild(number);
+      cardElement.appendChild(cucumbers);
+
+      if (this.state.currentPlayer === 0) {
+        cardElement.classList.add('player-hand__card--active');
+        cardElement.addEventListener('click', () => this.handleCardClick(card, index, 0));
+      } else {
+        cardElement.classList.add('player-hand__card--disabled');
+      }
+
+      this.playerHandElement!.appendChild(cardElement);
+    });
+  }
+
+  private renderHUD(): void {
+    if (this.timerElement) {
+      this.timerElement.textContent = `TIME ${Math.max(0, this.state.timeLeft)}`;
+      this.timerElement.className = `timer-display ${this.state.timeLeft <= 5 ? 'timer-display--warning' : ''}`;
+    }
+
+    if (this.roundElement) {
+      this.roundElement.innerHTML = `第${this.state.round}回戦<br />第${this.state.trick}ラウンド`;
+    }
+
+    if (this.turnElement) {
+      this.turnElement.textContent = `ターン: ${this.state.turn}`;
+    }
+
+    if (this.phaseElement) {
+      this.phaseElement.textContent = `フェーズ: ${this.translatePhase(this.state.phase)}`;
+    }
+  }
+
+  private createCardElement(card: Cucumber5Card): HTMLElement {
+    const cardElement = document.createElement('div');
+    cardElement.className = 'card';
+
+    const number = document.createElement('div');
+    number.className = 'card__number';
+    number.textContent = `${card.number}`;
+
+    const cucumbers = document.createElement('div');
+    cucumbers.className = 'card__cucumbers';
+    cucumbers.textContent = '🥒'.repeat(card.cucumbers);
+
+    cardElement.appendChild(number);
+    cardElement.appendChild(cucumbers);
+
+    return cardElement;
+  }
+
+  private translatePhase(phase: Cucumber5State['phase']): string {
+    switch (phase) {
+      case 'dealing':
+        return '配札';
+      case 'playing':
+        return '進行中';
+      case 'trick_end':
+        return 'トリック精算';
+      case 'round_end':
+        return 'ラウンド終了';
+      case 'game_over':
+        return '終了';
+      default:
+        return phase ?? '';
+    }
+  }
+
+  private scheduleLayoutRefresh(): void {
+    if (typeof window === 'undefined') return;
+    if (this.layoutFrame !== null) return;
+
+    this.layoutFrame = window.requestAnimationFrame(() => {
+      this.layoutFrame = null;
+      this.refreshLayout();
+    });
+  }
+
+  private refreshLayout(): void {
+    if (!this.seatsContainer || this.disposed) return;
+
+    const rect = this.element.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    this.layout = new CircularLayout(rect.width, rect.height);
     const seats = this.layout.calculateSeats(this.state.players.length);
-    const seatsContainer = this.element.querySelector('.seats-container');
-    
-    if (seatsContainer) {
-      seats.forEach((seat, index) => {
-        const seatElement = seatsContainer.children[index] as HTMLElement;
-        if (seatElement) {
-          seatElement.style.left = `${seat.x}px`;
-          seatElement.style.top = `${seat.y}px`;
-          seatElement.style.transform = `rotate(${seat.angle + 90}deg)`;
-        }
+    const scale = this.layout.calculateSeatScale(this.state.players.length);
+
+    seats.forEach((seatPosition, index) => {
+      const seat = this.seatElements[index];
+      if (!seat) return;
+
+      seat.root.style.left = `${seatPosition.x}px`;
+      seat.root.style.top = `${seatPosition.y}px`;
+      seat.root.style.transform = `translate(-50%, -50%) rotate(${seatPosition.angle + 90}deg) scale(${scale})`;
+    });
+  }
+
+  private setupLayoutListeners(): void {
+    if (typeof window === 'undefined') return;
+
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => this.scheduleLayoutRefresh());
+      this.resizeObserver.observe(this.element);
+    } else {
+      this.windowResizeHandler = () => this.scheduleLayoutRefresh();
+      window.addEventListener('resize', this.windowResizeHandler);
+    }
+  }
+
+  private setupOrientationHandling(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+    this.orientationMedia = window.matchMedia('(orientation: portrait)');
+
+    const handleChange = (event: MediaQueryListEvent | MediaQueryList) => {
+      const matches = (event as MediaQueryList).matches;
+      this.toggleOrientationWarning(matches);
+      this.scheduleLayoutRefresh();
+    };
+
+    this.orientationListener = (event: MediaQueryListEvent) => handleChange(event);
+
+    if (typeof this.orientationMedia.addEventListener === 'function') {
+      this.orientationMedia.addEventListener('change', this.orientationListener);
+    } else if (typeof this.orientationMedia.addListener === 'function') {
+      this.orientationMedia.addListener(this.orientationListener);
+    }
+
+    handleChange(this.orientationMedia);
+  }
+
+  private toggleOrientationWarning(show: boolean): void {
+    if (!this.orientationWarningElement) return;
+
+    if (show) {
+      this.orientationWarningElement.classList.add('orientation-warning--visible');
+    } else {
+      this.orientationWarningElement.classList.remove('orientation-warning--visible');
+    }
+
+    if (this.isPortraitOrientation !== show) {
+      this.isPortraitOrientation = show;
+      this.onEvent({
+        type: 'ui:orientation',
+        timestamp: Date.now(),
+        gameId: 'cucumber5',
+        data: { portrait: show }
       });
     }
   }
 
-  private updateView(): void {
-    // Update timer
-    const timerElement = this.element.querySelector('.timer-display');
-    if (timerElement) {
-      timerElement.textContent = `TIME ${Math.max(0, this.state.timeLeft)}`;
-      timerElement.className = `timer-display ${this.state.timeLeft <= 5 ? 'timer-display--warning' : ''}`;
+  private handleCardClick(card: Cucumber5Card, index: number, playerIndex: number): void {
+    if (this.onRequestAction) {
+      this.onRequestAction({
+        type: 'card:select',
+        card,
+        cardIndex: index,
+        playerIndex
+      });
     }
 
-    // Update round indicator
-    const roundElement = this.element.querySelector('.round-indicator');
-    if (roundElement) {
-      roundElement.innerHTML = `第${this.state.round}回戦<br />第${this.state.trick}ラウンド`;
-    }
-
-    // Update current player indicator
-    this.state.players.forEach((player, index) => {
-      const seatElement = this.element.querySelector(`.seat--player-${index}`);
-      if (seatElement) {
-        seatElement.classList.toggle('seat--current', this.state.currentPlayer === index);
+    this.onEvent({
+      type: 'ui:card_select',
+      timestamp: Date.now(),
+      gameId: 'cucumber5',
+      data: {
+        playerIndex,
+        cardIndex: index,
+        cardNumber: card.number
       }
     });
   }
@@ -363,6 +666,9 @@ export class Cucumber5View implements GameHandle {
         backdrop-filter: blur(10px);
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         transform-origin: center;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
       }
 
       .seat--current {
@@ -470,6 +776,18 @@ export class Cucumber5View implements GameHandle {
         flex-shrink: 0;
       }
 
+      .player-hand__card--disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        pointer-events: none;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+        transform: none !important;
+      }
+
+      .player-hand__card--active {
+        cursor: pointer;
+      }
+
       .player-hand__card:hover {
         transform: translateY(-8px) scale(1.05);
         box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
@@ -517,6 +835,13 @@ export class Cucumber5View implements GameHandle {
         justify-content: flex-end;
         align-items: center;
         gap: 15px;
+      }
+
+      .hud-turn,
+      .hud-phase {
+        color: white;
+        font-weight: 600;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
       }
 
       .round-indicator {
@@ -654,52 +979,73 @@ export class Cucumber5View implements GameHandle {
       .graveyard-card .card__cucumbers {
         font-size: 6px;
       }
+
+      .trick-area {
+        width: 140px;
+        min-height: 150px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
+        border-radius: 10px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 12px;
+        gap: 10px;
+      }
+
+      .trick-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        align-items: center;
+      }
+
+      .trick-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .trick-card__player {
+        font-size: 0.7em;
+        color: rgba(255, 255, 255, 0.75);
+      }
+
+      .orientation-warning {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        color: #fff;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 24px;
+        z-index: 200;
+        pointer-events: none;
+      }
+
+      .orientation-warning--visible {
+        display: flex;
+        pointer-events: all;
+      }
+
+      .orientation-warning__content {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+        font-weight: bold;
+        font-size: 1.2em;
+      }
+
+      .orientation-warning__icon {
+        font-size: 2.6em;
+      }
     `;
     
     document.head.appendChild(style);
-  }
-
-  // GameHandle interface implementation
-  start(seed?: number): void {
-    this.onEvent({
-      type: 'match:start',
-      timestamp: Date.now(),
-      gameId: 'cucumber5',
-      data: { seed, players: this.state.players.map(p => p.id) }
-    });
-  }
-
-  pause(): void {
-    // Implementation for pause
-  }
-
-  resume(): void {
-    // Implementation for resume
-  }
-
-  dispose(): void {
-    this.isDisposed = true;
-    if (this.animationFrame) {
-      cancelAnimationFrame(this.animationFrame);
-    }
-    this.element.innerHTML = '';
-  }
-
-  getState(): any {
-    return this.state;
-  }
-
-  sendAction(action: string, data?: any): void {
-    this.onEvent({
-      type: 'action',
-      timestamp: Date.now(),
-      gameId: 'cucumber5',
-      data: { action, ...data }
-    });
-  }
-
-  // Public methods for state updates
-  updateState(newState: Partial<Cucumber5State>): void {
-    this.state = { ...this.state, ...newState };
   }
 }

@@ -1,7 +1,7 @@
 import { Cucumber5Card, Cucumber5Player, Cucumber5State, GameEvent, GameHandle, GameMeta, GameModule, GameOptions } from '@five-cucumber/sdk';
 import { cpuManager, Difficulty } from './cpu';
 import { Cucumber5Rules } from './rules';
-import { Cucumber5View } from './view';
+import { Cucumber5View, Cucumber5ViewAction } from './view';
 
 /**
  * Cucumber5 Game Module
@@ -45,7 +45,7 @@ class Cucumber5GameHandle implements GameHandle {
   private state: Cucumber5State;
   private timer: NodeJS.Timeout | null = null;
   private isRunning = false;
-  private unmountView: (() => void) | null = null;
+  private view: Cucumber5View | null = null;
 
   constructor(
     element: HTMLElement,
@@ -98,8 +98,9 @@ class Cucumber5GameHandle implements GameHandle {
   dispose(): void {
     this.isRunning = false;
     this.stopTimer();
-    if (this.unmountView) {
-      this.unmountView();
+    if (this.view) {
+      this.view.dispose();
+      this.view = null;
     }
   }
 
@@ -152,81 +153,103 @@ class Cucumber5GameHandle implements GameHandle {
   }
 
   private mountView(): void {
-    const view = new Cucumber5View(this.element, {
-      players: this.options.players,
+    this.view = new Cucumber5View(this.element, {
+      state: this.state,
       locale: this.options.locale,
-      onEvent: this.onEvent
+      onEvent: this.onEvent,
+      onRequestAction: this.handleViewAction
     });
-    
-    this.unmountView = () => view.dispose();
   }
+
+  private handleViewAction = (action: Cucumber5ViewAction): void => {
+    if (!this.isRunning) return;
+
+    switch (action.type) {
+      case 'card:select':
+        this.handleCardClick(action.card, action.playerIndex, action.cardIndex);
+        break;
+      default:
+        break;
+    }
+  };
 
   private updateView(): void {
-    if (this.unmountView) {
-      this.unmountView();
-    }
-    this.mountView();
+    this.view?.setState(this.state);
   }
 
-  private handleCardClick(card: Cucumber5Card): void {
-    if (this.state.currentPlayer !== 0 || !this.isRunning) return;
+  private patchView(partial: Partial<Cucumber5State>): void {
+    this.view?.patchState(partial);
+  }
 
-    const player = this.state.players[0];
+  private handleCardClick(card: Cucumber5Card, playerIndex: number, cardIndex: number): void {
+    if (!this.isRunning) return;
+    if (playerIndex !== this.state.currentPlayer) return;
+
+    const player = this.state.players[playerIndex];
+    if (!player) return;
+
     const playableCards = Cucumber5Rules.getPlayableCards(player, this.state.fieldCard);
-    
-    if (playableCards.some(c => c.number === card.number)) {
-      if (this.state.fieldCard === null || card.number >= this.state.fieldCard.number) {
-        this.playCard(card);
-      } else {
-        this.discardCard(card);
-      }
+    const isPlayable = playableCards.some(c => this.isSameCard(c, card));
+
+    if (!isPlayable) return;
+
+    if (
+      cardIndex < 0 ||
+      cardIndex >= player.hand.length ||
+      !this.isSameCard(player.hand[cardIndex], card)
+    ) {
+      cardIndex = player.hand.findIndex(c => this.isSameCard(c, card));
+      if (cardIndex === -1) return;
+    }
+
+    const selectedCard = player.hand[cardIndex];
+
+    if (this.state.fieldCard === null || selectedCard.number >= (this.state.fieldCard?.number ?? 0)) {
+      this.playCard(selectedCard, cardIndex);
+    } else {
+      this.discardCard(selectedCard, cardIndex);
     }
   }
 
-  private playCard(card: Cucumber5Card): void {
+  private playCard(card: Cucumber5Card, handIndex?: number): void {
     const player = this.state.players[this.state.currentPlayer];
-    const cardIndex = player.hand.findIndex(c => c.number === card.number);
-    
-    if (cardIndex === -1) return;
+    if (!player) return;
 
-    // Remove card from hand
-    player.hand.splice(cardIndex, 1);
-    
-    // Add to trick
+    const index = typeof handIndex === 'number' ? handIndex : player.hand.findIndex(c => this.isSameCard(c, card));
+    if (index === -1) return;
+
+    const [playedCard] = player.hand.splice(index, 1);
+
     this.state.trickCards.push({
       player: this.state.currentPlayer,
-      card
+      card: playedCard
     });
 
-    // Update field card
-    this.state.fieldCard = card;
+    this.state.fieldCard = playedCard;
 
     this.updateView();
-    this.recordAction('play_card', { card: card.number });
+    this.recordAction('play_card', { card: playedCard.number });
 
-    // Wait before next player
     setTimeout(() => {
       this.nextPlayer();
     }, 2000);
   }
 
-  private discardCard(card: Cucumber5Card): void {
+  private discardCard(card: Cucumber5Card, handIndex?: number): void {
     const player = this.state.players[this.state.currentPlayer];
-    const cardIndex = player.hand.findIndex(c => c.number === card.number);
-    
-    if (cardIndex === -1) return;
+    if (!player) return;
 
-    // Remove card from hand
-    player.hand.splice(cardIndex, 1);
-    
-    // Add to graveyards
-    player.graveyard.push(card);
-    this.state.sharedGraveyard.push(card);
+    const index = typeof handIndex === 'number' ? handIndex : player.hand.findIndex(c => this.isSameCard(c, card));
+    if (index === -1) return;
+
+    const [discardedCard] = player.hand.splice(index, 1);
+
+    player.graveyard.push(discardedCard);
+    this.state.sharedGraveyard.push(discardedCard);
 
     this.updateView();
-    this.recordAction('discard_card', { card: card.number });
+    this.recordAction('discard_card', { card: discardedCard.number });
 
-    // Wait before next player
     setTimeout(() => {
       this.nextPlayer();
     }, 2000);
@@ -355,12 +378,17 @@ class Cucumber5GameHandle implements GameHandle {
       if (!this.isRunning) return;
 
       const action = cpuManager.getCPUAction(player, this.state, difficulty);
-      if (action) {
-        if (this.state.fieldCard === null || action.number >= this.state.fieldCard.number) {
-          this.playCard(action);
-        } else {
-          this.discardCard(action);
-        }
+      if (!action) return;
+
+      const handIndex = player.hand.findIndex(c => this.isSameCard(c, action));
+      if (handIndex === -1) return;
+
+      const targetCard = player.hand[handIndex];
+
+      if (this.state.fieldCard === null || targetCard.number >= (this.state.fieldCard?.number ?? 0)) {
+        this.playCard(targetCard, handIndex);
+      } else {
+        this.discardCard(targetCard, handIndex);
       }
     }, thinkingTime);
   }
@@ -368,11 +396,13 @@ class Cucumber5GameHandle implements GameHandle {
   private startTimer(): void {
     this.stopTimer();
     this.state.timeLeft = 15;
+    this.patchView({ timeLeft: this.state.timeLeft });
     
     this.timer = setInterval(() => {
       if (!this.isRunning) return;
       
       this.state.timeLeft--;
+      this.patchView({ timeLeft: this.state.timeLeft });
       
       if (this.state.timeLeft <= 0) {
         this.stopTimer();
@@ -399,11 +429,16 @@ class Cucumber5GameHandle implements GameHandle {
     const playableCards = Cucumber5Rules.getPlayableCards(player, this.state.fieldCard);
     
     if (playableCards.length > 0) {
-      const card = playableCards[0]; // Play first available card
-      if (this.state.fieldCard === null || card.number >= this.state.fieldCard.number) {
-        this.playCard(card);
+      const card = playableCards[0];
+      const handIndex = player.hand.findIndex(c => this.isSameCard(c, card));
+      if (handIndex === -1) return;
+
+      const targetCard = player.hand[handIndex];
+
+      if (this.state.fieldCard === null || targetCard.number >= (this.state.fieldCard?.number ?? 0)) {
+        this.playCard(targetCard, handIndex);
       } else {
-        this.discardCard(card);
+        this.discardCard(targetCard, handIndex);
       }
     }
   }
@@ -415,6 +450,13 @@ class Cucumber5GameHandle implements GameHandle {
       gameId: 'cucumber5',
       data: { action: type, ...data }
     });
+  }
+
+  private isSameCard(a: Cucumber5Card, b: Cucumber5Card): boolean {
+    const suitMatches = 'suit' in a && 'suit' in b ? (a as any).suit === (b as any).suit : true;
+    const idMatches = 'id' in a && 'id' in b ? (a as any).id === (b as any).id : true;
+
+    return a.number === b.number && a.cucumbers === b.cucumbers && suitMatches && idMatches;
   }
 }
 

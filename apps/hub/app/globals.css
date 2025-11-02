@@ -45,6 +45,29 @@
   margin: 0 auto;
 }
 
+/* === 共通ボタン === */
+.fc-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: clamp(12px, 3vw, 18px) clamp(18px, 5vw, 28px);
+  border-radius: 14px;
+  border: 2px solid transparent;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  min-height: 48px;
+  min-width: 48px;
+}
+
+.fc-button:focus-visible {
+  outline: 3px solid rgba(255, 215, 0, 0.7);
+  outline-offset: 3px;
+}
 /* === アンティーク調ボタン === */
 .btn-primary {
   background: var(--antique-forest);
@@ -151,6 +174,41 @@
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* === 共通ボタン（新デザイン） === */
+.fc-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.fc-button--primary {
+  background: linear-gradient(180deg, #84b226 0%, #1f5130 100%);
+  color: #fff8dc;
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.fc-button--primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.42);
+  filter: saturate(1.05);
+}
+
+.fc-button--secondary {
+  background: linear-gradient(180deg, #f5b24d 0%, #d67a06 100%);
+  color: #fff8dc;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 18px rgba(126, 62, 8, 0.35);
+}
+
+.fc-button--secondary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(126, 62, 8, 0.42);
+  filter: saturate(1.05);
 }
 
 /* === バッジ === */
@@ -1660,32 +1718,20 @@ body[data-bg="battle"]::before {
   font-family: 'Noto Sans JP', sans-serif;
   width: 100%;
 }
-
-.background-frame__overlay {
+.background-frame__image {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
   pointer-events: none;
-  position: absolute;
-  inset: 0;
-  z-index: 1;
 }
 
-.background-frame__overlay--radial {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at center, rgba(245,240,230,0.08) 0%, rgba(200,168,90,0.12) 68%, rgba(43,43,43,0.15) 100%);
+.background-frame__image :is(img, picture, span) {
+  pointer-events: none;
 }
 
-.background-frame__overlay--linear {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(245,240,230,0.1) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 78%, rgba(245,240,230,0.1) 100%);
-}
-
-.background-frame__safe-area {
+.background-frame > :not(.background-frame__image) {
   position: relative;
-  z-index: 10;
-  padding-block: clamp(64px, 10vh, 128px);
-  padding-inline: clamp(20px, 6vw, 96px);
-  width: 100%;
+  z-index: 1;
 }
 
 /* === フレンドルームレイアウト === */

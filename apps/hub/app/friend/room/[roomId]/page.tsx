@@ -297,10 +297,10 @@ export default function RoomWaitingPage() {
     return renderStatusCard(
       error,
       <div className="friend-room__status-actions">
-        <Link href="/home" className="btn-primary friend-room__cta-button">
+        <Link href="/home" className="fc-button fc-button--primary friend-room__cta-button">
           ホームに戻る
         </Link>
-        <Link href="/friend" className="btn-secondary friend-room__cta-button">
+        <Link href="/friend" className="fc-button fc-button--secondary friend-room__cta-button">
           フレンド対戦トップへ
         </Link>
       </div>
@@ -325,8 +325,9 @@ export default function RoomWaitingPage() {
           secondary={
             isInRoom ? (
               <button
+                type="button"
                 onClick={handleLeaveRoom}
-                className="btn-secondary friend-room__cta-button"
+                className="fc-button fc-button--secondary friend-room__cta-button"
               >
                 ルームを退出する
               </button>
@@ -335,8 +336,9 @@ export default function RoomWaitingPage() {
           primary={
             isHost && isFull && room.status === 'waiting' ? (
               <button
+                type="button"
                 onClick={handleStartGame}
-                className="btn-primary friend-room__cta-button"
+                className="fc-button fc-button--primary friend-room__cta-button"
               >
                 ゲームを開始する
               </button>
@@ -358,12 +360,12 @@ export default function RoomWaitingPage() {
             <button
               type="button"
               onClick={handleCopyRoomId}
-              className="btn-secondary"
+              className="fc-button fc-button--secondary"
             >
               {copied ? 'コピーしました！' : 'ルーム番号をコピー'}
             </button>
-            <Link href="/rules" className="btn-secondary">ルール</Link>
-            <Link href="/home" className="btn-secondary">ホーム</Link>
+            <Link href="/rules" className="fc-button fc-button--secondary">ルール</Link>
+            <Link href="/home" className="fc-button fc-button--secondary">ホーム</Link>
           </>
         }
       >

@@ -473,8 +473,7 @@ function CpuPlayContent() {
     }
   };
 
-  const handleInterrupt = () => {
-    // ゲーム状態をクリア
+  const handleRestart = () => {
     const gameStateKey = getGameStateKey(searchParams);
     localStorage.removeItem(gameStateKey);
     router.push('/cucumber/cpu/settings');
@@ -510,7 +509,6 @@ function CpuPlayContent() {
               onTimeout={handleTimeout}
             />
           }
-          onInterrupt={handleInterrupt}
           onExit={handleBackToHome}
         />
 
@@ -539,8 +537,8 @@ function CpuPlayContent() {
               </div>
             </div>
             <div className="flex items-center gap-2 ml-auto">
-              <button onClick={handleInterrupt} className="inline-flex items-center gap-2 rounded-full bg-black/35 border border-white/10 px-5 py-2 text-sm font-semibold hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60">再戦</button>
-              <button onClick={handleBackToHome} className="inline-flex items-center gap-2 rounded-full bg-black/35 border border-white/10 px-5 py-2 text-sm font-semibold hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60">ホーム</button>
+              <button type="button" onClick={handleRestart} className="fc-button fc-button--primary">再戦</button>
+              <button type="button" onClick={handleBackToHome} className="fc-button fc-button--secondary">ホーム</button>
             </div>
           </GameFooter>
         ) : null}

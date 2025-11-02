@@ -23,31 +23,19 @@ export function BackgroundFrame({
   className,
 }: BackgroundFrameProps) {
   return (
-        <div
-          className={mergeClassNames(
-            "background-frame",
-            className
-          )}
-        >
-      <Image
-        src={src}
-        alt=""
-        fill
-        sizes="100vw"
-        priority={priority}
-        style={{ objectFit: "cover", objectPosition }}
-      />
-
-        {/* Gradient overlays */}
-        <div className="background-frame__overlay">
-          <div className="background-frame__overlay--radial" />
-          <div className="background-frame__overlay--linear" />
-        </div>
-
-      {/* Safe Area */}
-      <div className="background-frame__safe-area">
-        {children}
+    <div className={mergeClassNames("background-frame", className)}>
+      <div className="background-frame__image">
+        <Image
+          src={src}
+          alt=""
+          fill
+          sizes="100vw"
+          priority={priority}
+          style={{ objectFit: "cover", objectPosition }}
+        />
       </div>
+
+      {children}
     </div>
   );
 }

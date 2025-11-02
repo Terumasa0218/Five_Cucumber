@@ -51,10 +51,8 @@ export default function BattleLayout({ children, className, showOrientationHint 
       )}
 
       {/* ステージ */}
-      <div className="flex-1 flex flex-col">
-        <div className="battle-layout__stage">
-          {children}
-        </div>
+      <div className="battle-layout__stage">
+        {children}
       </div>
     </BackgroundFrame>
   );
