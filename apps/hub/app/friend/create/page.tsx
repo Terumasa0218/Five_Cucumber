@@ -4,6 +4,7 @@ import { FriendRoomLayout, RoomSettingsForm } from "@/components/ui";
 import { apiJson } from "@/lib/api";
 import { getNickname } from "@/lib/profile";
 import { upsertLocalRoom } from "@/lib/roomSystemUnified";
+import Link from "next/link";
 import type { Room } from "@/types/room";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -133,17 +134,18 @@ export default function FriendCreatePage() {
       description="対戦人数・制限時間・きゅうり数を選んで、招待する友達にぴったりの設定にしましょう。"
       footer={
         <>
-          <button
-            type="button"
-            onClick={() => router.push('/friend')}
-            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:opacity-40"
-          >
-            フレンド対戦トップに戻る
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link href="/home" className="btn-secondary layout-footer__button">
+              ホームに戻る
+            </Link>
+            <Link href="/friend" className="btn-secondary layout-footer__button">
+              フレンド対戦トップに戻る
+            </Link>
+          </div>
           <button
             onClick={handleCreateRoom}
             disabled={!isAllSelected() || isCreating}
-            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:opacity-40"
+            className="btn-primary layout-footer__button"
           >
             {isCreating ? '作成中...' : 'ルームを作成する'}
           </button>

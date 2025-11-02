@@ -121,6 +121,31 @@
   outline-offset: 2px;
 }
 
+.layout-footer__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 12px 24px;
+  font-size: clamp(14px, 1.8vw, 16px);
+  font-weight: 600;
+  text-decoration: none;
+  width: 100%;
+  min-height: 48px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.layout-footer__button:active {
+  transform: translateY(1px);
+}
+
+@media (min-width: 640px) {
+  .layout-footer__button {
+    width: auto;
+  }
+}
+
 /* === 無効状態 === */
 .btn-disabled {
   opacity: 0.5;
