@@ -1,6 +1,7 @@
 "use client";
 
 import { OptionToggleGroup, SettingsLayout } from '@/components/ui';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -84,17 +85,15 @@ export default function CpuSettings() {
       description="ゲームの設定を調整してください"
       footer={
         <>
-          <button
-            type="button"
-            onClick={() => router.push('/home')}
-            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
-          >
-            ホームに戻る
-          </button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Link href="/home" className="btn-secondary layout-footer__button">
+              ホームに戻る
+            </Link>
+          </div>
           <button
             onClick={handleStart}
             disabled={!isAllSelected()}
-            className="inline-flex items-center justify-center rounded-full px-6 py-3 font-semibold text-[#f8fafc] bg-black/35 border border-white/10 hover:bg-black/45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 disabled:opacity-40"
+            className="btn-primary layout-footer__button"
           >
             CPU対戦を開始
           </button>
