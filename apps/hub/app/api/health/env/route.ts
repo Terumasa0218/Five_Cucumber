@@ -1,8 +1,10 @@
 export const runtime = 'nodejs';
 
+type GlobalWithEdgeRuntime = typeof globalThis & { EdgeRuntime?: unknown };
+
 function getRuntime() {
-  // @ts-ignore
-  return typeof (globalThis as any).EdgeRuntime !== 'undefined' ? 'edge' : 'node';
+  const edgeAwareGlobal = globalThis as GlobalWithEdgeRuntime;
+  return typeof edgeAwareGlobal.EdgeRuntime !== 'undefined' ? 'edge' : 'node';
 }
 
 export async function GET(req: Request) {
