@@ -1,42 +1,49 @@
-/* ゲーム画面専用スタイル */
-.game-root {
+/* テーブルの基礎レイアウト */
+.ellipse-table {
   position: relative;
-  min-height: 100vh;
-  z-index: 0; /* レイヤー背景 */
-}
-
-/* 文字の可読性を上げる薄いビネット */
-.game-root::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at center, rgba(0,0,0,.10) 0%, rgba(0,0,0,.25) 65%, rgba(0,0,0,.35) 100%);
-  pointer-events: none;
-  z-index: 1;
+  flex: 1;
+  width: 100%;
+  min-height: clamp(540px, 68vh, 760px);
 }
 
 .game-container {
   position: relative;
-  height: 100vh;
-  display: grid;
-  grid-template-areas: 
-    "hud-left hud-center hud-right"
-    "seats seats seats"
-    "center-area center-area center-area"
-    "player-hand player-hand player-hand";
-  grid-template-rows: 60px 120px 1fr 130px;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  padding: 12px;
-  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(16px, 2vw, 28px);
+  padding: clamp(16px, 3vw, 32px);
 }
 
-.seats-container {
-  grid-area: seats;
-  position: relative;
-  width: 100%;
-  height: 100%;
-  z-index: 10; /* レイヤー座席 */
+.ellipse-table__center {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -58%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(32px, 6vw, 96px);
+  pointer-events: none;
+}
+
+.ellipse-table__field,
+.ellipse-table__grave {
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.ellipse-table__grave {
+  opacity: 0.9;
+}
+
+.ellipse-table__hand {
+  pointer-events: none;
+}
+
+.ellipse-table__hand .hand {
+  pointer-events: auto;
 }
 
 /* HUD（上部の情報帯） */

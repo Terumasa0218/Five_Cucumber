@@ -1518,79 +1518,66 @@ body[data-bg="battle"]::before {
 
 /* レイヤー順序を固定 */
 #oval-inner { position: absolute; inset: 0; z-index: 20; }
-#seats { 
-  position: absolute; 
-  top: 0; 
-  left: 0; 
-  right: 0; 
-  bottom: 140px; /* 手札エリアを避けるため下部マージンを設定 */
-  z-index: 15; 
-  pointer-events: none; 
+#seats {
+  position: absolute;
+  inset: 0;
+  bottom: clamp(140px, 18vh, 220px);
+  z-index: 15;
+  pointer-events: none;
 }
-#hand-dock { 
-  position: absolute; 
-  left: 0; 
-  right: 0; 
+#hand-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
   bottom: calc(12px + env(safe-area-inset-bottom, 0));
-  z-index: 30; 
-  display: flex; 
-  flex-direction: column; 
-  align-items: center; 
-  gap: 0.5rem; 
-  min-height: 120px; /* 手札エリアの最小高さを確保 */
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 120px;
 }
 
-/* 場と墓地（内側楕円の内側に収める） */
-#oval-inner {
-  display: grid; 
-  place-items: center;
-  transform: translateY(-60px); /* 場全体を上に移動 */
-}
-
+/* 中央の場レイアウト */
 #field {
-  width: min(22vw, 300px);
+  width: min(20vw, 260px);
   aspect-ratio: 3/4;
-  display: grid; 
+  display: grid;
   place-items: center;
 }
 
 #grave {
-  position: absolute;
-  right: calc(50% - min(24vw, 320px));
-  top: 50%;
-  transform: translateY(-50%);
-  width: min(12vw, 160px);
+  width: min(11vw, 150px);
   aspect-ratio: 3/4;
-  display: grid; 
+  display: grid;
   place-items: center;
-  opacity: 0.95;
 }
 
 /* 座席ボックス */
 #seats .seat {
   position: absolute;
-  width: clamp(180px, 18vw, 240px);
-  height: clamp(90px, 9vw, 130px);
+  width: clamp(160px, 16vw, 220px);
   transform: translate(-50%, -50%);
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 #seats .seat .content {
-  background: rgba(0, 0, 0, 0.28);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
-  border-radius: 14px;
-  padding: 0.5rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
   color: #fff;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.75);
 }
 
 /* 5/6人で軽く縮小して重なり回避 */
-#seats.players-5 .seat { transform: translate(-50%, -50%) scale(0.9); }
-#seats.players-6 .seat { transform: translate(-50%, -50%) scale(0.86); }
+#seats.players-5 .seat { transform: translate(-50%, -50%) scale(0.92); }
+#seats.players-6 .seat { transform: translate(-50%, -50%) scale(0.88); }
 
 /* 手番ハイライト（枠を光らせる） */
 #seats .seat[data-active="true"] .content {
-  box-shadow: 0 0 0 2px #ffe7a1, 0 0 16px #ffd15c, 0 0 36px rgba(255, 178, 0, 0.55), 0 6px 18px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 0 14px rgba(255, 190, 59, 0.9), 0 2px 8px rgba(0, 0, 0, 0.9);
 }
 
 /* 手札ドック（下辺中央） */
@@ -1599,25 +1586,22 @@ body[data-bg="battle"]::before {
   font-size: clamp(14px, 1.2vw, 18px);
   padding: 0.2rem 0.6rem;
   color: #f5efe4;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
 }
 
 #hand-dock .hand {
-  display: flex; 
+  display: flex;
   gap: 0.5rem;
   padding: 0.4rem 0.6rem;
-  background: rgba(0, 0, 0, 0.22);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
   border-radius: 14px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(4px);
+  backdrop-filter: none;
 }
 
 /* 画面幅が狭い時は全体的に軸を小さく */
 @media (max-width: 640px) {
-  #seats .seat { width: 42vw; height: 22vw; }
-  #field { width: 40vw; }
-  #grave { width: 22vw; right: calc(50% - 44vw); }
+  #seats .seat { width: 42vw; }
+  #field { width: 38vw; }
+  #grave { width: 20vw; }
 }
 
 /* ルーム情報表示 */
