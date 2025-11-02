@@ -58,11 +58,13 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
     };
   }, [config.players, mySeatIndex]);
 
+  const rootClassName = ['ellipse-table', className].filter(Boolean).join(' ');
+
   return (
-    <>
-      {/* 内側楕円：場と墓地 */}
-      <section id="oval-inner" className="layer-field panel-soft">
-        <div id="field" aria-label="場のカード">
+    <div className={rootClassName}>
+      {/* 中央の場と墓地 */}
+      <div className="ellipse-table__center">
+        <div id="field" className="ellipse-table__field" aria-label="場のカード">
           {state.fieldCard !== null ? (
             <div className="card current-card">
               <div className="card-number">{state.fieldCard}</div>
@@ -80,20 +82,20 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
             </div>
           )}
         </div>
-        <div id="grave" aria-label="墓地">
+        <div id="grave" className="ellipse-table__grave" aria-label="墓地">
           {state.sharedGraveyard.length > 0 && (
             <div className="graveyard-card">
               {state.sharedGraveyard[state.sharedGraveyard.length - 1]}
             </div>
           )}
         </div>
-      </section>
+      </div>
 
       {/* 楕円座席（外枠と内枠の間の帯） */}
       <section id="seats" className={`players-${config.players}`}>
         {state.players.map((player, i) => {
           const isTurn = i === currentPlayerIndex;
-          
+
           return (
             <div
               key={i}
@@ -134,7 +136,7 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
       </section>
 
       {/* 自分の手札と名前（下辺） */}
-      <section id="hand-dock" aria-label="自分の手札">
+      <section id="hand-dock" className="ellipse-table__hand" aria-label="自分の手札">
         <div className="me-name">{getPlayerName(mySeatIndex)}</div>
         <div className="hand">
           {state.players[mySeatIndex]?.hand.map((card, index) => {
@@ -181,6 +183,6 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
           })}
         </div>
       </section>
-    </>
+    </div>
   );
 }
