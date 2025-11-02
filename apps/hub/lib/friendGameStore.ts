@@ -13,7 +13,11 @@ import { isRedisAvailable } from '@/lib/redis';
 
 const HAS_FIRESTORE = Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
 
-export type GameSnapshot = RoomGameSnapshot;
+type GameSnapshotRngState = { seed: number; state: number };
+
+export type GameSnapshot = RoomGameSnapshot & {
+  rngState?: GameSnapshotRngState;
+};
 
 const memoryStore: Map<string, GameSnapshot> = new Map();
 
@@ -112,8 +116,7 @@ export async function applyServerMove(roomId: string, move: Move): Promise<GameS
 
   // ラウンド継続中は RNG 状態をスナップショットに保持して再利用する
   // なければ初期化（初回のみ）
-  // @ts-ignore 既存型を壊さないために付加プロパティとして保持
-  const rngState = (snap as any).rngState as { seed: number; state: number } | undefined;
+  const rngState = snap.rngState;
   const rng = rngState ? SeededRng.fromState(rngState) : new SeededRng(snap.config.seed ?? Date.now());
   const result = applyMove(snap.state, move, snap.config, rng);
   if (!result.success) return snap; // ignore illegal moves but keep existing state
@@ -132,10 +135,9 @@ export async function applyServerMove(roomId: string, move: Move): Promise<GameS
     state: newState,
     config: snap.config,
     version: snap.version + 1,
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
+    rngState: rng.getState()
   };
-  // @ts-ignore 付加プロパティに RNG 状態を保存
-  (updated as any).rngState = rng.getState();
   await persistSnapshot(roomId, updated);
   return updated;
 }
