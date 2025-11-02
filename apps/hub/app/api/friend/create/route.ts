@@ -19,6 +19,7 @@ function parseNumberish(value: unknown): number | null {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
+  console.info('[KV URL in runtime]', process.env.KV_REST_API_URL, process.env.UPSTASH_REDIS_REST_URL);
   try {
     // リクエストボディの取得と検証
     let body: CreateRoomRequest;
