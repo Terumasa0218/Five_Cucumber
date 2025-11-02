@@ -69,7 +69,10 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     const hasKvConfig = !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
     if (!hasKvConfig) {
       console.warn('[API] KV not configured; rejecting room creation.');
-      return NextResponse.json({ ok: false, reason: 'no-shared-store' }, { status: 503, headers: noStore });
+      return NextResponse.json(
+        { ok: false, reason: 'no-shared-store' },
+        { status: 503, headers: noStore }
+      );
     }
 
     // バリデーション
@@ -119,10 +122,16 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
         );
       }
       const exists = existsInFirestore || existsInKv;
-      if (!exists) { id = cand; break; }
+      if (!exists) {
+        id = cand;
+        break;
+      }
     }
     if (!id) {
-      return NextResponse.json({ ok: false, reason: 'server-error' }, { status: 500, headers: noStore });
+      return NextResponse.json(
+        { ok: false, reason: 'server-error' },
+        { status: 500, headers: noStore }
+      );
     }
     const room: Room = {
       id,
@@ -131,7 +140,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       status: 'waiting',
       createdAt: Date.now(),
       turnSeconds: nTurnSeconds,
-      maxCucumbers: nMaxCucumbers
+      maxCucumbers: nMaxCucumbers,
     };
     room.seats[0] = { nickname: nickname.trim() };
 
@@ -158,11 +167,18 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       );
     }
 
-    return NextResponse.json({ ok: true, roomId, storage: 'kv' }, { status: 200, headers: noStore });
+    return NextResponse.json(
+      { ok: true, roomId, storage: 'kv' },
+      { status: 200, headers: noStore }
+    );
   } catch (error) {
     console.error('Room creation error:', error);
     return NextResponse.json(
-      { ok: false, reason: 'server-error', detail: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        ok: false,
+        reason: 'server-error',
+        detail: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500, headers: noStore }
     );
   }
@@ -171,4 +187,3 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 export async function GET() {
   return NextResponse.json({ ok: false, message: 'Use POST' }, { status: 405, headers: noStore });
 }
-
