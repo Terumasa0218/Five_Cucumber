@@ -1,11 +1,12 @@
 "use client";
 
 import { FriendRoomLayout, PlayerSeatGrid, RoomActionBar, RoomSummaryCard } from "@/components/ui";
+import { apiJson, apiRequest, ApiRequestError } from "@/lib/api";
 import { getNickname } from "@/lib/profile";
 import { makeClient } from "@/lib/realtime-client";
 import { getRoom as getLocalRoom } from "@/lib/roomSystemUnified";
 import { USE_SERVER_SYNC } from "@/lib/serverSync";
-import { Room } from "@/types/room";
+import type { Room, RoomResponse } from "@/types/room";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -37,6 +38,7 @@ export default function RoomWaitingPage() {
     setNickname(currentNickname);
 
         const fetchRoom = async (retryCount = 0) => {
+          let timeoutId: ReturnType<typeof setTimeout> | undefined;
           try {
             if (!useServer) {
               const local = getLocalRoom(roomId);
@@ -54,41 +56,25 @@ export default function RoomWaitingPage() {
 
             // スマホでのネットワーク遅延を考慮してタイムアウトを設定
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒タイムアウト
+            timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒タイムアウト
 
-            const res = await fetch(`/api/friend/room/${roomId}`, {
+            const response = await apiRequest<RoomResponse>(`/friend/room/${roomId}`, {
               signal: controller.signal,
               headers: {
                 'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
+                Pragma: 'no-cache'
               }
             });
-            clearTimeout(timeoutId);
-
-            if (!res.ok) {
-              if (res.status === 404) {
-                const local = getLocalRoom(roomId);
-                if (local) {
-                  setRoom(local);
-                  const isParticipatingLocal = local.seats.some(seat => seat?.nickname === currentNickname);
-                  setIsInRoom(isParticipatingLocal);
-                  setError(null);
-                  setIsLoading(false);
-                  return;
-                }
-                setError('ルームが見つかりません。ルームが削除されたか、ルーム番号が間違っている可能性があります。');
-              } else {
-                setError('ルーム情報の取得に失敗しました');
-              }
-              setIsLoading(false);
-              return;
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+              timeoutId = undefined;
             }
 
-            const data: { ok: boolean; room?: Room } = await res.json();
+            const data = response.data;
             if (data.ok && data.room) {
               setRoom(data.room);
 
-              const isParticipating = data.room.seats.some(seat => seat?.nickname === currentNickname);
+              const isParticipating = data.room.seats.some((seat) => seat?.nickname === currentNickname);
               setIsInRoom(isParticipating);
               setError(null);
 
@@ -101,8 +87,19 @@ export default function RoomWaitingPage() {
             }
           } catch (err) {
             console.error('Room fetch error:', err);
-            if (err && typeof err === 'object' && 'name' in err && err.name === 'AbortError') {
+            if (err instanceof DOMException && err.name === 'AbortError') {
               setError('リクエストがタイムアウトしました。ネットワーク状況を確認してください。');
+            } else if (err instanceof ApiRequestError && err.response.status === 404) {
+              const local = getLocalRoom(roomId);
+              if (local) {
+                setRoom(local);
+                const isParticipatingLocal = local.seats.some((seat) => seat?.nickname === currentNickname);
+                setIsInRoom(isParticipatingLocal);
+                setError(null);
+                setIsLoading(false);
+                return;
+              }
+              setError('ルームが見つかりません。ルームが削除されたか、ルーム番号が間違っている可能性があります。');
             } else {
               setError('ネットワークエラーが発生しました');
             }
@@ -114,6 +111,9 @@ export default function RoomWaitingPage() {
               return;
             }
           } finally {
+            if (timeoutId) {
+              clearTimeout(timeoutId);
+            }
             setIsLoading(false);
           }
         };
@@ -126,7 +126,7 @@ export default function RoomWaitingPage() {
         console.log('[RoomPage] User agent:', userAgent, 'Mobile:', isMobile);
 
         const pollInterval: ReturnType<typeof setInterval> | undefined = useServer
-          ? setInterval(fetchRoom, isMobile ? 2000 : 3000) // スマホではより短い間隔でポーリング
+          ? setInterval(() => fetchRoom(), isMobile ? 2000 : 3000)
           : undefined;
 
         // デバッグ用: サーバーメモリの状況を確認
@@ -169,7 +169,7 @@ export default function RoomWaitingPage() {
                 console.log('[RoomPage] Updating room state with new data:', updatedRoom);
                 setRoom(updatedRoom);
 
-                const isParticipating = updatedRoom.seats.some((seat: any) => seat?.nickname === currentNickname);
+                const isParticipating = updatedRoom.seats.some((seat) => seat?.nickname === currentNickname);
                 setIsInRoom(isParticipating);
 
                 if (event === 'player_joined' && joinedPlayer) {
@@ -213,14 +213,10 @@ export default function RoomWaitingPage() {
   const handleLeaveRoom = async () => {
     if (!nickname || !room) return;
     try {
-      const res = await fetch('/api/friend/leave', {
+      await apiJson<{ ok: boolean; reason?: string }>(`/friend/leave`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId, nickname })
+        json: { roomId, nickname },
       });
-      if (!res.ok) {
-        console.warn('Leave room failed with status', res.status);
-      }
     } catch (err) {
       console.error('Leave room error:', err);
     } finally {
@@ -241,22 +237,10 @@ export default function RoomWaitingPage() {
       return;
     }
     try {
-      const res = await fetch('/api/friend/status', {
+      await apiJson<{ ok: boolean }>(`/friend/status`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId, status: 'playing' })
+        json: { roomId, status: 'playing' },
       });
-      if (!res.ok) {
-        try {
-          const { updateRoomStatus, getRoom, upsertLocalRoom } = await import('@/lib/roomSystemUnified');
-          updateRoomStatus(roomId, 'playing');
-          const local = getRoom(roomId);
-          if (local) {
-            const updatedRoom: Room = { ...local, status: 'playing' };
-            upsertLocalRoom(updatedRoom);
-          }
-        } catch {}
-      }
       router.push(`/friend/play/${roomId}`);
     } catch (err) {
       console.error('Start game error, fallback to local:', err);
