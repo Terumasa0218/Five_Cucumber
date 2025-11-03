@@ -2,9 +2,9 @@ import Ably from 'ably/promises';
 import type { Types } from 'ably';
 import type { RealtimeAdapter } from './realtime-adapter';
 
-let restInstance: Ably.RestPromise | null = null;
+let restInstance: InstanceType<typeof Ably.Rest> | null = null;
 
-function getRest(): Ably.RestPromise {
+function getRest(): InstanceType<typeof Ably.Rest> {
   if (!process.env.ABLY_API_KEY) {
     throw new Error('ABLY_API_KEY environment variable is not set');
   }
@@ -40,7 +40,7 @@ export const ablyAdapter: RealtimeAdapter = {
         return;
       }
 
-      const messages: Types.MessageLike[] = uids.map((uid) => ({
+      const messages = uids.map((uid) => ({
         name: event,
         data: { ...build(uid), __targetUid: uid },
       }));

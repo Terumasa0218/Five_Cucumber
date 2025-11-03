@@ -41,12 +41,11 @@ export async function initRoomGame(roomId: string, config: GameConfig, state: Ga
 export async function pushMove(roomId: string, move: Move, newState: GameState) {
   if (!db) return;
   const gameRef = doc(db, 'room-games', roomId);
-  const payload: Record<string, unknown> = {
+  await updateDoc(gameRef, {
     lastMove: move,
     state: newState,
     updatedAt: Date.now(),
-  };
-  await updateDoc(gameRef, payload);
+  });
 }
 
 

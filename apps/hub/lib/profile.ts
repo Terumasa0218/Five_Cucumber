@@ -66,7 +66,10 @@ function containsUnsafeWord(text: string): boolean {
 function getGraphemeCount(text: string): number {
   // Intl.Segmenterが利用可能な場合は使用
   if (typeof Intl !== 'undefined' && 'Segmenter' in Intl) {
-    const SegmenterCtor = (Intl as typeof Intl & { Segmenter?: typeof Intl.Segmenter }).Segmenter;
+    type SegmenterConstructor = new (locales?: string | string[], options?: { granularity?: 'grapheme' | 'word' | 'sentence' }) => {
+      segment(input: string): Iterable<{ segment: string; index: number; input: string }>;
+    };
+    const SegmenterCtor = (Intl as typeof Intl & { Segmenter?: SegmenterConstructor }).Segmenter;
     if (typeof SegmenterCtor === 'function') {
       const segmenter = new SegmenterCtor();
       return Array.from(segmenter.segment(text)).length;
