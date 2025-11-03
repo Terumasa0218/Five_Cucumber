@@ -1,44 +1,50 @@
 "use client";
 import * as Ably from 'ably';
+import type { Types } from 'ably';
+import { apiJson } from '@/lib/api';
 
-export function makeClient(uid: string, channelName: string) {
+type AblyTokenResponse =
+  | { ok: true; token: Types.TokenRequest }
+  | { ok: false; reason: string; message?: string };
+
+export function makeClient(uid: string, channelName: string): Ably.RealtimePromise {
   console.log('[Ably] Creating client for user:', uid, 'channel:', channelName);
 
-  const client = new Ably.Realtime.Promise({
+  const authCallback: NonNullable<Types.AuthOptions['authCallback']> = async (_tokenParams, callback) => {
+    try {
+      const qs = new URLSearchParams({ uid, channel: channelName, rnd: Date.now().toString() }).toString();
+      const data = await apiJson<AblyTokenResponse>(`/api/ably/token?${qs}`);
+      if (!data.ok) {
+        throw new Error(data.reason);
+      }
+      callback(null, data.token);
+    } catch (error) {
+      console.error('[Ably] authCallback error:', error);
+      callback(error instanceof Error ? error : new Error(String(error)), null);
+    }
+  };
+
+  const clientOptions: Types.ClientOptions = {
     authUrl: `/api/ably/token`,
     authParams: {
       uid,
       channel: channelName,
       rnd: Date.now().toString(),
     },
-    authCallback: async (_tokenParams: any, callback: any) => {
-      try {
-        const qs = new URLSearchParams({ uid, channel: channelName, rnd: Date.now().toString() }).toString();
-        const res = await fetch(`/api/ably/token?${qs}`, { headers: { 'cache-control': 'no-store' } });
-        const data = await res.json();
-        if (!res.ok || !data?.ok) throw new Error(data?.reason || 'auth-failed');
-        callback(null, data.token);
-      } catch (err) {
-        console.error('[Ably] authCallback error:', err);
-        callback(err, null);
-      }
-    },
+    authCallback,
     clientId: uid,
     autoConnect: true,
-    // スマホ対応: タイムアウトと再接続設定を強化
     transportParams: {
-      heartbeatInterval: 30000, // 30秒
-      disconnectedRetryTimeout: 15000, // 15秒
-      suspendedRetryTimeout: 30000, // 30秒
+      heartbeatInterval: 30000,
+      disconnectedRetryTimeout: 15000,
+      suspendedRetryTimeout: 30000,
     },
-    // スマホ対応: 再接続設定
     disconnectedRetryTimeout: 15000,
     suspendedRetryTimeout: 30000,
-    // デバッグ設定
-    debug: {
-      enable: process.env.NODE_ENV === 'development'
-    }
-  } as any);
+    debug: process.env.NODE_ENV === 'development',
+  };
+
+  const client = new Ably.Realtime.Promise(clientOptions);
 
   // 接続状態を監視
   client.connection.on('connecting', () => {

@@ -412,7 +412,7 @@ function FriendPlayContent() {
             <div className="countdown-number">{countdown}</div>
           </div>
         )}
-        <header className="hud layer-hud">
+        <header className="hud battle-hud layer-hud">
           <div className="hud-left">
             <div className="round-indicator" id="roundInfo">
               第{gameState.currentRound}回戦 / 第{gameState.currentTrick}トリック

@@ -3,7 +3,24 @@
   position: relative;
   flex: 1;
   width: 100%;
-  min-height: clamp(540px, 68vh, 760px);
+  min-height: clamp(560px, 82svh, 900px);
+  padding: clamp(16px, 3vw, 32px);
+  padding-bottom: clamp(120px, 26svh, 180px);
+  border-radius: clamp(18px, 4vw, 30px);
+  display: grid;
+  align-items: stretch;
+  justify-items: center;
+  gap: clamp(16px, 3vw, 32px);
+  overflow: hidden;
+  box-sizing: border-box;
+  background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.08), transparent 68%);
+  --ellipse-card-width: clamp(44px, 6vw, 72px);
+  --ellipse-card-height: clamp(60px, 9vw, 108px);
+  --ellipse-card-gap: clamp(6px, 2vw, 14px);
+  --ellipse-hand-padding: clamp(12px, 3vw, 20px);
+  --ellipse-center-offset: clamp(24px, 6vh, 72px);
+  --ellipse-center-gap: clamp(24px, 6vw, 96px);
+  --ellipse-seat-width: clamp(160px, 18vw, 240px);
 }
 
 .game-container {
@@ -17,13 +34,13 @@
 
 .ellipse-table__center {
   position: absolute;
-  top: 46%;
+  top: calc(50% - var(--ellipse-center-offset));
   left: 50%;
-  transform: translate(-50%, -58%);
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(32px, 6vw, 96px);
+  gap: var(--ellipse-center-gap);
   pointer-events: none;
 }
 
@@ -48,8 +65,8 @@
 
 /* HUD（上部の情報帯） */
 .hud {
-  position: sticky;
-  top: 0;
+  position: relative;
+  top: auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -58,6 +75,14 @@
   background: var(--panel-bg);
   border-bottom: 1px solid var(--panel-border);
   backdrop-filter: blur(6px);
+  z-index: 30;
+}
+
+.battle-hud {
+  position: relative;
+  z-index: 30;
+  width: 100%;
+  isolation: isolate;
 }
 
 .hud-left {
@@ -456,8 +481,8 @@
 }
 
 .card {
-  width: 65px;
-  height: 90px;
+  width: var(--ellipse-card-width, 65px);
+  height: var(--ellipse-card-height, 90px);
   border-radius: 8px;
   display: flex !important;
   flex-direction: column;
@@ -477,8 +502,8 @@
 }
 
 .player-hand .card {
-  width: 65px;
-  height: 90px;
+  width: var(--ellipse-card-width);
+  height: var(--ellipse-card-height);
 }
 
 .card-number {
@@ -541,22 +566,21 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8px;
-  padding: 15px;
+  gap: var(--ellipse-card-gap);
+  padding: var(--ellipse-hand-padding);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
-  border-radius: 15px 15px 0 0;
+  border-radius: clamp(16px, 4vw, 24px);
   backdrop-filter: blur(15px);
   box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.4);
   overflow-x: auto;
   border: 3px solid rgba(255, 255, 255, 0.4);
-  min-height: 110px;
-  max-height: 130px;
-  margin-bottom: 20px;
+  min-height: clamp(96px, 24svh, 180px);
+  max-height: clamp(128px, 28svh, 220px);
+  margin-bottom: 0;
+  z-index: 24;
 }
 
 .player-hand .card {
-  width: 65px;
-  height: 90px;
   flex-shrink: 0;
 }
 
@@ -711,27 +735,17 @@
 }
 
 @media (max-width: 1200px) {
-  .game-container {
-    grid-template-columns: 180px 1fr 180px;
-    grid-template-rows: 50px 90px 1fr 110px;
-    height: calc(100vh - 70px);
+  .ellipse-table {
+    --ellipse-card-width: clamp(40px, 6vw, 60px);
+    --ellipse-card-height: clamp(54px, 9vw, 84px);
+    --ellipse-card-gap: clamp(4px, 1.6vw, 10px);
+    --ellipse-hand-padding: clamp(10px, 3vw, 16px);
+    --ellipse-seat-width: clamp(150px, 22vw, 210px);
   }
-  
-  .card {
-    width: 55px;
-    height: 75px;
-  }
-  
-  .player-hand .card {
-    width: 55px;
-    height: 75px;
-  }
-  
+
   .player-hand {
-    min-height: 90px;
-    max-height: 110px;
-    padding: 12px;
-    gap: 6px;
+    min-height: clamp(84px, 24svh, 150px);
+    max-height: clamp(112px, 26svh, 180px);
   }
 }
 
@@ -742,44 +756,46 @@
 }
 
 @media (max-width: 768px) {
-  .game-container {
-    grid-template-columns: 130px 1fr 130px;
-    grid-template-rows: 40px 70px 1fr 90px;
-    height: calc(100vh - 100px);
-    gap: 8px;
-    padding: 8px;
+  .ellipse-table {
+    --ellipse-card-width: clamp(36px, 9vw, 52px);
+    --ellipse-card-height: clamp(48px, 12vw, 72px);
+    --ellipse-card-gap: clamp(3px, 1.2vw, 8px);
+    --ellipse-hand-padding: clamp(8px, 4vw, 14px);
+    --ellipse-center-offset: clamp(18px, 7vh, 56px);
+    --ellipse-center-gap: clamp(18px, 8vw, 64px);
+    --ellipse-seat-width: clamp(120px, 36vw, 188px);
+    padding: clamp(12px, 4vw, 20px);
+    padding-bottom: clamp(96px, 32svh, 160px);
   }
-  
-  .seats-container.players-6 .player-panel {
-    transform: scale(0.8);
-  }
-  
-  .center-area {
-    gap: 15px;
-  }
-  
-  .card {
-    width: 45px;
-    height: 60px;
-  }
-  
-  .player-hand .card {
-    width: 45px;
-    height: 60px;
-  }
-  
+
   .player-hand {
-    min-height: 70px;
-    max-height: 90px;
-    padding: 8px;
-    gap: 4px;
+    min-height: clamp(74px, 26svh, 140px);
+    max-height: clamp(96px, 28svh, 160px);
   }
-  
+
   .card-number {
     font-size: 1.2em;
   }
-  
+
   .cucumber-icons {
     font-size: 0.5em;
+  }
+}
+
+@media (max-width: 480px) {
+  .ellipse-table {
+    --ellipse-card-width: clamp(30px, 11vw, 42px);
+    --ellipse-card-height: clamp(42px, 15vw, 60px);
+    --ellipse-card-gap: clamp(2px, 1vw, 6px);
+    --ellipse-hand-padding: clamp(6px, 4.8vw, 12px);
+    --ellipse-center-offset: clamp(12px, 8vh, 44px);
+    --ellipse-center-gap: clamp(16px, 10vw, 54px);
+    --ellipse-seat-width: clamp(100px, 48vw, 160px);
+    padding: clamp(10px, 5vw, 16px);
+    padding-bottom: clamp(90px, 36svh, 150px);
+  }
+
+  .player-hand {
+    min-height: clamp(68px, 30svh, 128px);
   }
 }

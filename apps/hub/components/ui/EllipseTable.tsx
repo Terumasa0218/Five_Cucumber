@@ -58,7 +58,7 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
     };
   }, [config.players, mySeatIndex]);
 
-  const rootClassName = ['ellipse-table', className].filter(Boolean).join(' ');
+  const rootClassName = ['ellipse-table', 'layer-field', className].filter(Boolean).join(' ');
 
   return (
     <div className={rootClassName}>

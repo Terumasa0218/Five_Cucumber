@@ -41,10 +41,8 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
 
         <div className={styles.hero}>
           <h1 className={styles.title}>５本のきゅうり</h1>
-          <p className={styles.subtitle}>習うより慣れろ！まずはCPUとやってみよう！</p>
-          <p className={styles.note}>いつでも！どこでも！友達と！</p>
-
-          <div className={styles.cta}>
+          <div className={styles.ctaGroup}>
+            <p className={styles.subtitle}>習うより慣れろ！まずはCPUとやってみよう！</p>
             <Link
               href="/cucumber/cpu/settings"
               className={`${styles.ctaButton} fc-button fc-button--primary`}
@@ -52,6 +50,9 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
             >
               CPU対戦
             </Link>
+          </div>
+          <div className={styles.ctaGroup}>
+            <p className={styles.note}>いつでも！どこでも！友達と！</p>
             <Link
               href="/friend/create"
               className={`${styles.ctaButton} fc-button fc-button--secondary`}

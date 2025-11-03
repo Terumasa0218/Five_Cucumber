@@ -1,3 +1,5 @@
+import { apiRequest, ApiRequestError } from '@/lib/api';
+import type { ApiResponse } from '@/lib/api';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -35,21 +37,29 @@ export async function GET() {
     error = { msg: 'Missing KV REST URL or token in environment' };
   } else {
     try {
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers: HeadersInit = { Authorization: `Bearer ${token}` };
 
-      const r1 = await fetch(`${url}/set/diag:ping/ok`, { headers, cache: 'no-store' });
-      setStatus = r1.status;
+      const setResponse: ApiResponse<{ result: unknown }> = await apiRequest(`${url}/set/diag:ping/ok`, {
+        headers,
+      });
+      setStatus = setResponse.status;
 
-      const r2 = await fetch(`${url}/get/diag:ping`, { headers, cache: 'no-store' });
-      getStatus = r2.status;
-      try {
-        getBody = await r2.json();
-      } catch {
-        getBody = await r2.text();
-      }
+      const getResponse = await apiRequest<unknown | string>(`${url}/get/diag:ping`, {
+        headers,
+        parseAs: 'auto',
+      });
+      getStatus = getResponse.status;
+      getBody = getResponse.data;
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      error = { msg };
+      if (e instanceof ApiRequestError) {
+        setStatus = e.response.status;
+        getStatus = e.response.status;
+        getBody = e.response.data;
+        error = { msg: e.message };
+      } else {
+        const msg = e instanceof Error ? e.message : String(e);
+        error = { msg };
+      }
     }
   }
 

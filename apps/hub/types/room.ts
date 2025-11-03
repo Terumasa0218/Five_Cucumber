@@ -4,13 +4,14 @@ export type RoomSeat = { nickname: string } | null;
 
 export type RoomStatus = 'waiting' | 'playing' | 'closed';
 
-import type { GameConfig, GameState } from '@/lib/game-core';
+import type { GameConfig, GameState, RngState } from '@/lib/game-core';
 
 export interface RoomGameSnapshot {
   state: GameState;
   config: GameConfig;
   version: number;
   updatedAt: number;
+  rngState?: RngState;
 }
 
 export interface Room {
