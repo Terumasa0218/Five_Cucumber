@@ -2,7 +2,7 @@
 
 import { getNickname } from "@/lib/profile";
 import { upsertLocalRoom } from "@/lib/roomSystemUnified";
-import type { Room } from "@/types/room";
+import type { Room, RoomResponse } from "@/types/room";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { apiJson } from "@/lib/api";
@@ -33,16 +33,19 @@ export default function FriendJoinPage() {
     setError(null);
 
     try {
-      const data = await apiJson<any>('/friend/join', { method: 'POST', json: { roomId: roomCode.trim(), nickname } });
+      const data = await apiJson<RoomResponse>('/friend/join', {
+        method: 'POST',
+        json: { roomId: roomCode.trim(), nickname },
+      });
       if (data.ok && data.roomId) {
         try {
           if (data.room) {
-            upsertLocalRoom(data.room as Room);
+            upsertLocalRoom(data.room);
           } else {
             // 追加取得で保存を試みる
-            const rd = await apiJson<any>(`/friend/room/${data.roomId}`);
+            const rd = await apiJson<RoomResponse>(`/friend/room/${data.roomId}`);
             if (rd.ok && rd.room) {
-              upsertLocalRoom(rd.room as Room);
+              upsertLocalRoom(rd.room);
             } else {
               const fallbackRoom: Room = {
                 id: data.roomId,
@@ -51,7 +54,7 @@ export default function FriendJoinPage() {
                 status: 'waiting',
                 createdAt: Date.now(),
                 turnSeconds: 15,
-                maxCucumbers: 5
+                maxCucumbers: 5,
               };
               upsertLocalRoom(fallbackRoom);
             }
@@ -59,19 +62,23 @@ export default function FriendJoinPage() {
         } catch {}
         router.push(`/friend/room/${data.roomId}`);
       } else {
-        const status = Number(String(data?.message).match(/\s(\d{3})\s/)?.[1] || 500);
-        switch (status) {
-          case 404:
+        const reason = data.reason ?? 'unknown';
+        switch (reason) {
+          case 'not-found':
             setError('ルーム番号が違います');
             break;
-          case 409:
+          case 'full':
             setError('この部屋はすでに定員です');
             break;
-          case 410:
+          case 'locked':
+          case 'busy':
+            setError('対戦中のため入室できません');
+            break;
+          case 'expired':
             setError('部屋の有効期限が切れました');
             break;
-          case 423:
-            setError('対戦中のため入室できません');
+          case 'bad-request':
+            setError('ルーム番号の形式が正しくありません');
             break;
           default:
             setError('参加に失敗しました');
@@ -79,7 +86,8 @@ export default function FriendJoinPage() {
         }
       }
     } catch (err) {
-      setError('ネットワークエラーが発生しました');
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`ネットワークエラーが発生しました${message ? ` (${message})` : ''}`);
     } finally {
       setIsJoining(false);
     }

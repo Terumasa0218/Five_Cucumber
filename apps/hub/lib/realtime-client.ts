@@ -7,7 +7,7 @@ type AblyTokenResponse =
   | { ok: true; token: Types.TokenRequest }
   | { ok: false; reason: string; message?: string };
 
-export function makeClient(uid: string, channelName: string): Ably.RealtimePromise {
+export function makeClient(uid: string, channelName: string): Types.RealtimePromise {
   console.log('[Ably] Creating client for user:', uid, 'channel:', channelName);
 
   const authCallback: NonNullable<Types.AuthOptions['authCallback']> = async (_tokenParams, callback) => {
@@ -20,7 +20,8 @@ export function makeClient(uid: string, channelName: string): Ably.RealtimePromi
       callback(null, data.token);
     } catch (error) {
       console.error('[Ably] authCallback error:', error);
-      callback(error instanceof Error ? error : new Error(String(error)), null);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      callback(errorMessage, null);
     }
   };
 
@@ -41,10 +42,9 @@ export function makeClient(uid: string, channelName: string): Ably.RealtimePromi
     },
     disconnectedRetryTimeout: 15000,
     suspendedRetryTimeout: 30000,
-    debug: process.env.NODE_ENV === 'development',
   };
 
-  const client = new Ably.Realtime.Promise(clientOptions);
+  const client: Types.RealtimePromise = new Ably.Realtime.Promise(clientOptions);
 
   // 接続状態を監視
   client.connection.on('connecting', () => {

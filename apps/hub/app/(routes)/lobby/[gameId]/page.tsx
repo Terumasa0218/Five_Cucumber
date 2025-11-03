@@ -1,12 +1,15 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+type LobbyUser = { isAnonymous: boolean } | null;
+
 // AuthProvider削除済みのため、ダミーのuseAuth実装
-const useAuth = () => ({ user: null as any });
+const useAuth = (): { user: LobbyUser } => ({ user: null });
 
 function genCode(){ return String(Math.floor(Math.random()*100000)).padStart(5,'0'); }
 
-export default function LobbyPage({ params }: { params: { gameId:string } }){
+export default function LobbyPage({ params: _params }: { params: { gameId:string } }){
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();

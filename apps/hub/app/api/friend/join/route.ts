@@ -5,56 +5,60 @@ import { getRoomByIdRedis, putRoomRedis } from '@/lib/roomsRedis';
 import { getRoomById, putRoom } from '@/lib/roomsStore';
 import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
 import { HAS_SHARED_STORE } from '@/lib/serverSync';
-import { isRedisAvailable, isDevelopmentWithMemoryFallback, redis } from '@/lib/redis';
+import { isRedisAvailable, redis } from '@/lib/redis';
 import { realtime } from '@/lib/realtime';
-import { JoinRoomRequest, RoomResponse } from '@/types/room';
+import { JoinRoomRequest, Room, RoomResponse, RoomSeat } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
 
+type JoinRoomPayload = Partial<JoinRoomRequest> & { code?: unknown; roomCode?: unknown };
+
+const isOccupiedSeat = (seat: RoomSeat): seat is Exclude<RoomSeat, null> => seat !== null;
+
 export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
   try {
-    const raw = await req.json();
-    const body: JoinRoomRequest = raw;
-    const { nickname } = body;
-    const roomId = String((body as any).roomId ?? (body as any).code ?? (body as any).roomCode ?? '');
+    const raw = (await req.json()) as JoinRoomPayload;
+    const nicknameInput = typeof raw.nickname === 'string' ? raw.nickname.trim() : '';
+    const roomIdCandidate = raw.roomId ?? raw.code ?? raw.roomCode;
+    const roomId = roomIdCandidate === undefined || roomIdCandidate === null ? '' : String(roomIdCandidate).trim();
 
-    if (!nickname || typeof nickname !== 'string' || !nickname.trim()) {
+    if (!nicknameInput) {
       return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400, headers: noStore });
     }
-    if (!roomId || typeof roomId !== 'string' || !roomId.trim()) {
+    if (!roomId) {
       return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400, headers: noStore });
     }
 
-    const rid = roomId.trim();
-    const name = nickname.trim();
+    const rid = roomId;
+    const name = nicknameInput;
 
     // KVロック（あれば利用）
-    const hasRedisAvailable = isRedisAvailable();
-    const lockKey = `lock:room:${rid}:join`;
-    const lockToken = `${Date.now()}:${Math.random()}`;
-    let locked = false;
-    if (hasRedisAvailable) {
-      const ok = await redis.set(lockKey, lockToken, { nx: true, ex: 3 } as any);
-      if (ok !== 'OK') {
-        return NextResponse.json({ ok: false, reason: 'busy' } as any, { status: 423 });
-      }
-      locked = true;
+  const hasRedisAvailable = isRedisAvailable();
+  const lockKey = `lock:room:${rid}:join`;
+  const lockToken = `${Date.now()}:${Math.random()}`;
+  let locked = false;
+  if (hasRedisAvailable) {
+    const ok = await redis.set(lockKey, lockToken, { nx: true, ex: 3 });
+    if (ok !== 'OK') {
+      return NextResponse.json({ ok: false, reason: 'busy' }, { status: 423 });
     }
+    locked = true;
+  }
 
     try {
       // 1) まず KV を読み、存在すればそこで read-modify-write
       try {
-        const kvRoom = await kv.get<any>(keyOf(rid));
+        const kvRoom = await kv.get<Room>(keyOf(rid));
         if (kvRoom) {
           if (kvRoom.status !== 'waiting') {
             return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423, headers: noStore });
           }
-          const already = kvRoom.seats.some((s: any) => s?.nickname === name);
+          const already = kvRoom.seats.some((seat) => seat?.nickname === name);
           if (!already) {
-            const emptyIndex = kvRoom.seats.findIndex((s: any) => s === null);
+            const emptyIndex = kvRoom.seats.findIndex((seat) => seat === null);
             if (emptyIndex === -1) return NextResponse.json({ ok: false, reason: 'full' }, { status: 409, headers: noStore });
             kvRoom.seats[emptyIndex] = { nickname: name };
             await kv.set(keyOf(rid), kvRoom, { ex: 60 * 30 });
@@ -62,7 +66,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
           // ブロードキャスト
           try {
-            const members = kvRoom.seats.filter((s: any) => s !== null).map((s: any) => s.nickname as string);
+            const members = kvRoom.seats.filter(isOccupiedSeat).map((seat) => seat.nickname);
             await realtime.publishToMany(rid, members, 'room_updated', () => ({ room: kvRoom, event: 'player_joined', joinedPlayer: name }));
           } catch {}
 
@@ -102,7 +106,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
 
       // ブロードキャスト
       try {
-        const members = room.seats.filter(s => s !== null).map(s => (s as any).nickname as string);
+        const members = room.seats.filter(isOccupiedSeat).map((seat) => seat.nickname);
         await realtime.publishToMany(rid, members, 'room_updated', () => ({ room, event: 'player_joined', joinedPlayer: name }));
       } catch {}
 
@@ -116,9 +120,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
       }
     }
   } catch (e) {
-    const msg = (e as Error)?.message;
-    const status = msg === 'not-found' ? 404 : msg === 'full' ? 409 : msg === 'locked' ? 423 : msg === 'persist-failed' ? 500 : 500;
-    return NextResponse.json({ ok: false, reason: msg ?? 'server-error' }, { status, headers: noStore });
+    const message = e instanceof Error ? e.message : undefined;
+    const status = message === 'not-found'
+      ? 404
+      : message === 'full'
+        ? 409
+        : message === 'locked'
+          ? 423
+          : message === 'persist-failed'
+            ? 500
+            : 500;
+    return NextResponse.json({ ok: false, reason: message ?? 'server-error' }, { status, headers: noStore });
   }
 }
 

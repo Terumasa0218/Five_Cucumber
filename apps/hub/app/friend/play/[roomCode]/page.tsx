@@ -2,7 +2,7 @@
 
 import BattleLayout from '@/components/BattleLayout';
 import { EllipseTable, Timer } from '@/components/ui';
-import { apiJson, apiUrl } from '@/lib/api';
+import { apiJson, apiRequest, ApiRequestError } from '@/lib/api';
 import {
     createInitialState,
     GameConfig,
@@ -14,6 +14,9 @@ import {
 } from '@/lib/game-core';
 import { getNickname } from '@/lib/profile';
 import { USE_SERVER_SYNC } from '@/lib/serverSync';
+import { getRoom as getLocalRoom } from '@/lib/roomSystemUnified';
+import type { GameSnapshot } from '@/lib/friendGameStore';
+import type { Room, RoomResponse, RoomSeat } from '@/types/room';
 import { useParams, useRouter } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import '../../../cucumber/cpu/play/game.css';
@@ -29,76 +32,75 @@ function FriendPlayContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [disconnectedPlayers, setDisconnectedPlayers] = useState<Set<number>>(new Set());
   const [cpuReplacedPlayers, setCpuReplacedPlayers] = useState<Set<number>>(new Set());
-  const [isPageVisible, setIsPageVisible] = useState(true);
   const [disconnectStartTime, setDisconnectStartTime] = useState<number | null>(null);
   const [isGameInitialized, setIsGameInitialized] = useState(false);
-  const [roomConfig, setRoomConfig] = useState<{
-    size: number;
-    turnSeconds: number;
-    maxCucumbers: number;
-    seats: any[];
-  } | null>(null);
+  const [roomConfig, setRoomConfig] = useState<Room | null>(null);
   const useServer = USE_SERVER_SYNC;
   const [mySeatIndex, setMySeatIndex] = useState<number>(0);
   
+  type PlayerController = { type: 'human'; name: string };
+
   const gameRef = useRef<{
     state: GameState;
     config: GameConfig;
-    controllers: any[];
+    controllers: PlayerController[];
     rng: SeededRng;
   } | null>(null);
   
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const disconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isProcessingRef = useRef<boolean>(false);
   const lastVersionRef = useRef<number>(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  type FriendRoomInfo = { room: Room; playerIndex: number };
+  type FriendGameResponse = { ok: true; snapshot: GameSnapshot } | { ok: false; reason: string };
+  type UpdateStatusResponse = { ok: boolean; reason?: string };
+
+  const resolvePlayerIndex = (seats: RoomSeat[], nickname: string | null): number => {
+    if (!nickname) return -1;
+    return seats.findIndex((seat) => seat?.nickname === nickname);
+  };
+
   // ルーム情報を取得
-  const fetchRoomConfig = async (): Promise<{ room: any; playerIndex: number } | null> => {
+  const fetchRoomConfig = async (): Promise<FriendRoomInfo | null> => {
     try {
       console.log('[Friend Game] Fetching room config for:', roomCode);
-      console.info('[PlayAPI] init fetch to', apiUrl(`/friend/room/${roomCode}`)); // TEST: debug URL
-      const data = useServer ? await apiJson<any>(`/friend/room/${roomCode}`) : { ok: false };
-      
+      const nickname = getNickname();
+
+      if (!useServer) {
+        const localRoom = getLocalRoom(roomCode);
+        if (!localRoom) {
+          throw new Error('Local room not found');
+        }
+        const playerIndex = resolvePlayerIndex(localRoom.seats, nickname);
+        if (playerIndex < 0) {
+          throw new Error(`Player ${nickname ?? 'unknown'} not found in local room ${roomCode}`);
+        }
+        setRoomConfig(localRoom);
+        setMySeatIndex(playerIndex);
+        return { room: localRoom, playerIndex };
+      }
+
+      const data = await apiJson<RoomResponse>(`/friend/room/${roomCode}`);
+
       if (!data.ok || !data.room) {
         throw new Error('Invalid room data received');
       }
-      
+
       console.log('[Friend Game] Room data received:', data.room);
-      
-      setRoomConfig({
-        size: data.room.size,
-        turnSeconds: data.room.turnSeconds,
-        maxCucumbers: data.room.maxCucumbers,
-        seats: data.room.seats
-      });
-      
-      // 現在のプレイヤーのインデックスを設定（ニックネーム基準）
-      const nickname = getNickname();
-      console.log('[Friend Game] Current nickname:', nickname);
-      console.log('[Friend Game] Room seats:', data.room.seats);
-      
-      if (nickname && data.room.seats) {
-        const playerIndex = data.room.seats.findIndex((seat: any) => seat?.nickname === nickname);
-        console.log('[Friend Game] Found player index:', playerIndex);
-        
-        if (playerIndex >= 0) {
-          setMySeatIndex(playerIndex);
-          console.log('[Friend Game] Set current player index to:', playerIndex);
-        } else {
-          console.error('[Friend Game] Player not found in room seats!');
-          console.error('[Friend Game] Available seats:', data.room.seats.map((s: any, i: number) => `${i}: ${s?.nickname || 'empty'}`));
-          throw new Error(`Player ${nickname} not found in room ${roomCode}`);
-        }
-      } else {
-        throw new Error('No nickname or seats found');
+
+      setRoomConfig(data.room);
+
+      const playerIndex = resolvePlayerIndex(data.room.seats, nickname);
+      if (playerIndex < 0) {
+        console.error('[Friend Game] Player not found in room seats:', data.room.seats);
+        throw new Error(`Player ${nickname ?? 'unknown'} not found in room ${roomCode}`);
       }
-      
-      return { room: data.room, playerIndex: data.room.seats.findIndex((s: any) => s?.nickname === getNickname()) };
+
+      setMySeatIndex(playerIndex);
+
+      return { room: data.room, playerIndex };
     } catch (error) {
       console.error('[Friend Game] Failed to fetch room config:', error);
       // エラー時はホームにリダイレクト
@@ -125,7 +127,10 @@ function FriendPlayContent() {
       if (room.status !== 'playing') {
         if (myIndex === 0) {
           try {
-            await apiJson('/friend/status', { method: 'POST', json: { roomId: roomCode, status: 'playing' } });
+            await apiJson<UpdateStatusResponse>('/friend/status', {
+              method: 'POST',
+              json: { roomId: roomCode, status: 'playing' },
+            });
             room.status = 'playing';
           } catch (e) {
             console.warn('[Friend Game] Failed to set playing status, will continue as host:', e);
@@ -134,11 +139,16 @@ function FriendPlayContent() {
           // ゲストは最大5回リトライ（約2秒）
           let tries = 0;
           while (tries < 5) {
-            await new Promise(r => setTimeout(r, 400));
+            await new Promise((resolve) => setTimeout(resolve, 400));
             try {
-              const d = await apiJson<any>(`/friend/room/${roomCode}`);
-              if (d?.room?.status === 'playing') { room.status = 'playing'; break; }
-            } catch {}
+              const d = await apiJson<RoomResponse>(`/friend/room/${roomCode}`);
+              if (d.ok && d.room?.status === 'playing') {
+                room.status = 'playing';
+                break;
+              }
+            } catch {
+              // リトライ継続
+            }
             tries++;
           }
           if (room.status !== 'playing') {
@@ -151,7 +161,7 @@ function FriendPlayContent() {
 
       // プレイヤーがルームに参加しているかチェック
       const nickname = getNickname();
-      const isPlayerInRoom = room.seats.some((seat: any) => seat?.nickname === nickname);
+      const isPlayerInRoom = room.seats.some((seat) => seat?.nickname === nickname);
       if (!isPlayerInRoom) {
         console.error('[Friend Game] Player not in room, redirecting to room page');
         router.push(`/friend/room/${roomCode}`);
@@ -168,7 +178,10 @@ function FriendPlayContent() {
       };
       
       const { SeededRng } = await import('@/lib/game-core');
-      const controllers = Array(room.size).fill(null).map((_, idx) => ({ type: 'human', name: idx === myIndex ? 'あなた' : (room.seats[idx]?.nickname || `P${idx+1}`) }));
+      const controllers: PlayerController[] = Array.from({ length: room.size }, (_, idx) => ({
+        type: 'human' as const,
+        name: idx === myIndex ? 'あなた' : (room.seats[idx]?.nickname || `P${idx + 1}`)
+      }));
 
       const isHost = myIndex === 0;
         if (isHost) {
@@ -180,24 +193,31 @@ function FriendPlayContent() {
         setIsGameInitialized(true);
         console.log(`[Friend Game] Host initialized local state and posting snapshot`);
         try {
-          const data = await apiJson<any>(`/friend/game/${roomCode}`, { method: 'POST', json: { type: 'init', state, config } });
-          if (data.ok && data.snapshot) {
+          const data = await apiJson<FriendGameResponse>(`/friend/game/${roomCode}`, {
+            method: 'POST',
+            json: { type: 'init', state, config },
+          });
+          if (data.ok) {
             lastVersionRef.current = data.snapshot.version ?? 1;
           }
-        } catch {}
+        } catch (initError) {
+          console.warn('[Friend Game] Failed to persist snapshot:', initError);
+        }
         } else {
           // 参加者はサーバーのスナップショットを取得するまで待機
           if (useServer) {
           try {
-            const data = await apiJson<any>(`/friend/game/${roomCode}`);
-            if (data.ok && data.snapshot) {
+            const data = await apiJson<FriendGameResponse>(`/friend/game/${roomCode}`);
+            if (data.ok) {
               const rng = new SeededRng(data.snapshot.config.seed);
               gameRef.current = { state: data.snapshot.state, config: data.snapshot.config, controllers, rng };
               setGameState(data.snapshot.state);
               setIsGameInitialized(true);
               lastVersionRef.current = data.snapshot.version ?? 1;
             }
-          } catch {}
+          } catch {
+            // リトライやフォールバックは後続処理に任せる
+          }
         }
       }
 
@@ -212,23 +232,27 @@ function FriendPlayContent() {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 8000); // 8秒タイムアウト
 
-          const r = await fetch(`/api/friend/game/${roomCode}`, {
+          const response = await apiRequest<FriendGameResponse>(`/friend/game/${roomCode}`, {
             signal: controller.signal,
-            headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+            headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+            parseAs: 'json',
           });
           clearTimeout(timeoutId);
-          if (!r.ok) { console.warn(`[Game Poll] Failed to fetch game state: ${r.status}`); return; }
-          const d = await r.json();
+          if (!response.ok) {
+            console.warn(`[Game Poll] Failed to fetch game state: ${response.status}`);
+            return;
+          }
+          const payload = response.data;
 
-          if (d.ok && d.snapshot) {
-            if (!lastVersionRef.current || d.snapshot.version > lastVersionRef.current) {
-              lastVersionRef.current = d.snapshot.version;
+          if (payload.ok) {
+            if (!lastVersionRef.current || payload.snapshot.version > lastVersionRef.current) {
+              lastVersionRef.current = payload.snapshot.version;
               if (gameRef.current) {
-                gameRef.current.state = d.snapshot.state;
-                gameRef.current.config = d.snapshot.config;
+                gameRef.current.state = payload.snapshot.state;
+                gameRef.current.config = payload.snapshot.config;
               }
-              setGameState(d.snapshot.state);
-              console.log(`[Game Poll] Updated game state to version ${d.snapshot.version}`);
+              setGameState(payload.snapshot.state);
+              console.log(`[Game Poll] Updated game state to version ${payload.snapshot.version}`);
             }
           }
         } catch (error) {
@@ -266,13 +290,20 @@ function FriendPlayContent() {
       console.log(`[Friend Game] Player ${mySeatIndex} plays card ${card}`);
       // サーバーに移譲
       try {
-        const data = await apiJson<any>(`/friend/game/${roomCode}`, { method: 'POST', json: { type: 'move', move } });
-        if (data.ok && data.snapshot) {
-          lastVersionRef.current = data.snapshot.version ?? (lastVersionRef.current + 1);
-          gameRef.current.state = data.snapshot.state;
+        const data = await apiJson<FriendGameResponse>(`/friend/game/${roomCode}`, {
+          method: 'POST',
+          json: { type: 'move', move },
+        });
+        if (data.ok) {
+          lastVersionRef.current = data.snapshot.version ?? lastVersionRef.current + 1;
+          if (gameRef.current) {
+            gameRef.current.state = data.snapshot.state;
+          }
           setGameState(data.snapshot.state);
         }
-      } catch {}
+      } catch (moveError) {
+        console.error('[Friend Game] Failed to submit move:', moveError);
+      }
     } catch (error) {
       console.error('[Friend Game] Error during move:', error);
     } finally {
@@ -309,13 +340,12 @@ function FriendPlayContent() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       const isVisible = !document.hidden;
-      setIsPageVisible(isVisible);
-      
+
       // ゲームが初期化されていない場合は切断検知しない
       if (!isGameInitialized) {
         return;
       }
-      
+
       if (!isVisible && !disconnectStartTime) {
         // ページが非表示になった時刻を記録
         setDisconnectStartTime(Date.now());
@@ -407,11 +437,6 @@ function FriendPlayContent() {
   return (
     <BattleLayout>
       <div className="game-container">
-        {countdown !== null && (
-          <div className="countdown-overlay">
-            <div className="countdown-number">{countdown}</div>
-          </div>
-        )}
         <header className="hud battle-hud layer-hud">
           <div className="hud-left">
             <div className="round-indicator" id="roundInfo">
@@ -437,13 +462,13 @@ function FriendPlayContent() {
 
         <EllipseTable
           state={gameState}
-          config={gameRef.current?.config || {} as GameConfig}
+          config={gameRef.current?.config || ({} as GameConfig)}
           currentPlayerIndex={gameState.currentPlayer}
           onCardClick={handleCardClick}
           className={isCardLocked ? 'cards-locked' : ''}
           isSubmitting={isSubmitting}
           lockedCardId={lockedCardId}
-          names={roomConfig?.seats?.map((s: any, idx: number) => idx === mySeatIndex ? 'あなた' : (s?.nickname || `P${idx+1}`))}
+          names={roomConfig?.seats.map((seat, idx) => (idx === mySeatIndex ? 'あなた' : seat?.nickname ?? `P${idx + 1}`))}
           mySeatIndex={mySeatIndex}
         />
 

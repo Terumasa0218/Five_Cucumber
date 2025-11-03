@@ -170,7 +170,7 @@ export default function RoomWaitingPage() {
                 console.log('[RoomPage] Updating room state with new data:', updatedRoom);
                 setRoom(updatedRoom);
 
-                const isParticipating = updatedRoom.seats.some((seat) => seat?.nickname === currentNickname);
+                const isParticipating = updatedRoom.seats.some((seat: Room['seats'][number]) => seat?.nickname === currentNickname);
                 setIsInRoom(isParticipating);
 
                 if (event === 'player_joined' && joinedPlayer) {

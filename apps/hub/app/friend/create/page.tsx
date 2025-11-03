@@ -4,7 +4,7 @@ import { RoomSettingsForm } from "@/components/ui";
 import { apiJson } from "@/lib/api";
 import { getNickname } from "@/lib/profile";
 import { upsertLocalRoom } from "@/lib/roomSystemUnified";
-import type { Room } from "@/types/room";
+import type { Room, RoomResponse } from "@/types/room";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -17,7 +17,8 @@ export default function FriendCreatePage() {
   };
 
   type SettingKey = keyof FriendRoomSettings;
-  type RadioOption = number | { value: number; label: string };
+
+  type CreateRoomResponse = RoomResponse & { storage?: string };
 
   const [settings, setSettings] = useState<FriendRoomSettings>({
     roomSize: 4,
@@ -28,44 +29,26 @@ export default function FriendCreatePage() {
   const [error, setError] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState("");
 
-  const getOptionValue = (option: RadioOption) =>
-    typeof option === "number" ? option : option.value;
-
-  const handleSettingChange = (key: SettingKey, value: number) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-
-    const labels: Record<SettingKey, Record<number, string>> = {
-      roomSize: { 2: "2人", 3: "3人", 4: "4人", 5: "5人", 6: "6人" },
-      turnSeconds: { 5: "5秒", 15: "15秒", 30: "30秒", 0: "無制限" },
-      maxCucumbers: { 4: "4本", 5: "5本", 6: "6本", 7: "7本" },
-    };
-
-    const label = labels[key]?.[value];
-    if (label) {
-      setAnnouncement(`${label}を選択`);
-      setTimeout(() => setAnnouncement(""), 2000);
-    }
+  const labels: Record<SettingKey, Record<number, string>> = {
+    roomSize: { 2: "2人", 3: "3人", 4: "4人", 5: "5人", 6: "6人" },
+    turnSeconds: { 5: "5秒", 15: "15秒", 30: "30秒", 0: "無制限" },
+    maxCucumbers: { 4: "4本", 5: "5本", 6: "6本", 7: "7本" },
   };
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent,
-    options: RadioOption[],
-    currentValue: number,
-    key: SettingKey,
-  ) => {
-    if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
-      e.preventDefault();
-      const currentIndex = options.findIndex((opt) => getOptionValue(opt) === currentValue);
-      const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
-      const prevValue = getOptionValue(options[prevIndex]);
-      handleSettingChange(key, prevValue);
-    } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
-      e.preventDefault();
-      const currentIndex = options.findIndex((opt) => getOptionValue(opt) === currentValue);
-      const nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
-      const nextValue = getOptionValue(options[nextIndex]);
-      handleSettingChange(key, nextValue);
-    }
+  const applySettings = (partial: Partial<FriendRoomSettings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...partial };
+      const changedKey = Object.keys(partial)[0] as SettingKey | undefined;
+      if (changedKey) {
+        const value = next[changedKey];
+        const label = labels[changedKey]?.[value];
+        if (label) {
+          setAnnouncement(`${label}を選択`);
+          setTimeout(() => setAnnouncement(""), 2000);
+        }
+      }
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -89,7 +72,7 @@ export default function FriendCreatePage() {
         turnSeconds: Number(settings.turnSeconds),
         maxCucumbers: Number(settings.maxCucumbers),
       };
-      const data = await apiJson<any>("/api/friend/create", {
+      const data = await apiJson<CreateRoomResponse>("/api/friend/create", {
         method: "POST",
         json: payload,
       });
@@ -114,8 +97,9 @@ export default function FriendCreatePage() {
         const detail = data?.detail ? ` (${data.detail})` : "";
         setError(`ルーム作成に失敗しました: ${reason}${detail}`);
       }
-    } catch (e: any) {
-      const msg = e?.message ? ` (${e.message})` : "";
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      const msg = message ? ` (${message})` : "";
       setError(`作成に失敗しました${msg}`);
     } finally {
       setIsCreating(false);
@@ -147,7 +131,7 @@ export default function FriendCreatePage() {
             <RoomSettingsForm
               settings={settings}
               disabled={isCreating}
-              onChange={(next) => setSettings((prev) => ({ ...prev, ...next }))}
+              onChange={applySettings}
               className="friend-room-card__section"
             />
 

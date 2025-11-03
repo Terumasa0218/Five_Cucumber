@@ -23,6 +23,7 @@ export interface Room {
   // ゲーム設定
   turnSeconds: number;      // ターン時間（秒）
   maxCucumbers: number;     // きゅうり上限
+  seed?: number | string;   // 対戦のシード値（任意）
   // フレンド対戦の同期用スナップショット（任意）
   gameSnapshot?: RoomGameSnapshot;
 }

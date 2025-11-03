@@ -38,7 +38,7 @@ export async function apiRequest<T = unknown>(path: string, init: ApiRequestInit
   if (json !== undefined) {
     headers.set('Content-Type', 'application/json');
   }
-  const response = await fetch(url, {
+  const response = await globalThis.fetch(url, {
     ...rest,
     headers,
     body: json !== undefined ? JSON.stringify(json) : rest.body,
