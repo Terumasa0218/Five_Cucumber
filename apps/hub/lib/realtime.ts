@@ -41,7 +41,12 @@ export async function initRoomGame(roomId: string, config: GameConfig, state: Ga
 export async function pushMove(roomId: string, move: Move, newState: GameState) {
   if (!db) return;
   const gameRef = doc(db, 'room-games', roomId);
-  await updateDoc(gameRef, { lastMove: move, state: newState, updatedAt: Date.now() } as any);
+  const payload: Record<string, unknown> = {
+    lastMove: move,
+    state: newState,
+    updatedAt: Date.now(),
+  };
+  await updateDoc(gameRef, payload);
 }
 
 

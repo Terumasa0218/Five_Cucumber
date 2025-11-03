@@ -1,7 +1,8 @@
+import type { FirebaseApp, FirebaseOptions } from 'firebase/app';
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
-const firebaseConfig = {
+const firebaseConfig: FirebaseOptions = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -12,7 +13,7 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-let app: any = null;
+let app: FirebaseApp | null = null;
 let dbInternal: Firestore | null = null;
 
 try {

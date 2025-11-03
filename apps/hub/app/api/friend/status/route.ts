@@ -1,9 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import type { NextResponse } from 'next/server';
 import { json } from '@/lib/http';
 import { updateRoom } from '@/lib/roomsStore';
 import { updateRoomRedis } from '@/lib/roomsRedis';
 import { updateRoomStatus, getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
 import { isRedisAvailable } from '@/lib/redis';
+import type { Room, RoomStatus } from '@/types/room';
 import { kv } from '@vercel/kv';
 
 const keyOf = (id: string) => `friend:room:${id}`;
@@ -12,22 +14,29 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+type StatusPayload = { roomId?: unknown; status?: unknown };
+
+const isRoomStatus = (value: string): value is RoomStatus =>
+  value === 'waiting' || value === 'playing' || value === 'closed';
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const body = await req.json();
-    const { roomId, status } = body as { roomId?: string; status?: 'waiting' | 'playing' | 'closed' };
+    const body = (await req.json()) as StatusPayload;
+    const roomId = typeof body.roomId === 'string' ? body.roomId.trim() : '';
+    const statusInput = typeof body.status === 'string' ? body.status.trim() : '';
 
-    if (!roomId || !status) {
+    if (!roomId || !statusInput || !isRoomStatus(statusInput)) {
       return json({ ok: false, reason: 'bad-request' }, 400);
     }
 
-    const rid = roomId.trim();
+    const status = statusInput;
+    const rid = roomId;
     const hasRedisAvailable = isRedisAvailable();
     const isProd = process.env.VERCEL_ENV === 'production';
 
     // 1) KV を単一のソースとして更新
     try {
-      const room = await kv.get<any>(keyOf(rid));
+      const room = await kv.get<Room>(keyOf(rid));
       if (room) {
         room.status = status;
         await kv.set(keyOf(rid), room, { ex: 60 * 30 });
@@ -38,12 +47,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // 2) 既存ストアを更新しつつ、見つかったら KV にも同期
-    let syncedToKv = false;
-
     try {
       await updateRoom(rid, { status });
       try {
-        const r = await kv.get<any>(keyOf(rid));
+        const r = await kv.get<Room>(keyOf(rid));
         if (r) {
           r.status = status;
           await kv.set(keyOf(rid), r, { ex: 60 * 30 });
@@ -55,14 +62,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     if (hasRedisAvailable) {
-      const updated = await updateRoomRedis(rid, { status } as any);
+      const updated = await updateRoomRedis(rid, { status });
       if (updated) {
         try {
-          const r = await kv.get<any>(keyOf(rid));
+          const r = await kv.get<Room>(keyOf(rid));
           if (r) {
             r.status = status;
             await kv.set(keyOf(rid), r, { ex: 60 * 30 });
-            syncedToKv = true;
           }
         } catch {}
         return json({ ok: true }, 200);
@@ -77,7 +83,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         putRoomToMemory(memoryRoom);
         try {
           await kv.set(keyOf(rid), memoryRoom, { ex: 60 * 30 });
-          syncedToKv = true;
         } catch {}
       return json({ ok: true }, 200);
       }
@@ -88,11 +93,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return json({ ok: false, reason: 'not-found' }, 404);
     }
     try {
-      const r = await kv.get<any>(keyOf(rid));
+      const r = await kv.get<Room>(keyOf(rid));
       if (r) {
         r.status = status;
         await kv.set(keyOf(rid), r, { ex: 60 * 30 });
-        syncedToKv = true;
       }
     } catch {}
 

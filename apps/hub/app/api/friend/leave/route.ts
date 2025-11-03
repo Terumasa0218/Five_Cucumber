@@ -6,6 +6,7 @@ import { HAS_SHARED_STORE } from '@/lib/serverSync';
 import { json } from '@/lib/http';
 import { isRedisAvailable } from '@/lib/redis';
 import { realtime } from '@/lib/realtime';
+import type { RoomSeat } from '@/types/room';
 import { kv } from '@vercel/kv';
 
 const keyOf = (id: string) => `friend:room:${id}`;
@@ -14,17 +15,25 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+type LeaveRoomPayload = {
+  roomId?: unknown;
+  nickname?: unknown;
+};
+
+const isOccupiedSeat = (seat: RoomSeat): seat is Exclude<RoomSeat, null> => seat !== null;
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const body = await req.json();
-    const { roomId, nickname } = body as { roomId?: string; nickname?: string };
+    const body = (await req.json()) as LeaveRoomPayload;
+    const roomId = typeof body.roomId === 'string' ? body.roomId.trim() : '';
+    const nickname = typeof body.nickname === 'string' ? body.nickname.trim() : '';
 
-    if (!roomId || !nickname || !nickname.trim()) {
+    if (!roomId || !nickname) {
       return json({ ok: false, reason: 'bad-request' }, 400);
     }
 
-    const rid = roomId.trim();
-    const name = nickname.trim();
+    const rid = roomId;
+    const name = nickname;
 
     // 共有ストアからルームを検索（Firestore -> Redis/KV -> Memory）
     let room = await getRoomById(rid);
@@ -64,7 +73,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
 
       // 退出をリアルタイム通知
-      const members = room.seats.filter(s => s !== null).map(s => (s as any).nickname as string);
+      const members = room.seats.filter(isOccupiedSeat).map((seat) => seat.nickname);
       try {
         await realtime.publishToMany(rid, members, 'room_updated', () => ({ room, event: 'player_left', leftPlayer: name }));
       } catch {}

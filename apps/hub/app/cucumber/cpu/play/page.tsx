@@ -2,6 +2,7 @@
 
 import BattleLayout from '@/components/BattleLayout';
 import { BattleHud, EllipseTable, GameFooter, Timer } from '@/components/ui';
+import { HumanController } from '@/lib/controllers/human';
 import { delay, runAnimation } from '@/lib/animQueue';
 import {
     applyMove,
@@ -15,6 +16,7 @@ import {
     getLegalMoves,
     Move,
     PlayerController,
+    RngState,
     SeededRng,
     startNewRound
 } from '@/lib/game-core';
@@ -31,7 +33,7 @@ function CpuPlayContent() {
     config: GameConfig;
     controllers: PlayerController[];
     rng: SeededRng;
-    humanController: any;
+    humanController: HumanController;
   } | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [gameOver, setGameOver] = useState(false);
@@ -39,10 +41,10 @@ function CpuPlayContent() {
   const [isCardLocked, setIsCardLocked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
-  const [showTrickCompletion, setShowTrickCompletion] = useState(false);
-  const [showCucumberAward, setShowCucumberAward] = useState<{player: number, cucumbers: number} | null>(null);
   const cpuTurnTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef<boolean>(false);
+  const scheduleCpuTurnRef = useRef<(() => void) | null>(null);
+  const playCpuTurnRef = useRef<(() => Promise<void>) | null>(null);
   
   // ゲーム状態の保存キー
   const getGameStateKey = useCallback((params: URLSearchParams) => {
@@ -52,28 +54,7 @@ function CpuPlayContent() {
     const cpuLevel = params.get('cpuLevel') || 'normal';
     return `cpu-game-state-${players}-${turnSeconds}-${maxCucumbers}-${cpuLevel}`;
   }, []);
-  
-  // ゲーム状態を保存（コントローラ等のインスタンスは保存しない）
-  const saveGameState = useCallback(() => {
-    if (!gameRef.current || !gameState || isProcessingRef.current) return;
-    try {
-      const gameStateKey = getGameStateKey(searchParams);
-      const rngState = gameRef.current.rng.getState();
-      const saveData = {
-        config: gameRef.current.config,
-        rngState,
-        gameState,
-        gameOver,
-        gameOverData,
-        timestamp: Date.now()
-      };
-      localStorage.setItem(gameStateKey, JSON.stringify(saveData));
-      console.log('[Game] State saved for reload recovery');
-    } catch (error) {
-      console.warn('[Game] Failed to save state:', error);
-    }
-  }, [gameState, gameOver, gameOverData, searchParams, getGameStateKey]);
-  
+
   // CPU対戦のセーブデータをクリア（新規開始用）
   const clearCpuGameState = () => {
     try {
@@ -85,96 +66,7 @@ function CpuPlayContent() {
     }
   };
 
-  useEffect(() => {
-    document.title = 'CPU対戦 | Five Cucumber';
-    
-    
-    // リファラーをチェックして新規開始かリロード復元かを判定
-    const isFromHome = document.referrer.includes('/home') || document.referrer.includes('/cpu/settings') || !document.referrer;
-    const gameStateKey = getGameStateKey(searchParams);
-    
-    // ホームから来た場合は常に新規ゲーム開始
-    if (isFromHome) {
-      console.log('[Game] Starting fresh game (from home/settings)');
-      clearCpuGameState();
-    } else {
-      // リロード復元を試行
-      try {
-        const savedData = localStorage.getItem(gameStateKey);
-        if (savedData) {
-          const parsed = JSON.parse(savedData);
-          const now = Date.now();
-          const age = now - parsed.timestamp;
-          
-          // 5分以内のセーブデータのみ復元
-          if (age < 5 * 60 * 1000) {
-            console.log('[Game] Restoring from saved state (age:', Math.round(age / 1000), 'seconds)');
-            // RNG復元とコントローラ再構築
-            const { SeededRng } = require('@/lib/game-core');
-            const restoredRng = new SeededRng(parsed.config?.seed);
-            if (parsed.rngState) restoredRng.setState(parsed.rngState);
-
-            // URLパラメータ or 保存されたconfigでテーブルを再生成
-            const { config, controllers, humanController } = createCpuTableFromUrlParams(searchParams);
-            const state = parsed.gameState as GameState;
-
-            gameRef.current = { state, config, controllers, rng: restoredRng, humanController };
-            setGameState(state);
-            setGameOver(parsed.gameOver || false);
-            setGameOverData(parsed.gameOverData || []);
-
-            console.log('[Game] State restored successfully with rebuilt controllers');
-            return;
-          } else {
-            console.log('[Game] Saved state too old, starting fresh');
-            clearCpuGameState();
-          }
-        }
-      } catch (error) {
-        console.warn('[Game] Failed to restore state:', error);
-        clearCpuGameState();
-      }
-    }
-    
-    // 新規ゲーム開始
-    startGame();
-  }, []);
-
-  // ゲーム状態変更時の自動保存（処理中は除外）
-  useEffect(() => {
-    if (gameState && !isProcessingRef.current) {
-      saveGameState();
-    }
-  }, [gameState, gameOver, gameOverData, saveGameState]);
-
-  const startGame = async () => {
-    try {
-      const { config, controllers, humanController } = createCpuTableFromUrlParams(searchParams);
-      const { SeededRng } = await import('@/lib/game-core');
-      const rng = new SeededRng(config.seed);
-      const state = createInitialState(config, rng);
-      
-      gameRef.current = { state, config, controllers, rng, humanController };
-      setGameState(state);
-      setGameOver(false);
-      setGameOverData([]);
-      
-      console.log('[Game] New game started with', config.players, 'players');
-      
-      // 最初のプレイヤーがCPUの場合は自動プレイ
-      if (state.currentPlayer !== 0) {
-        setTimeout(() => {
-          if (gameRef.current && gameRef.current.state.currentPlayer !== 0) {
-            scheduleCpuTurn();
-          }
-        }, 2000);
-      }
-    } catch (error) {
-      console.error('[Game] Failed to start game:', error);
-    }
-  };
-
-  const scheduleCpuTurn = () => {
+  const scheduleCpuTurn = useCallback(() => {
     if (!gameRef.current || !gameState || isProcessingRef.current) return;
     
     const { state } = gameRef.current;
@@ -195,11 +87,121 @@ function CpuPlayContent() {
     // CPUの思考時間
     const thinkingTime = 2000 + Math.random() * 2000;
     cpuTurnTimerRef.current = setTimeout(() => {
-      if (gameRef.current && !isProcessingRef.current) {
-        playCpuTurn();
+      if (gameRef.current && !isProcessingRef.current && playCpuTurnRef.current) {
+        void playCpuTurnRef.current();
       }
     }, thinkingTime);
-  };
+  }, [gameState, gameOver]);
+
+  // refを更新
+  useEffect(() => {
+    scheduleCpuTurnRef.current = scheduleCpuTurn;
+  }, [scheduleCpuTurn]);
+
+  const startGame = useCallback(async () => {
+    try {
+      const { config, controllers, humanController } = createCpuTableFromUrlParams(searchParams);
+      const { SeededRng } = await import('@/lib/game-core');
+      const rng = new SeededRng(config.seed);
+      const state = createInitialState(config, rng);
+      
+      gameRef.current = { state, config, controllers, rng, humanController };
+      setGameState(state);
+      setGameOver(false);
+      setGameOverData([]);
+      
+      console.log('[Game] New game started with', config.players, 'players');
+      
+      // 最初のプレイヤーがCPUの場合は自動プレイ
+      if (state.currentPlayer !== 0) {
+        setTimeout(() => {
+          if (gameRef.current && gameRef.current.state.currentPlayer !== 0 && scheduleCpuTurnRef.current) {
+            scheduleCpuTurnRef.current();
+          }
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('[Game] Failed to start game:', error);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    document.title = 'CPU対戦 | Five Cucumber';
+    
+    
+    // リファラーをチェックして新規開始かリロード復元かを判定
+    // document.referrerの代わりにnavigation APIを使用
+    const navigation = typeof performance !== 'undefined' && performance.getEntriesByType 
+      ? performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
+      : null;
+    const referrer = navigation?.type === 'navigate' 
+      ? (navigation as { name?: string }).name || document.referrer
+      : document.referrer;
+    const isFromHome = !referrer || referrer.includes('/home') || referrer.includes('/cpu/settings');
+    const gameStateKey = getGameStateKey(searchParams);
+    
+    // ホームから来た場合は常に新規ゲーム開始
+    if (isFromHome) {
+      console.log('[Game] Starting fresh game (from home/settings)');
+      clearCpuGameState();
+      // 新規ゲーム開始
+      startGame();
+    } else {
+      // リロード復元を試行
+      const tryRestore = async () => {
+        try {
+          const savedData = localStorage.getItem(gameStateKey);
+          if (savedData) {
+            const parsed = JSON.parse(savedData) as {
+              config: GameConfig;
+              rngState?: RngState;
+              gameState: GameState;
+              gameOver: boolean;
+              gameOverData: { player: number; count: number }[];
+              timestamp: number;
+            };
+            const now = Date.now();
+            const age = now - parsed.timestamp;
+            
+            // 5分以内のセーブデータのみ復元
+            if (age < 5 * 60 * 1000) {
+              console.log('[Game] Restoring from saved state (age:', Math.round(age / 1000), 'seconds)');
+              // RNG復元とコントローラ再構築
+              const { SeededRng: SeededRngClass } = await import('@/lib/game-core');
+              const restoredRng = new SeededRngClass(parsed.config?.seed);
+              if (parsed.rngState && typeof parsed.rngState === 'object' && 'seed' in parsed.rngState && 'state' in parsed.rngState) {
+                restoredRng.setState(parsed.rngState);
+              }
+
+              // URLパラメータ or 保存されたconfigでテーブルを再生成
+              const { config, controllers, humanController } = createCpuTableFromUrlParams(searchParams);
+              const state = parsed.gameState;
+
+              gameRef.current = { state, config, controllers, rng: restoredRng, humanController };
+              setGameState(state);
+              setGameOver(parsed.gameOver || false);
+              setGameOverData(parsed.gameOverData || []);
+
+              console.log('[Game] State restored successfully with rebuilt controllers');
+              return;
+            } else {
+              console.log('[Game] Saved state too old, starting fresh');
+              clearCpuGameState();
+              startGame();
+            }
+          } else {
+            startGame();
+          }
+        } catch (error) {
+          console.warn('[Game] Failed to restore state:', error);
+          clearCpuGameState();
+          startGame();
+        }
+      };
+      void tryRestore();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const playCpuTurn = async () => {
     if (!gameRef.current || isProcessingRef.current) return;
@@ -208,7 +210,7 @@ function CpuPlayContent() {
     cpuTurnTimerRef.current = null;
     
     try {
-      const { state, config, controllers, rng } = gameRef.current;
+      const { state, config, controllers } = gameRef.current;
       const currentPlayer = state.currentPlayer;
       
       if (currentPlayer === 0 || gameOver || state.phase !== "AwaitMove") {
@@ -236,7 +238,7 @@ function CpuPlayContent() {
       if (move !== null && typeof move === 'number' && legalMoves.includes(move)) {
         console.log(`[CPU] Playing move: ${move}`);
         await playMove(currentPlayer, move);
-    } else {
+      } else {
         // フォールバック: 最初の合法手
         const fallbackMove = legalMoves[0];
         console.log(`[CPU] Using fallback move: ${fallbackMove}`);
@@ -251,7 +253,9 @@ function CpuPlayContent() {
           const { state } = gameRef.current;
           if (state.currentPlayer !== 0 && state.phase === "AwaitMove") {
             console.log(`[CPU] Auto-scheduling next turn for player ${state.currentPlayer}`);
-            scheduleCpuTurn();
+            if (scheduleCpuTurnRef.current) {
+              scheduleCpuTurnRef.current();
+            }
           }
         }
       }, 100); // 少し遅延させて状態更新を確実にする
@@ -263,6 +267,10 @@ function CpuPlayContent() {
       console.log(`[CPU] Processing flag cleared`);
     }
   };
+
+  useEffect(() => {
+    playCpuTurnRef.current = playCpuTurn;
+  });
 
   const playMove = async (player: number, card: number) => {
     if (!gameRef.current) return;
@@ -325,10 +333,6 @@ function CpuPlayContent() {
         if (newState.phase === "ResolvingTrick") {
           console.log('[PlayMove] Resolving trick...');
           
-          // トリック完了表示
-          setShowTrickCompletion(true);
-          setTimeout(() => setShowTrickCompletion(false), 2000);
-          
           // 2秒待機してからトリック解決
           await delay(2000);
           
@@ -354,13 +358,6 @@ function CpuPlayContent() {
                   newState.players.map((p, index) => `Player ${index}: ${p.cucumbers} cucumbers`));
                 
                 // キュウリ付与表示（最も多くのキュウリを得たプレイヤー）
-                const maxCucumbers = Math.max(...newState.players.map(p => p.cucumbers));
-                const playerWithMaxCucumbers = newState.players.findIndex(p => p.cucumbers === maxCucumbers);
-                if (playerWithMaxCucumbers >= 0) {
-                  setShowCucumberAward({player: playerWithMaxCucumbers, cucumbers: maxCucumbers});
-                  setTimeout(() => setShowCucumberAward(null), 5000);
-                }
-                
                 if (newState.phase === "GameEnd") {
                   console.log('[PlayMove] Game ended');
                   setGameOver(true);
@@ -389,7 +386,9 @@ function CpuPlayContent() {
               const { state } = gameRef.current;
               if (state.currentPlayer !== 0 && state.phase === "AwaitMove") {
                 console.log(`[PlayMove] Scheduling next CPU turn for player ${state.currentPlayer}`);
-                scheduleCpuTurn();
+                if (scheduleCpuTurnRef.current) {
+                  scheduleCpuTurnRef.current();
+                }
               }
             }
           }, 100);
@@ -406,7 +405,9 @@ function CpuPlayContent() {
       const { state } = gameRef.current;
       if (state.currentPlayer !== 0 && state.phase === "AwaitMove") {
         console.log(`[useEffect] Scheduling CPU turn for player ${state.currentPlayer}`);
-        scheduleCpuTurn();
+        if (scheduleCpuTurnRef.current) {
+          scheduleCpuTurnRef.current();
+        }
       }
     }
     
@@ -514,7 +515,13 @@ function CpuPlayContent() {
 
         <EllipseTable
           state={gameState}
-          config={gameRef.current?.config || ({} as any)}
+          config={gameRef.current?.config || {
+            players: 4,
+            turnSeconds: 15,
+            maxCucumbers: 6,
+            initialCards: 7,
+            cpuLevel: 'normal'
+          } as GameConfig}
           currentPlayerIndex={gameState.currentPlayer}
           onCardClick={(card:number)=>handleCardClick(Number(card))}
           className={isCardLocked ? 'cards-locked' : ''}

@@ -1,6 +1,5 @@
 'use client';
 
-import { useI18n } from '@/hooks/useI18n';
 
 export interface GameTileProps {
   game: {
@@ -18,8 +17,6 @@ export interface GameTileProps {
 }
 
 export function GameTile({ game, playerCount, onPlay }: GameTileProps) {
-  const { t } = useI18n();
-
   const isPlayable = playerCount >= game.minPlayers && playerCount <= game.maxPlayers;
 
   return (

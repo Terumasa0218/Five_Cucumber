@@ -1,4 +1,5 @@
 import { apply, projectViewFor, validate } from '@/lib/engine';
+import type { Move } from '@/lib/game-core';
 import { hashState } from '@/lib/hashState';
 import { realtime } from '@/lib/realtime';
 import { redis, isRedisAvailable } from '@/lib/redis';
@@ -8,15 +9,26 @@ import { z } from 'zod';
 
 export const runtime = 'nodejs';
 
+interface LockStore {
+  locks: Map<string, string>;
+}
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __locks: LockStore['locks'] | undefined;
+}
+
 async function withRoomLock<T>(roomId: string, fn: () => Promise<T>) {
   const key = `lock:room:${roomId}`;
   const token = randomUUID();
   if (isRedisAvailable()) {
-    const ok = await redis.set(key, token, { nx: true, ex: 2 } as any);
+    const ok = await redis.set(key, token, { nx: true, ex: 2 });
     if (ok !== 'OK') throw new Error('ROOM_BUSY');
   } else {
-    (globalThis as any).__locks = (globalThis as any).__locks || new Map<string, string>();
-    const locks = (globalThis as any).__locks as Map<string, string>;
+    if (!globalThis.__locks) {
+      globalThis.__locks = new Map<string, string>();
+    }
+    const locks = globalThis.__locks;
     if (locks.has(key)) throw new Error('ROOM_BUSY');
     locks.set(key, token);
   }
@@ -27,11 +39,18 @@ async function withRoomLock<T>(roomId: string, fn: () => Promise<T>) {
       const v = await redis.get<string>(key);
       if (v === token) await redis.del(key);
     } else {
-      const locks = (globalThis as any).__locks as Map<string, string>;
+      const locks = globalThis.__locks;
       if (locks?.get(key) === token) locks.delete(key);
     }
   }
 }
+
+// Move型のzodスキーマ
+const MoveSchema: z.ZodType<Move> = z.object({
+  player: z.number().int().nonnegative(),
+  card: z.number().int().min(1).max(15),
+  timestamp: z.number().int().nonnegative(),
+});
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -40,7 +59,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       userId: z.string().min(1),
       opId: z.string().min(1),
       baseV: z.number().int().nonnegative(),
-      action: z.any(),
+      action: MoveSchema,
     });
     const { roomId, userId, opId, baseV, action } = schema.parse(await req.json());
 
@@ -55,7 +74,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       let seatsStr: string | null = null;
       let stateStr: string | null = null;
       if (isRedisAvailable()) {
-        const dedup = await redis.set(`op:${roomId}:${opId}`, 1, { nx: true, ex: 60 } as any);
+        const dedup = await redis.set(`op:${roomId}:${opId}`, 1, { nx: true, ex: 60 });
         if (dedup !== 'OK') {
           vNow = await redis.get<number>(`room:${roomId}:v`);
           return { v: vNow, dedup: true };
@@ -66,11 +85,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           redis.get<string>(`room:${roomId}:state`),
         ]);
       } else {
-        const mem = ((globalThis as any).__mem ?? new Map<string, any>()) as Map<string, any>;
-        (globalThis as any).__mem = mem;
-        vNow = mem.has(`room:${roomId}:v`) ? mem.get(`room:${roomId}:v`) : null;
-        seatsStr = mem.get(`room:${roomId}:seats`) ?? null;
-        stateStr = mem.get(`room:${roomId}:state`) ?? null;
+        if (!globalThis.__mem) {
+          globalThis.__mem = new Map<string, unknown>();
+        }
+        const mem = globalThis.__mem;
+        vNow = mem.has(`room:${roomId}:v`) ? (mem.get(`room:${roomId}:v`) as number | null) : null;
+        seatsStr = (mem.get(`room:${roomId}:seats`) as string | undefined) ?? null;
+        stateStr = (mem.get(`room:${roomId}:state`) as string | undefined) ?? null;
       }
       if (vNow === null || !seatsStr || !stateStr) throw new Error('GAME_NOT_FOUND');
       if (vNow !== baseV) throw new Error('STALE_VERSION');
@@ -78,9 +99,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const state = JSON.parse(stateStr);
 
       const actorSeat = seats.indexOf(userId);
-      if (actorSeat < 0 || !validate(state, action, actorSeat)) throw new Error('INVALID_MOVE');
+      // GameAction形式に変換（type: 'move'を追加）
+      const gameAction = { type: 'move', ...action };
+      if (actorSeat < 0 || !validate(state, gameAction, actorSeat)) throw new Error('INVALID_MOVE');
 
-      const next = apply(state, action);
+      const next = apply(state, gameAction);
       const v = vNow + 1;
       if (isRedisAvailable()) {
         await Promise.all([
@@ -88,7 +111,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           redis.set(`room:${roomId}:v`, v),
         ]);
       } else {
-        const mem = (globalThis as any).__mem as Map<string, any>;
+        if (!globalThis.__mem) {
+          globalThis.__mem = new Map<string, unknown>();
+        }
+        const mem = globalThis.__mem;
         mem.set(`room:${roomId}:state`, JSON.stringify(next));
         mem.set(`room:${roomId}:v`, v);
       }
@@ -104,10 +130,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json(res, { status: 200 });
   } catch (e) {
     console.error('[game/move]', e);
-    const code = (e as any)?.message ?? 'SERVER_ERROR';
+    const error = e instanceof Error ? e : new Error('Unknown error');
+    const code = error.message ?? 'SERVER_ERROR';
     const status = code === 'STALE_VERSION' ? 409 : code === 'INVALID_MOVE' ? 400 : code === 'ROOM_BUSY' ? 423 : 500;
     return NextResponse.json({ error: String(code) }, { status });
   }
+}
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __mem: Map<string, unknown> | undefined;
 }
 
 

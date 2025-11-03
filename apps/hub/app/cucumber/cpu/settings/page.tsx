@@ -5,13 +5,25 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+interface GameSettings {
+  players: number;
+  turnSeconds: number;
+  maxCucumbers: number;
+  cpuLevel: 'easy' | 'normal' | 'hard';
+  showAllHands: boolean;
+}
+
+type SettingKey = keyof GameSettings;
+
+type OptionValue = number | string;
+
 export default function CpuSettings() {
   const router = useRouter();
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<GameSettings>({
     players: 4,
     turnSeconds: 15,
     maxCucumbers: 5,
-    cpuLevel: 'normal' as 'easy' | 'normal' | 'hard',
+    cpuLevel: 'normal',
     showAllHands: false
   });
   const [announcement, setAnnouncement] = useState('');
@@ -20,40 +32,25 @@ export default function CpuSettings() {
     // 背景制御はレイアウトに委譲
   }, []);
 
-  const handleSettingChange = (key: string, value: any) => {
+  const handleSettingChange = <K extends SettingKey>(key: K, value: GameSettings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     
     // アクセシビリティ用の音声通知
-    const labels: Record<string, Record<any, string>> = {
+    const labels: Record<SettingKey, Record<OptionValue, string>> = {
       players: { 2: '2人', 3: '3人', 4: '4人', 5: '5人', 6: '6人' },
-      turnSeconds: { 5: '5秒', 15: '15秒', 30: '30秒', 0: '無制限' },
+      turnSeconds: { 5: '5秒', 10: '10秒', 15: '15秒', 20: '20秒', 30: '30秒', 0: '無制限' },
       maxCucumbers: { 4: '4本', 5: '5本', 6: '6本', 7: '7本' },
-      cpuLevel: { easy: '簡単', normal: '普通', hard: '難しい' }
+      cpuLevel: { easy: '簡単', normal: '普通', hard: '難しい' },
+      showAllHands: {}
     };
     
-    if (labels[key] && labels[key][value]) {
-      setAnnouncement(`${labels[key][value]}を選択`);
-      setTimeout(() => setAnnouncement(''), 2000);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent, options: any[], currentValue: any, key: string) => {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      const currentIndex = options.findIndex(opt => 
-        typeof opt === 'object' ? opt.value === currentValue : opt === currentValue
-      );
-      const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
-      const prevValue = typeof options[prevIndex] === 'object' ? options[prevIndex].value : options[prevIndex];
-      handleSettingChange(key, prevValue);
-    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      const currentIndex = options.findIndex(opt => 
-        typeof opt === 'object' ? opt.value === currentValue : opt === currentValue
-      );
-      const nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
-      const nextValue = typeof options[nextIndex] === 'object' ? options[nextIndex].value : options[nextIndex];
-      handleSettingChange(key, nextValue);
+    const keyLabels = labels[key];
+    if (keyLabels && (typeof value === 'string' || typeof value === 'number') && value in keyLabels) {
+      const label = keyLabels[value as OptionValue];
+      if (label) {
+        setAnnouncement(`${label}を選択`);
+        setTimeout(() => setAnnouncement(''), 2000);
+      }
     }
   };
 

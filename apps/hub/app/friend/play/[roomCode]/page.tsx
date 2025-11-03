@@ -2,7 +2,7 @@
 
 import BattleLayout from '@/components/BattleLayout';
 import { EllipseTable, Timer } from '@/components/ui';
-import { apiJson, apiRequest, ApiRequestError } from '@/lib/api';
+import { apiJson, apiRequest } from '@/lib/api';
 import {
     createInitialState,
     GameConfig,

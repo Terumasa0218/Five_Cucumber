@@ -19,7 +19,7 @@ export function serializeSnapshot(snapshot: GameSnapshot): string {
 }
 
 export function deserializeSnapshot(json: string): GameSnapshot {
-  const snapshot = JSON.parse(json);
+  const snapshot = JSON.parse(json) as GameSnapshot;
   
   // バージョンチェック
   if (snapshot.version !== GAME_VERSION) {
@@ -34,7 +34,7 @@ export function serializeState(state: GameState): string {
 }
 
 export function deserializeState(json: string): GameState {
-  return JSON.parse(json);
+  return JSON.parse(json) as GameState;
 }
 
 export function serializeConfig(config: GameConfig): string {
@@ -42,7 +42,7 @@ export function serializeConfig(config: GameConfig): string {
 }
 
 export function deserializeConfig(json: string): GameConfig {
-  return JSON.parse(json);
+  return JSON.parse(json) as GameConfig;
 }
 
 export function serializeRngState(rngState: RngState): string {
@@ -50,7 +50,7 @@ export function serializeRngState(rngState: RngState): string {
 }
 
 export function deserializeRngState(json: string): RngState {
-  return JSON.parse(json);
+  return JSON.parse(json) as RngState;
 }
 
 // ゲーム状態の検証
@@ -92,8 +92,8 @@ export function validateGameConfig(config: GameConfig): boolean {
 }
 
 // ゲーム状態の差分を計算（デバッグ用）
-export function getStateDiff(oldState: GameState, newState: GameState): Record<string, any> {
-  const diff: Record<string, any> = {};
+export function getStateDiff(oldState: GameState, newState: GameState): Record<string, unknown> {
+  const diff: Record<string, unknown> = {};
   
   // プレイヤー状態の差分
   for (let i = 0; i < newState.players.length; i++) {

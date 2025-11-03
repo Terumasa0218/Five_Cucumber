@@ -3,9 +3,26 @@
 import { GameView } from '../game-core/types';
 import { BaseController } from './base';
 
+export type RemoteInboundMessage =
+  | { type: 'move'; player: number; card: number }
+  | { type: 'pass'; player: number };
+
+export type RemoteOutboundMessage = {
+  type: 'your_turn';
+  player: number;
+  gameView: {
+    legalMoves: number[];
+    fieldCard: GameView['state']['fieldCard'];
+    currentTrick: GameView['state']['currentTrick'];
+    currentRound: GameView['state']['currentRound'];
+    playerHand: number[];
+    playerCucumbers: number;
+  };
+};
+
 export interface RemoteConnection {
-  send(message: any): void;
-  onMessage(callback: (message: any) => void): void;
+  send(message: RemoteOutboundMessage): void;
+  onMessage(callback: (message: RemoteInboundMessage) => void): void;
   disconnect(): void;
   isConnected(): boolean;
 }
@@ -78,10 +95,10 @@ export class RemoteController extends BaseController {
 
 // ダミー実装（開発用）
 export class DummyRemoteConnection implements RemoteConnection {
-  private messageHandlers: ((message: any) => void)[] = [];
+  private messageHandlers: Array<(message: RemoteInboundMessage) => void> = [];
   private connected = true;
 
-  send(message: any): void {
+  send(message: RemoteOutboundMessage): void {
     console.log('DummyRemoteConnection.send:', message);
     // ダミー応答をシミュレート
     setTimeout(() => {
@@ -90,13 +107,13 @@ export class DummyRemoteConnection implements RemoteConnection {
           type: 'move',
           player: message.player,
           card: Math.floor(Math.random() * 15) + 1
-        };
+        } as RemoteInboundMessage;
         this.messageHandlers.forEach(handler => handler(dummyMove));
       }
     }, 1000 + Math.random() * 2000);
   }
 
-  onMessage(callback: (message: any) => void): void {
+  onMessage(callback: (message: RemoteInboundMessage) => void): void {
     this.messageHandlers.push(callback);
   }
 

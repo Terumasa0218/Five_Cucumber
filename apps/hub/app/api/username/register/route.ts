@@ -16,10 +16,22 @@ function validNickname(name: string) {
   return true;
 }
 
+type RegisterRequest = {
+  nickname?: string;
+  name?: string;
+};
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({} as any));
-    const nicknameRaw = (body?.nickname ?? body?.name ?? '').toString();
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      body = {};
+    }
+    
+    const requestBody = (body && typeof body === 'object' ? body : {}) as Partial<RegisterRequest>;
+    const nicknameRaw = (requestBody.nickname ?? requestBody.name ?? '').toString();
     const nickname = nicknameRaw.trim();
 
     if (!validNickname(nickname)) {

@@ -1,10 +1,10 @@
-import * as AblyModule from 'ably';
+import Ably from 'ably/promises';
+import type { Types } from 'ably';
 import type { RealtimeAdapter } from './realtime-adapter';
 
-const Ably: any = (AblyModule as any).default ?? AblyModule;
-let restInstance: any | null = null;
+let restInstance: Ably.RestPromise | null = null;
 
-function getRest() {
+function getRest(): Ably.RestPromise {
   if (!process.env.ABLY_API_KEY) {
     throw new Error('ABLY_API_KEY environment variable is not set');
   }
@@ -20,11 +20,10 @@ export const ablyAdapter: RealtimeAdapter = {
   async publishToUser(roomId, uid, event, payload) {
     try {
       const rest = getRest();
-      const ch = rest.channels.get(`room-${roomId}`);
+      const channel = rest.channels.get(`room-${roomId}`);
       console.log('[Ably] Publishing to room (user-targeted payload):', roomId, uid, event);
-      await new Promise<void>((resolve, reject) => {
-        ch.publish(event, { ...payload, __targetUid: uid }, (err: any) => (err ? reject(err) : resolve()));
-      });
+      const data: Record<string, unknown> = { ...payload, __targetUid: uid };
+      await channel.publish(event, data);
     } catch (error) {
       console.error('[Ably] Failed to publish to user via room channel:', error);
       throw error;
@@ -33,7 +32,7 @@ export const ablyAdapter: RealtimeAdapter = {
   async publishToMany(roomId, uids, event, build) {
     try {
       const rest = getRest();
-      const ch = rest.channels.get(`room-${roomId}`);
+      const channel = rest.channels.get(`room-${roomId}`);
       console.log('[Ably] Publishing to room for many users:', roomId, uids.length, event);
 
       if (uids.length === 0) {
@@ -41,10 +40,11 @@ export const ablyAdapter: RealtimeAdapter = {
         return;
       }
 
-      const messages = uids.map((uid) => ({ name: event, data: { ...build(uid), __targetUid: uid } }));
-      await new Promise<void>((resolve, reject) => {
-        ch.publish(messages as any, (err: any) => (err ? reject(err) : resolve()));
-      });
+      const messages: Types.MessageLike[] = uids.map((uid) => ({
+        name: event,
+        data: { ...build(uid), __targetUid: uid },
+      }));
+      await channel.publish(messages);
 
       console.log('[Ably] Successfully published to room channel');
     } catch (error) {

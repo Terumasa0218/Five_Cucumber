@@ -11,7 +11,6 @@ interface TimerProps {
 
 export function Timer({ turnSeconds, isActive, onTimeout, className = '' }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState<number>(turnSeconds || 0);
-  const [deadline, setDeadline] = useState<number>(0);
 
   useEffect(() => {
     if (!isActive || turnSeconds === null) {
@@ -21,7 +20,6 @@ export function Timer({ turnSeconds, isActive, onTimeout, className = '' }: Time
 
     // タイマー開始
     const newDeadline = performance.now() + turnSeconds * 1000;
-    setDeadline(newDeadline);
     setTimeLeft(turnSeconds);
 
     const interval = setInterval(() => {

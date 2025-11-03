@@ -49,7 +49,7 @@ export function determineTrickWinner(trickCards: Move[]): number {
 }
 
 // 最終トリックのペナルティ計算
-export function calculateFinalTrickPenalty(trickCards: Move[], config: GameConfig): { winner: number; penalty: number } {
+export function calculateFinalTrickPenalty(trickCards: Move[], _config: GameConfig): { winner: number; penalty: number } {
   if (trickCards.length === 0) return { winner: -1, penalty: 0 };
   
   const maxCard = Math.max(...trickCards.map(tc => tc.card));
@@ -145,7 +145,7 @@ export function getPlayerName(playerIndex: number): string {
 }
 
 // トリックが完了しているかチェック
-export function isTrickComplete(trickCards: Move[], players: number, firstPlayer: number): boolean {
+export function isTrickComplete(trickCards: Move[], players: number, _firstPlayer: number): boolean {
   return trickCards.length === players;
 }
 

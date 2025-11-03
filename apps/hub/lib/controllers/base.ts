@@ -16,11 +16,11 @@ export abstract class BaseController implements PlayerController {
     this.config = config;
   }
 
-  onGameEnd?(result: SimulationResult): void {
+  onGameEnd?(_result: SimulationResult): void {
     // デフォルト実装は何もしない
   }
 
-  onTrickEnd?(trick: Trick): void {
+  onTrickEnd?(_trick: Trick): void {
     // デフォルト実装は何もしない
   }
 

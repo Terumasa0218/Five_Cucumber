@@ -14,7 +14,7 @@ export function PlayerSeatGrid({ seats, columns, className }: PlayerSeatGridProp
   return (
     <div className={mergeClassNames("player-seat-grid", className)}>
       <div className="sr-only" aria-live="polite">{`空席は${emptyCount}席です`}</div>
-      <div className="player-seat-grid__container">
+      <div className={mergeClassNames("player-seat-grid__container", gridCols)}>
         {seats.map((seat, index) => {
           const isEmpty = !seat.nickname;
           return (

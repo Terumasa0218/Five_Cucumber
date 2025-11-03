@@ -1,6 +1,6 @@
 // アニメーションキュー - 直列化されたアニメーション処理
 
-let animationPromise: Promise<any> = Promise.resolve();
+let animationPromise: Promise<unknown> = Promise.resolve();
 
 /**
  * アニメーションタスクをキューに追加して直列実行

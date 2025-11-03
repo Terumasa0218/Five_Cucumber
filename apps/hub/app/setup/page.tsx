@@ -1,30 +1,22 @@
 'use client';
 
 import { useI18n } from '@/hooks/useI18n';
-// 簡易fetchJSON実装
-const fetchJSON = async (url: string, options: any) => {
-  try {
-    const response = await fetch(url, options);
-    const json = await response.json();
-    return {
-      ok: response.ok,
-      status: response.status,
-      json,
-      error: null
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      status: 0,
-      json: null,
-      error: error instanceof Error ? error.message : 'Network error'
-    };
-  }
-};
+import { apiJson, ApiRequestError } from '@/lib/api';
 import { validateNickname } from '@/lib/nickname';
 import { getProfile, resetProfile, setProfile } from '@/lib/profile';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
+
+interface DiagnosticInfo {
+  status: number;
+  body: unknown;
+  error: string | null;
+  networkTest?: {
+    status: number;
+    body: unknown;
+    timestamp: number;
+  };
+}
 
 function SetupForm() {
   const router = useRouter();
@@ -32,10 +24,10 @@ function SetupForm() {
   const [nickname, setNickname] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [diagnostic, setDiagnostic] = useState<any>(null);
+  const [diagnostic, setDiagnostic] = useState<DiagnosticInfo | null>(null);
   const [isDebugMode, setIsDebugMode] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const { language, changeLanguage, t } = useI18n();
+  const { language, changeLanguage } = useI18n();
 
   useEffect(() => {
     document.title = 'プレイヤー設定 | Five Cucumber';
@@ -48,7 +40,9 @@ function SetupForm() {
     }
     
     // デバッグ用: window.resetProfile() をグローバルに公開
-    (window as any).resetProfile = resetProfile;
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      (window as typeof window & { resetProfile?: typeof resetProfile }).resetProfile = resetProfile;
+    }
     
     // デバッグモードの確認
     setIsDebugMode(searchParams.get('debug') === '1');
@@ -70,45 +64,70 @@ function SetupForm() {
       return;
     }
 
-    // fetchJSONを使用してサーバ側で重複チェック
-    console.log('[setup] About to call API with:', r.value);
-    const response = await fetchJSON('/api/username/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name: r.value }),
-      timeoutMs: 8000,
-    });
-    console.log('[setup] API response:', response);
-
-    // 診断情報を保存
-    setDiagnostic({
-      status: response.status,
-      body: response.json ?? null,
-      error: response.error
-    });
-
-    if (!response.ok) {
-      const reason = response.json?.reason ?? (response.status >= 500 ? "server" : "network");
-      const errorMsg = 
-        reason === "duplicate" ? "このユーザー名はすでにつかわれています" :
-        reason === "length"    ? "1〜8文字で入力してください" :
-        reason === "charset"   ? "利用できない文字が含まれています" :
-        reason === "server"    ? `登録に失敗しました（サーバエラー: ${response.json?.error || 'Unknown'}）` :
-                                  "通信に失敗しました。電波状況を確認して再試行してください";
+    // apiJsonを使用してサーバ側で重複チェック
+    try {
+      console.log('[setup] About to call API with:', r.value);
+      interface RegisterResponse {
+        ok: boolean;
+        reason?: 'duplicate' | 'length' | 'charset' | 'bad-request' | 'server-error';
+        error?: string;
+      }
       
-      setError(errorMsg);
-      setIsSubmitting(false);
-      return;
-    }
+      const response = await apiJson<RegisterResponse>('/api/username/register', {
+        method: 'POST',
+        json: { name: r.value },
+      });
+      console.log('[setup] API response:', response);
 
-    // プロフィール保存
-    setProfile({ nickname: r.value });
-    
-    // 遷移
-    const returnTo = searchParams.get('returnTo');
-    router.replace(returnTo || '/home');
+      // 診断情報を保存（成功時）
+      setDiagnostic({
+        status: 200,
+        body: response,
+        error: null
+      });
+
+      // プロフィール保存
+      setProfile({ nickname: r.value });
+      
+      // 遷移
+      const returnTo = searchParams.get('returnTo');
+      router.replace(returnTo || '/home');
+    } catch (err) {
+      let status = 0;
+      let body: unknown = null;
+      
+      if (err instanceof ApiRequestError) {
+        status = err.response.status;
+        body = err.response.data;
+        
+        // 診断情報を保存（エラー時）
+        setDiagnostic({
+          status,
+          body,
+          error: err.message
+        });
+        
+        const response = body as { reason?: string; error?: string };
+        const reason = response?.reason ?? (status >= 500 ? "server" : "network");
+        const errorMsg = 
+          reason === "duplicate" ? "このユーザー名はすでにつかわれています" :
+          reason === "length"    ? "1〜8文字で入力してください" :
+          reason === "charset"   ? "利用できない文字が含まれています" :
+          reason === "server" || reason === "server-error"
+            ? `登録に失敗しました（サーバエラー: ${response?.error || 'Unknown'}）` :
+            "通信に失敗しました。電波状況を確認して再試行してください";
+        
+        setError(errorMsg);
+      } else {
+        setDiagnostic({
+          status: 0,
+          body: null,
+          error: err instanceof Error ? err.message : 'Unknown error'
+        });
+        setError("通信に失敗しました。電波状況を確認して再試行してください");
+      }
+      setIsSubmitting(false);
+    }
   };
 
   const handleLanguageToggle = () => {
@@ -116,15 +135,34 @@ function SetupForm() {
   };
 
   const handleNetworkTest = async () => {
-    const result = await fetchJSON('/api/ping', { timeoutMs: 5000 });
-    setDiagnostic((prev: any) => ({
-      ...prev,
-      networkTest: {
-        status: result.status,
-        body: result.json,
-        timestamp: Date.now()
-      }
-    }));
+    try {
+      const result = await apiJson<{ ok: boolean; message?: string }>('/api/ping');
+      setDiagnostic((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          networkTest: {
+            status: 200,
+            body: result,
+            timestamp: Date.now()
+          }
+        };
+      });
+    } catch (err) {
+      const status = err instanceof ApiRequestError ? err.response.status : 0;
+      const body = err instanceof ApiRequestError ? err.response.data : null;
+      setDiagnostic((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          networkTest: {
+            status,
+            body,
+            timestamp: Date.now()
+          }
+        };
+      });
+    }
   };
 
   const copyDiagnosticInfo = async () => {

@@ -16,8 +16,8 @@ export async function GET() {
       const v = await kv.get('diag:ping');
       canPersist = v != null;
     }
-  } catch (e: any) {
-    detail = e?.message ?? String(e);
+  } catch (e: unknown) {
+    detail = e instanceof Error ? e.message : String(e);
     console.error('[DIAG] KV persist failed:', detail);
   }
 

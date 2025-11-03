@@ -1,6 +1,16 @@
 export interface RealtimeAdapter {
-  publishToUser(roomId: string, uid: string, event: string, payload: any): Promise<void>;
-  publishToMany(roomId: string, uids: string[], event: string, build: (uid: string) => any): Promise<void>;
+  publishToUser<T extends Record<string, unknown>>(
+    roomId: string,
+    uid: string,
+    event: string,
+    payload: T
+  ): Promise<void>;
+  publishToMany<T extends Record<string, unknown>>(
+    roomId: string,
+    uids: string[],
+    event: string,
+    build: (uid: string) => T
+  ): Promise<void>;
 }
 
 

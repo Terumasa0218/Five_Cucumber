@@ -1,7 +1,7 @@
 "use client";
 
-import { BackgroundFrame } from "@/components/ui";
 import { useI18n } from "@/hooks/useI18n";
+import { apiRequest } from "@/lib/api";
 import { getNickname } from "@/lib/profile";
 import { useEffect, useState } from "react";
 import DesktopHero from "./_components/DesktopHero";
@@ -9,13 +9,13 @@ import DesktopHero from "./_components/DesktopHero";
 export default function Home() {
   const [gateStatus, setGateStatus] = useState<string>('');
   const [nickname, setNickname] = useState<string | null>(null);
-  const { language, changeLanguage, t } = useI18n();
+  const { t } = useI18n();
 
   useEffect(() => {
     document.title = `${t("homeTitle")} | Five Cucumber`;
     setNickname(getNickname());
     if (process.env.NODE_ENV === "development") {
-      fetch("/home", { method: "HEAD" })
+      apiRequest('/home', { method: 'HEAD', parseAs: 'none' })
         .then((response) => {
           const gateHeader = response.headers.get("x-profile-gate");
           setGateStatus(gateHeader || "unknown");

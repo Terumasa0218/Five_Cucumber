@@ -1,20 +1,17 @@
 // 多言語対応のフック
 
-import { getCurrentLanguage, setLanguage, t, type Language, type Translations } from '@/lib/i18n';
+import { getCurrentLanguage, getTranslations, setLanguage, t, type Language, type Translations } from '@/lib/i18n';
 import { useEffect, useState } from 'react';
 
 export function useI18n() {
   const [language, setLanguageState] = useState<Language>(getCurrentLanguage);
   const [translations, setTranslations] = useState<Translations>(() => {
-    const { getTranslations } = require('@/lib/i18n');
     return getTranslations(getCurrentLanguage());
   });
 
   const changeLanguage = (newLang: Language) => {
     setLanguage(newLang);
     setLanguageState(newLang);
-    
-    const { getTranslations } = require('@/lib/i18n');
     setTranslations(getTranslations(newLang));
   };
 
@@ -29,7 +26,6 @@ export function useI18n() {
         const newLang = e.newValue as Language;
         if (['ja', 'en'].includes(newLang)) {
           setLanguageState(newLang);
-          const { getTranslations } = require('@/lib/i18n');
           setTranslations(getTranslations(newLang));
         }
       }

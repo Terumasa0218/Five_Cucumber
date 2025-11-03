@@ -11,7 +11,7 @@ export class HumanController extends BaseController {
     super(playerIndex);
   }
 
-  async onYourTurn(view: GameView): Promise<number | null> {
+  async onYourTurn(_view: GameView): Promise<number | null> {
     return new Promise((resolve) => {
       this.moveResolver = resolve;
       // UIからの入力待ち

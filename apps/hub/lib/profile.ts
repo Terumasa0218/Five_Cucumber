@@ -66,7 +66,11 @@ function containsUnsafeWord(text: string): boolean {
 function getGraphemeCount(text: string): number {
   // Intl.Segmenterが利用可能な場合は使用
   if (typeof Intl !== 'undefined' && 'Segmenter' in Intl) {
-    return [...new (Intl as any).Segmenter().segment(text)].length;
+    const SegmenterCtor = (Intl as typeof Intl & { Segmenter?: typeof Intl.Segmenter }).Segmenter;
+    if (typeof SegmenterCtor === 'function') {
+      const segmenter = new SegmenterCtor();
+      return Array.from(segmenter.segment(text)).length;
+    }
   }
   
   // フォールバック: 単純な文字数カウント

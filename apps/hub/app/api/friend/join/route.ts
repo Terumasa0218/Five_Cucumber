@@ -7,14 +7,19 @@ import { getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
 import { HAS_SHARED_STORE } from '@/lib/serverSync';
 import { isRedisAvailable, redis } from '@/lib/redis';
 import { realtime } from '@/lib/realtime';
-import { JoinRoomRequest, Room, RoomResponse, RoomSeat } from '@/types/room';
+import { Room, RoomResponse, RoomSeat } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
 
-type JoinRoomPayload = Partial<JoinRoomRequest> & { code?: unknown; roomCode?: unknown };
+type JoinRoomPayload = {
+  roomId?: unknown;
+  code?: unknown;
+  roomCode?: unknown;
+  nickname?: unknown;
+};
 
 const isOccupiedSeat = (seat: RoomSeat): seat is Exclude<RoomSeat, null> => seat !== null;
 
@@ -36,17 +41,17 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     const name = nicknameInput;
 
     // KVロック（あれば利用）
-  const hasRedisAvailable = isRedisAvailable();
-  const lockKey = `lock:room:${rid}:join`;
-  const lockToken = `${Date.now()}:${Math.random()}`;
-  let locked = false;
-  if (hasRedisAvailable) {
-    const ok = await redis.set(lockKey, lockToken, { nx: true, ex: 3 });
-    if (ok !== 'OK') {
-      return NextResponse.json({ ok: false, reason: 'busy' }, { status: 423 });
+    const hasRedisAvailable = isRedisAvailable();
+    const lockKey = `lock:room:${rid}:join`;
+    const lockToken = `${Date.now()}:${Math.random()}`;
+    let locked = false;
+    if (hasRedisAvailable) {
+      const ok = await redis.set(lockKey, lockToken, { nx: true, ex: 3 });
+      if (ok !== 'OK') {
+        return NextResponse.json({ ok: false, reason: 'busy' }, { status: 423 });
+      }
+      locked = true;
     }
-    locked = true;
-  }
 
     try {
       // 1) まず KV を読み、存在すればそこで read-modify-write
@@ -114,8 +119,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
     } finally {
       if (locked) {
         try {
-          const v = await redis.get<string>(lockKey);
-          if (v === lockToken) await redis.del(lockKey);
+          const value = await redis.get<string>(lockKey);
+          if (value === lockToken) await redis.del(lockKey);
         } catch {}
       }
     }

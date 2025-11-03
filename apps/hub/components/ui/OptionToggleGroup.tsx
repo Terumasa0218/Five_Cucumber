@@ -10,7 +10,6 @@ export interface OptionToggleGroupProps<T extends string | number> {
   options: Option<T>[];
   value: T;
   onChange: (next: T) => void;
-  layout?: "wrap" | "list";
   className?: string;
   srHint?: string;
 }
@@ -25,7 +24,6 @@ export function OptionToggleGroup<T extends string | number>({
   options,
   value,
   onChange,
-  layout = "wrap",
   className,
   srHint,
 }: OptionToggleGroupProps<T>) {
@@ -33,14 +31,16 @@ export function OptionToggleGroup<T extends string | number>({
   const selectedIndex = useMemo(() => options.findIndex((o) => o.value === value), [options, value]);
 
   useEffect(() => {
+    type ArrowKey = 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown';
+    const arrowKeys: ArrowKey[] = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
     const handleKeyDown = (e: KeyboardEvent) => {
-      const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"] as const;
-      if (!keys.includes(e.key as any)) return;
+      if (!arrowKeys.some((key) => key === e.key)) return;
+      const key = e.key as ArrowKey;
       e.preventDefault();
       const count = options.length;
       if (count === 0) return;
       const current = Math.max(0, selectedIndex);
-      const delta = e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 1;
+      const delta = key === "ArrowLeft" || key === "ArrowUp" ? -1 : 1;
       const nextIndex = (current + delta + count) % count;
       const next = options[nextIndex];
       if (next && !next.disabled) {

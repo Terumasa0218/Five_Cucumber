@@ -5,7 +5,6 @@ import React from "react";
 export interface PlayerSlot { id: string; name: string; cucumbers: number; you?: boolean; isActive?: boolean }
 export interface BattleTableProps {
   players: PlayerSlot[];
-  currentPlayerId?: string;
   fieldCards: string[];
   discardCards: string[];
   onCardSelect?: (card: string) => void;
@@ -19,12 +18,12 @@ function mergeClassNames(...classes: Array<string | undefined | false>) {
   return classes.filter(Boolean).join(" ");
 }
 
-export function BattleTable({ players, currentPlayerId, fieldCards, discardCards, onCardSelect, lockedCardId, isSubmitting, children, className }: BattleTableProps) {
+export function BattleTable({ players, fieldCards, discardCards, onCardSelect, lockedCardId, isSubmitting, children, className }: BattleTableProps) {
   return (
     <div className={mergeClassNames("relative flex-1 grid grid-rows-[auto_1fr_auto] gap-6", className)}>
       {/* Players */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {players.map((p, idx) => (
+        {players.map((p) => (
           <div
             key={p.id}
             className={mergeClassNames(

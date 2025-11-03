@@ -33,8 +33,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         console.error('[Game Start] KV not available in production');
         return NextResponse.json({ error: 'KV_NOT_AVAILABLE' }, { status: 500 });
       }
-      (globalThis as any).__mem = (globalThis as any).__mem || new Map<string, any>();
-      const mem = (globalThis as any).__mem as Map<string, any>;
+      interface MemoryStore {
+        __mem?: Map<string, string | number>;
+      }
+      const globalMem = globalThis as MemoryStore;
+      globalMem.__mem = globalMem.__mem || new Map<string, string | number>();
+      const mem = globalMem.__mem;
       mem.set(`room:${roomId}:state`, JSON.stringify(state));
       mem.set(`room:${roomId}:v`, 0);
       mem.set(`room:${roomId}:seats`, JSON.stringify(seats));
@@ -42,7 +46,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const v = 0;
 
     await realtime.publishToMany(roomId, seats, 'game_started', (uid) => {
-      const view = projectViewFor(state as any, uid);
+      const view = projectViewFor(state, uid);
       return { v, state: view, h: hashState(view) };
     });
     return NextResponse.json({ ok: true, v }, { status: 200 });

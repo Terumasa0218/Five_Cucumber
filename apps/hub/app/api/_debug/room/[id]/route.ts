@@ -13,9 +13,10 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     const data = await kv.get(keyOf(id));
     console.log('[debug.room.exists]', { id, exists: !!data });
     return NextResponse.json({ ok: true, exists: !!data });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
     console.error('[debug.room.exists][error]', e);
-    return NextResponse.json({ ok: false, error: String(e?.message ?? e) }, { status: 500 });
+    return NextResponse.json({ ok: false, error: errorMessage }, { status: 500 });
   }
 }
 

@@ -1,10 +1,8 @@
 'use client';
 
-import { useI18n } from '@/hooks/useI18n';
 import { useEffect, useState } from 'react';
 
 export function PresenceBadge() {
-  const { t } = useI18n();
   const [onlineCount, setOnlineCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
 

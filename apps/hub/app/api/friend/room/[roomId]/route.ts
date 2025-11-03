@@ -5,7 +5,7 @@ export const revalidate = 0;
 
 import { kv } from '@vercel/kv';
 import { NextResponse } from 'next/server';
-import { json } from '@/lib/http';
+import type { Room } from '@/types/room';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
@@ -13,7 +13,7 @@ const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalida
 export async function GET(_req: Request, { params }: { params: { roomId: string } }) {
   const id = String(params.roomId);
   try {
-    const room = await kv.get(keyOf(id));
+    const room = await kv.get<Room>(keyOf(id));
     if (!room) {
       console.warn('[room.lookup.not-found]', { id });
       return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404, headers: noStore });
@@ -22,8 +22,9 @@ export async function GET(_req: Request, { params }: { params: { roomId: string 
     await kv.expire(keyOf(id), 60 * 30).catch(() => {});
 
     return NextResponse.json({ ok: true, room }, { headers: noStore });
-  } catch (e: any) {
-    console.error('[room.lookup.error]', e);
-    return NextResponse.json({ ok: false, reason: 'error', error: String(e?.message ?? e) }, { status: 500, headers: noStore });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[room.lookup.error]', error);
+    return NextResponse.json({ ok: false, reason: 'error', error: message }, { status: 500, headers: noStore });
   }
 }
