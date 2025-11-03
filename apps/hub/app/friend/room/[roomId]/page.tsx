@@ -162,7 +162,7 @@ export default function RoomWaitingPage() {
               }
             });
 
-            channel.subscribe('room_updated', (message) => {
+            channel.subscribe('room_updated', (message: Types.Message) => {
               console.log('[RoomPage] Received room_updated event:', message.data);
               const { room: updatedRoom, event, joinedPlayer } = message.data;
 
