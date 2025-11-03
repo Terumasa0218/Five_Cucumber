@@ -10,6 +10,7 @@ import type { Room, RoomResponse } from "@/types/room";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { Types } from "ably";
 
 export default function RoomWaitingPage() {
   // 共有ストアがある場合のみサーバ同期
@@ -153,7 +154,7 @@ export default function RoomWaitingPage() {
               console.log('[RoomPage] Ably channel attached successfully');
             });
 
-            channel.on('failed', (stateChange) => {
+            channel.on('failed', (stateChange: Types.ChannelStateChange) => {
               console.error('[RoomPage] Ably channel failed:', stateChange.reason);
               // スマホではAblyが失敗しやすいので、警告を表示
               if (isMobile) {
