@@ -16,6 +16,23 @@ import {
 } from './rules';
 import { ActionResult, GameConfig, GamePhase, GameState, GameView, Move } from './types';
 
+
+function cloneState(state: GameState): GameState {
+  return {
+    ...state,
+    players: state.players.map(player => ({
+      ...player,
+      hand: [...player.hand],
+      graveyard: [...player.graveyard]
+    })),
+    sharedGraveyard: [...state.sharedGraveyard],
+    trickCards: state.trickCards.map(trickCard => ({ ...trickCard })),
+    gameOverPlayers: [...state.gameOverPlayers],
+    remainingCards: [...state.remainingCards],
+    cardCounts: [...state.cardCounts]
+  };
+}
+
 export function createInitialState(config: GameConfig, rng: SeededRng): GameState {
   const deck = rng.shuffle(createDeck());
   const hands = dealCards(deck, config.players, config.initialCards);
@@ -117,7 +134,7 @@ export function applyMove(state: GameState, move: Move, config: GameConfig, rng:
 }
 
 export function endTrick(state: GameState, config: GameConfig, rng: SeededRng): ActionResult {
-  const newState = { ...state };
+  const newState = cloneState(state);
   
   // 勝者を決定
   const winner = determineTrickWinner(newState.trickCards);
@@ -140,7 +157,7 @@ export function endTrick(state: GameState, config: GameConfig, rng: SeededRng): 
 }
 
 export function finalRound(state: GameState, config: GameConfig, rng: SeededRng): ActionResult {
-  const newState = { ...state };
+  const newState = cloneState(state);
   
   // 最終トリックのペナルティを計算
   const { winner, penalty } = calculateFinalTrickPenalty(newState.trickCards, config);
@@ -162,7 +179,7 @@ export function finalRound(state: GameState, config: GameConfig, rng: SeededRng)
 }
 
 export function startNewRound(state: GameState, config: GameConfig, rng: SeededRng): ActionResult {
-  const newState = { ...state };
+  const newState = cloneState(state);
   
   // 新しいデッキを作成
   const deck = rng.shuffle(createDeck());
