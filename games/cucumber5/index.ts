@@ -246,6 +246,10 @@ class Cucumber5GameHandle implements GameHandle {
 
     player.graveyard.push(discardedCard);
     this.state.sharedGraveyard.push(discardedCard);
+    this.state.trickCards.push({
+      player: this.state.currentPlayer,
+      card: discardedCard
+    });
 
     this.updateView();
     this.recordAction('discard_card', { card: discardedCard.number });
@@ -258,7 +262,7 @@ class Cucumber5GameHandle implements GameHandle {
   private nextPlayer(): void {
     this.state.currentPlayer = (this.state.currentPlayer + 1) % this.state.players.length;
     
-    if (this.state.currentPlayer === 0) {
+    if (this.state.trickCards.length === this.state.players.length) {
       this.endTrick();
     } else {
       this.resetTimer();
