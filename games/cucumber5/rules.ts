@@ -154,26 +154,25 @@ export class Cucumber5Rules {
       return { cucumberAwards: [], hasOne: false };
     }
 
-    // Find maximum card - FIXED: Use spread operator correctly
+    // Find maximum card number
     const maxCardNumber = Math.max(...finalCards.map(card => card.number));
     const hasOne = finalCards.some(card => card.number === 1);
-    
-    // Get losers (players with max card)
-    const losers = trickCards.filter(tc => tc.card.number === maxCardNumber);
-    
-    const cucumberAwards = losers.map(loser => {
-      let cucumbers = this.getCucumberCount(maxCardNumber);
-      
-      // Double cucumbers if someone played a 1
-      if (hasOne) {
-        cucumbers *= 2;
-      }
-      
-      return {
-        player: loser.player,
-        cucumbers
-      };
-    });
+
+    // If multiple players have max card, last one is penalized
+    const maxCardPlayers = trickCards.filter(tc => tc.card.number === maxCardNumber);
+    const loser = maxCardPlayers[maxCardPlayers.length - 1];
+
+    let cucumbers = this.getCucumberCount(maxCardNumber);
+
+    // Double cucumbers if someone played a 1
+    if (hasOne) {
+      cucumbers *= 2;
+    }
+
+    const cucumberAwards = [{
+      player: loser.player,
+      cucumbers
+    }];
 
     return { cucumberAwards, hasOne };
   }
