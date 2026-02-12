@@ -45,6 +45,8 @@ class Cucumber5GameHandle implements GameHandle {
   private state: Cucumber5State;
   private timer: NodeJS.Timeout | null = null;
   private isRunning = false;
+  private isAnimating = false;
+  private humanPlayerIndex = 0;
   private view: Cucumber5View | null = null;
 
   constructor(
@@ -55,6 +57,7 @@ class Cucumber5GameHandle implements GameHandle {
     this.element = element;
     this.options = options;
     this.onEvent = onEvent;
+    this.humanPlayerIndex = this.resolveHumanPlayerIndex(options);
     this.state = this.initializeGame();
     this.mountView();
   }
@@ -78,7 +81,7 @@ class Cucumber5GameHandle implements GameHandle {
     });
 
     // Start first turn
-    if (this.state.currentPlayer !== 0) {
+    if (this.state.currentPlayer !== this.humanPlayerIndex) {
       this.scheduleCPUAction();
     }
   }
@@ -110,6 +113,7 @@ class Cucumber5GameHandle implements GameHandle {
 
   sendAction(action: string, data?: any): void {
     if (!this.isRunning) return;
+    if (this.isAnimating) return;
 
     switch (action) {
       case 'play_card':
@@ -163,6 +167,7 @@ class Cucumber5GameHandle implements GameHandle {
 
   private handleViewAction = (action: Cucumber5ViewAction): void => {
     if (!this.isRunning) return;
+    if (this.isAnimating) return;
 
     switch (action.type) {
       case 'card:select':
@@ -212,6 +217,8 @@ class Cucumber5GameHandle implements GameHandle {
   }
 
   private playCard(card: Cucumber5Card, handIndex?: number): void {
+    if (this.isAnimating) return;
+
     const player = this.state.players[this.state.currentPlayer];
     if (!player) return;
 
@@ -226,16 +233,20 @@ class Cucumber5GameHandle implements GameHandle {
     });
 
     this.state.fieldCard = playedCard;
+    this.isAnimating = true;
 
     this.updateView();
     this.recordAction('play_card', { card: playedCard.number });
 
     setTimeout(() => {
+      this.isAnimating = false;
       this.nextPlayer();
     }, 2000);
   }
 
   private discardCard(card: Cucumber5Card, handIndex?: number): void {
+    if (this.isAnimating) return;
+
     const player = this.state.players[this.state.currentPlayer];
     if (!player) return;
 
@@ -250,11 +261,13 @@ class Cucumber5GameHandle implements GameHandle {
       player: this.state.currentPlayer,
       card: discardedCard
     });
+    this.isAnimating = true;
 
     this.updateView();
     this.recordAction('discard_card', { card: discardedCard.number });
 
     setTimeout(() => {
+      this.isAnimating = false;
       this.nextPlayer();
     }, 2000);
   }
@@ -287,7 +300,7 @@ class Cucumber5GameHandle implements GameHandle {
     this.updateView();
     this.resetTimer();
 
-    if (this.state.currentPlayer !== 0) {
+    if (this.state.currentPlayer !== this.humanPlayerIndex) {
       this.scheduleCPUAction();
     }
   }
@@ -337,7 +350,7 @@ class Cucumber5GameHandle implements GameHandle {
     this.updateView();
     this.resetTimer();
 
-    if (this.state.currentPlayer !== 0) {
+    if (this.state.currentPlayer !== this.humanPlayerIndex) {
       this.scheduleCPUAction();
     }
   }
@@ -370,24 +383,28 @@ class Cucumber5GameHandle implements GameHandle {
   }
 
   private scheduleCPUAction(): void {
-    if (!this.isRunning || this.state.currentPlayer === 0) return;
+    if (!this.isRunning || this.isAnimating || this.state.currentPlayer === this.humanPlayerIndex) return;
 
-    const player = this.state.players[this.state.currentPlayer];
-    if (!player.isCPU) return;
+    const playerIndex = this.state.currentPlayer;
+    const player = this.state.players[playerIndex];
+    if (!player?.isCPU) return;
 
     const difficulty = (this.options.difficulty || 'normal') as Difficulty;
     const thinkingTime = cpuManager.getThinkingTime(difficulty);
 
     setTimeout(() => {
-      if (!this.isRunning) return;
+      if (!this.isRunning || this.isAnimating || this.state.currentPlayer !== playerIndex) return;
 
-      const action = cpuManager.getCPUAction(player, this.state, difficulty);
+      const currentPlayer = this.state.players[playerIndex];
+      if (!currentPlayer?.isCPU) return;
+
+      const action = cpuManager.getCPUAction(currentPlayer, this.state, difficulty);
       if (!action) return;
 
-      const handIndex = player.hand.findIndex(c => this.isSameCard(c, action));
+      const handIndex = currentPlayer.hand.findIndex(c => this.isSameCard(c, action));
       if (handIndex === -1) return;
 
-      const targetCard = player.hand[handIndex];
+      const targetCard = currentPlayer.hand[handIndex];
 
       if (this.state.fieldCard === null || targetCard.number >= (this.state.fieldCard?.number ?? 0)) {
         this.playCard(targetCard, handIndex);
@@ -427,9 +444,10 @@ class Cucumber5GameHandle implements GameHandle {
   }
 
   private autoPlay(): void {
-    if (this.state.currentPlayer !== 0) return;
+    if (this.isAnimating || this.state.currentPlayer !== this.humanPlayerIndex) return;
 
-    const player = this.state.players[0];
+    const player = this.state.players[this.humanPlayerIndex];
+    if (!player) return;
     const playableCards = Cucumber5Rules.getPlayableCards(player, this.state.fieldCard);
     
     if (playableCards.length > 0) {
@@ -445,6 +463,35 @@ class Cucumber5GameHandle implements GameHandle {
         this.discardCard(targetCard, handIndex);
       }
     }
+  }
+
+  private resolveHumanPlayerIndex(options: GameOptions): number {
+    const rawOptions = options as GameOptions & {
+      humanPlayerIndex?: number;
+      playerIndex?: number;
+      localPlayerIndex?: number;
+      localPlayerId?: string;
+    };
+
+    const indexCandidates = [
+      rawOptions.humanPlayerIndex,
+      rawOptions.playerIndex,
+      rawOptions.localPlayerIndex
+    ];
+
+    for (const candidate of indexCandidates) {
+      if (typeof candidate === 'number' && candidate >= 0 && candidate < options.players.length) {
+        return candidate;
+      }
+    }
+
+    if (typeof rawOptions.localPlayerId === 'string') {
+      const playerIndex = options.players.findIndex(player => player.id === rawOptions.localPlayerId);
+      if (playerIndex >= 0) return playerIndex;
+    }
+
+    const firstHumanIndex = options.players.findIndex(player => !player.isCPU);
+    return firstHumanIndex >= 0 ? firstHumanIndex : 0;
   }
 
   private recordAction(type: string, data?: any): void {
