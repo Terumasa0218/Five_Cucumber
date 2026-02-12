@@ -2,6 +2,10 @@
 
 import { GameConfig, GameState, Move } from './types';
 
+const MIN_CARD_NUMBER = 1;
+const MAX_CARD_NUMBER = 15;
+const CARDS_PER_NUMBER = 7;
+
 export function getCucumberCount(cardNumber: number): number {
   if (cardNumber >= 2 && cardNumber <= 5) return 1;
   if (cardNumber >= 6 && cardNumber <= 9) return 2;
@@ -81,8 +85,8 @@ export function getGameOverPlayers(state: GameState, config: GameConfig): number
 // デッキを生成
 export function createDeck(): number[] {
   const deck: number[] = [];
-  for (let num = 1; num <= 15; num++) {
-    for (let i = 0; i < 4; i++) {
+  for (let num = MIN_CARD_NUMBER; num <= MAX_CARD_NUMBER; num++) {
+    for (let i = 0; i < CARDS_PER_NUMBER; i++) {
       deck.push(num);
     }
   }
@@ -109,9 +113,9 @@ export function dealCards(deck: number[], players: number, cardsPerPlayer: numbe
 
 // カード枚数カウントを初期化
 export function initializeCardCounts(): number[] {
-  const counts = new Array(16).fill(0); // 0は未使用
-  for (let i = 1; i <= 15; i++) {
-    counts[i] = 4;
+  const counts = new Array(MAX_CARD_NUMBER + 1).fill(0); // 0は未使用
+  for (let i = MIN_CARD_NUMBER; i <= MAX_CARD_NUMBER; i++) {
+    counts[i] = CARDS_PER_NUMBER;
   }
   return counts;
 }
@@ -120,7 +124,7 @@ export function initializeCardCounts(): number[] {
 export function updateCardCounts(counts: number[], playedCards: number[]): number[] {
   const newCounts = [...counts];
   for (const card of playedCards) {
-    if (card >= 1 && card <= 15) {
+    if (card >= MIN_CARD_NUMBER && card <= MAX_CARD_NUMBER) {
       newCounts[card] = Math.max(0, newCounts[card] - 1);
     }
   }
@@ -130,7 +134,7 @@ export function updateCardCounts(counts: number[], playedCards: number[]): numbe
 // 残りカードを推定
 export function estimateRemainingCards(counts: number[]): number[] {
   const remaining: number[] = [];
-  for (let i = 1; i <= 15; i++) {
+  for (let i = MIN_CARD_NUMBER; i <= MAX_CARD_NUMBER; i++) {
     for (let j = 0; j < counts[i]; j++) {
       remaining.push(i);
     }
