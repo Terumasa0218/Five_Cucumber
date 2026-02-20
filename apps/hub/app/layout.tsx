@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Header from "../components/Header";
 import Script from 'next/script';
+import { cookies, headers } from 'next/headers';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -42,9 +43,25 @@ const COMMIT = (process.env.NEXT_PUBLIC_COMMIT_SHA || process.env.VERCEL_GIT_COM
 const BUILD_TIME = new Date().toISOString().replace(/\..+$/, 'Z');
 const RUNTIME = 'nodejs';
 
+function resolveLocale(): 'ja' | 'en' {
+  const languageFromCookie = cookies().get('language')?.value;
+  if (languageFromCookie === 'ja' || languageFromCookie === 'en') {
+    return languageFromCookie;
+  }
+
+  const acceptLanguage = headers().get('accept-language')?.toLowerCase() ?? '';
+  if (acceptLanguage.startsWith('en')) {
+    return 'en';
+  }
+
+  return 'ja';
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = resolveLocale();
+
   return (
-    <html lang="ja" data-theme="light">
+    <html lang={locale} data-theme="light">
       <body>
         <Script id="suppress-extension-noise" strategy="beforeInteractive">
           {`
