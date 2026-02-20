@@ -67,16 +67,34 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="build-badge-ping" strategy="afterInteractive">
           {`
             (function(){
+              function isPlayingPath(){
+                var path = window.location.pathname || '';
+                return path.indexOf('/play') !== -1;
+              }
+              function tryReloadIfAllowed(){
+                var pendingReload = sessionStorage.getItem('fc_reload_pending') === '1';
+                if (!pendingReload || isPlayingPath()) return;
+                if (!sessionStorage.getItem('fc_reload_once')) {
+                  sessionStorage.setItem('fc_reload_once','1');
+                  sessionStorage.removeItem('fc_reload_pending');
+                  location.reload();
+                }
+              }
               try {
                 fetch('/api/ping', { cache: 'no-store' }).then(function(r){
                   var xb = r.headers.get('x-build');
                   var badge = document.querySelector('[data-build-badge]');
                   if (badge) badge.setAttribute('data-build-x', xb||'');
                   var built='${COMMIT}';
-                  if (xb && xb !== built && !sessionStorage.getItem('fc_reload_once')){
-                    sessionStorage.setItem('fc_reload_once','1'); location.reload();
+                  if (xb && xb !== built) {
+                    if (isPlayingPath()) {
+                      sessionStorage.setItem('fc_reload_pending', '1');
+                    } else {
+                      tryReloadIfAllowed();
+                    }
                   }
                 }).catch(function(err){ console.warn('[BuildCheck] ping failed', err); });
+                setInterval(tryReloadIfAllowed, 1000);
               } catch(e){ console.warn('[BuildCheck] error', e); }
             })();
           `}
