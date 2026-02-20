@@ -4,6 +4,7 @@ import { realtime } from '@/lib/realtime';
 import type { Room, RoomSeat } from '@/types/room';
 import { kvGetJSON, kvSaveJSON, roomTTL } from '@/lib/kv';
 import { verifyAuth } from '@/lib/auth';
+import { withLock } from '@/lib/lock';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 
@@ -30,21 +31,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return json({ ok: false, reason: 'bad-request' }, 400);
     }
 
-    const room = await kvGetJSON<Room>(keyOf(roomId));
-    if (!room) {
+    const { room, status } = await withLock(`friend-room:${roomId}`, async () => {
+      const room = await kvGetJSON<Room>(keyOf(roomId));
+      if (!room) {
+        return { status: 'not-found' as const };
+      }
+
+      const idx = room.seats.findIndex((s) => s?.nickname === nickname);
+      if (idx >= 0) {
+        room.seats[idx] = null;
+        await kvSaveJSON(keyOf(roomId), room, roomTTL);
+      }
+
+      return { status: 'ok' as const, room };
+    }, { retry: 2, retryDelayMs: 100 });
+
+    if (status === 'not-found') {
       return json({ ok: false, reason: 'not-found' }, 404);
     }
 
-    const idx = room.seats.findIndex((s) => s?.nickname === nickname);
-    if (idx >= 0) {
-      room.seats[idx] = null;
-      await kvSaveJSON(keyOf(roomId), room, roomTTL);
-
-      const members = room.seats.filter(isOccupiedSeat).map((seat) => seat.nickname);
-      try {
-        await realtime.publishToMany(roomId, members, 'room_updated', () => ({ room, event: 'player_left', leftPlayer: nickname }));
-      } catch {}
-    }
+    const members = room.seats.filter(isOccupiedSeat).map((seat) => seat.nickname);
+    try {
+      await realtime.publishToMany(roomId, members, 'room_updated', () => ({ room, event: 'player_left', leftPlayer: nickname }));
+    } catch {}
 
     return json({ ok: true }, 200);
   } catch (error) {
