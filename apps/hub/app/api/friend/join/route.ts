@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 import { kvGetJSON, kvSaveJSON, roomTTL } from '@/lib/kv';
+import { withLock } from '@/lib/lock';
 import { realtime } from '@/lib/realtime';
 import { Room, RoomSeat } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
@@ -34,24 +35,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400, headers: noStore });
     }
 
-    const room = await kvGetJSON<Room>(keyOf(roomId));
-    if (!room) {
+    const { room, status } = await withLock(`friend-room:${roomId}`, async () => {
+      const room = await kvGetJSON<Room>(keyOf(roomId));
+      if (!room) {
+        return { status: 'not-found' as const };
+      }
+      if (room.status !== 'waiting') {
+        return { status: 'locked' as const };
+      }
+
+      const already = room.seats.some((seat) => seat?.nickname === nicknameInput);
+      if (!already) {
+        const emptyIndex = room.seats.findIndex((seat) => seat === null);
+        if (emptyIndex === -1) {
+          return { status: 'full' as const };
+        }
+        room.seats[emptyIndex] = { nickname: nicknameInput };
+      }
+
+      await kvSaveJSON(keyOf(roomId), room, roomTTL);
+      return { status: 'ok' as const, room };
+    }, { retry: 2, retryDelayMs: 100 });
+
+    if (status === 'not-found') {
       return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404, headers: noStore });
     }
-    if (room.status !== 'waiting') {
+    if (status === 'locked') {
       return NextResponse.json({ ok: false, reason: 'locked' }, { status: 423, headers: noStore });
     }
-
-    const already = room.seats.some((seat) => seat?.nickname === nicknameInput);
-    if (!already) {
-      const emptyIndex = room.seats.findIndex((seat) => seat === null);
-      if (emptyIndex === -1) {
-        return NextResponse.json({ ok: false, reason: 'full' }, { status: 409, headers: noStore });
-      }
-      room.seats[emptyIndex] = { nickname: nicknameInput };
+    if (status === 'full') {
+      return NextResponse.json({ ok: false, reason: 'full' }, { status: 409, headers: noStore });
     }
-
-    await kvSaveJSON(keyOf(roomId), room, roomTTL);
 
     try {
       const members = room.seats.filter(isOccupiedSeat).map((seat) => seat.nickname);
