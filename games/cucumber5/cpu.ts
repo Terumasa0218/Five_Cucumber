@@ -42,7 +42,7 @@ export class NormalCPU implements CPUStrategy {
     state: Cucumber5State,
     playableCards: Cucumber5Card[]
   ): Cucumber5Card {
-    const isFinalTrick = state.phase === 'trick_end' && state.trick === 1;
+    const isFinalTrick = this.isFinalTrick(player, state);
     
     if (isFinalTrick) {
       // In final trick, try to avoid being highest
@@ -51,6 +51,12 @@ export class NormalCPU implements CPUStrategy {
     
     // Regular trick strategy
     return this.selectForRegularTrick(player, state, playableCards);
+  }
+
+  private isFinalTrick(player: Cucumber5Player, state: Cucumber5State): boolean {
+    const isLastCardInHand = player.hand.length === 1;
+    const isKnownLastTrick = state.trick >= 7;
+    return isLastCardInHand || isKnownLastTrick;
   }
 
   private selectForFinalTrick(
@@ -108,13 +114,19 @@ export class HardCPU implements CPUStrategy {
     state: Cucumber5State,
     playableCards: Cucumber5Card[]
   ): Cucumber5Card {
-    const isFinalTrick = state.phase === 'trick_end' && state.trick === 1;
+    const isFinalTrick = this.isFinalTrick(player, state);
     
     if (isFinalTrick) {
       return this.selectForFinalTrick(playableCards, state);
     }
     
     return this.selectForRegularTrick(player, state, playableCards);
+  }
+
+  private isFinalTrick(player: Cucumber5Player, state: Cucumber5State): boolean {
+    const isLastCardInHand = player.hand.length === 1;
+    const isKnownLastTrick = state.trick >= 7;
+    return isLastCardInHand || isKnownLastTrick;
   }
 
   private selectForFinalTrick(
@@ -144,6 +156,8 @@ export class HardCPU implements CPUStrategy {
     playableCards: Cucumber5Card[]
   ): Cucumber5Card {
     // Advanced regular trick strategy
+    const sortedCards = [...playableCards].sort((a, b) => a.number - b.number);
+    const lowCards = sortedCards.slice(0, Math.max(1, Math.ceil(sortedCards.length * 0.5)));
     
     // 1. If we can win cheaply, do it
     if (state.fieldCard) {
@@ -160,27 +174,32 @@ export class HardCPU implements CPUStrategy {
     }
     
     // 2. Consider opponent hand sizes and cucumber counts
-    const opponents = state.players.filter((p, i) => i !== state.players.indexOf(player) && !p.isCPU);
+    const playerIndex = state.players.findIndex(p => p.id === player.id);
+    const opponents = state.players.filter((p, i) => i !== playerIndex && !p.isCPU);
     const weakOpponents = opponents.filter(p => p.cucumbers >= 3);
-    
-    if (weakOpponents.length > 0 && Math.random() < 0.6) {
-      // Try to pressure weak opponents
-      const pressureCards = playableCards.filter(card => card.number >= 10);
-      if (pressureCards.length > 0) {
-        return pressureCards[Math.floor(Math.random() * pressureCards.length)];
+    const laterTrick = player.hand.length <= 4;
+
+    if (weakOpponents.length > 0 && laterTrick && state.fieldCard) {
+      // In later tricks, take controlled wins while still preserving highest cards.
+      const winningCards = sortedCards.filter(card => card.number > state.fieldCard!.number);
+      const preferredWinningCards = winningCards.filter(card => card.number <= 10);
+      if (preferredWinningCards.length > 0) {
+        return preferredWinningCards[0];
+      }
+      if (winningCards.length > 0 && lowCards.length > 0) {
+        return winningCards[0];
       }
     }
-    
-    // 3. Default to balanced selection
-    const sortedCards = [...playableCards].sort((a, b) => a.number - b.number);
-    const middleCards = sortedCards.slice(
-      Math.floor(sortedCards.length * 0.3),
-      Math.ceil(sortedCards.length * 0.7)
-    );
-    
-    return middleCards.length > 0 
-      ? middleCards[Math.floor(Math.random() * middleCards.length)]
-      : sortedCards[Math.floor(sortedCards.length / 2)];
+
+    // 3. Default: preserve high cards for flexible late-game control.
+    if (state.fieldCard) {
+      const winningCards = sortedCards.filter(card => card.number > state.fieldCard!.number);
+      if (winningCards.length > 0) {
+        return winningCards[0];
+      }
+    }
+
+    return lowCards[Math.floor(Math.random() * lowCards.length)] ?? sortedCards[0];
   }
 }
 
