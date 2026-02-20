@@ -1,12 +1,8 @@
 import { NextRequest } from 'next/server';
 import type { NextResponse } from 'next/server';
 import { json } from '@/lib/http';
-import { updateRoom } from '@/lib/roomsStore';
-import { updateRoomRedis } from '@/lib/roomsRedis';
-import { updateRoomStatus, getRoomFromMemory, putRoomToMemory } from '@/lib/roomSystemUnified';
-import { isRedisAvailable } from '@/lib/redis';
 import type { Room, RoomStatus } from '@/types/room';
-import { kv } from '@vercel/kv';
+import { kvGetJSON, kvSaveJSON, roomTTL } from '@/lib/kv';
 import { verifyAuth } from '@/lib/auth';
 
 const keyOf = (id: string) => `friend:room:${id}`;
@@ -32,76 +28,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return json({ ok: false, reason: 'bad-request' }, 400);
     }
 
-    const status = statusInput;
-    const rid = roomId;
-    const hasRedisAvailable = isRedisAvailable();
-    const isProd = process.env.VERCEL_ENV === 'production';
-
-    // 1) KV を単一のソースとして更新
-    try {
-      const room = await kv.get<Room>(keyOf(rid));
-      if (room) {
-        room.status = status;
-        await kv.set(keyOf(rid), room, { ex: 60 * 30 });
-        return json({ ok: true }, 200);
-      }
-    } catch (e) {
-      console.warn('[API] Status KV update failed or room not found in KV, falling back:', e);
-    }
-
-    // 2) 既存ストアを更新しつつ、見つかったら KV にも同期
-    try {
-      await updateRoom(rid, { status });
-      try {
-        const r = await kv.get<Room>(keyOf(rid));
-        if (r) {
-          r.status = status;
-          await kv.set(keyOf(rid), r, { ex: 60 * 30 });
-        }
-      } catch {}
-      return json({ ok: true }, 200);
-    } catch {
-      // ignore
-    }
-
-    if (hasRedisAvailable) {
-      const updated = await updateRoomRedis(rid, { status });
-      if (updated) {
-        try {
-          const r = await kv.get<Room>(keyOf(rid));
-          if (r) {
-            r.status = status;
-            await kv.set(keyOf(rid), r, { ex: 60 * 30 });
-          }
-        } catch {}
-        return json({ ok: true }, 200);
-      }
-    }
-
-    // 3) 本番ではメモリフォールバック禁止、ただし開発では許可し KV へも同期試行
-    if (!isProd) {
-      const memoryRoom = getRoomFromMemory(rid);
-      if (memoryRoom) {
-        memoryRoom.status = status;
-        putRoomToMemory(memoryRoom);
-        try {
-          await kv.set(keyOf(rid), memoryRoom, { ex: 60 * 30 });
-        } catch {}
-      return json({ ok: true }, 200);
-      }
-    }
-
-    const ok = updateRoomStatus(rid, status);
-    if (!ok) {
+    const room = await kvGetJSON<Room>(keyOf(roomId));
+    if (!room) {
       return json({ ok: false, reason: 'not-found' }, 404);
     }
-    try {
-      const r = await kv.get<Room>(keyOf(rid));
-      if (r) {
-        r.status = status;
-        await kv.set(keyOf(rid), r, { ex: 60 * 30 });
-      }
-    } catch {}
+
+    room.status = statusInput;
+    await kvSaveJSON(keyOf(roomId), room, roomTTL);
 
     return json({ ok: true }, 200);
   } catch (error) {
@@ -109,5 +42,3 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return json({ ok: false, reason: 'server-error' }, 500);
   }
 }
-
-

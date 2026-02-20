@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-import { kv } from '@vercel/kv';
+import { kv, roomTTL } from '@/lib/kv';
 import { NextResponse } from 'next/server';
 import type { Room } from '@/types/room';
 import { verifyAuth } from '@/lib/auth';
@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: { params: { roomId: string }
       return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404, headers: noStore });
     }
 
-    await kv.expire(keyOf(id), 60 * 30).catch(() => {});
+    await kv.expire(keyOf(id), roomTTL).catch(() => {});
 
     return NextResponse.json({ ok: true, room }, { headers: noStore });
   } catch (error) {
