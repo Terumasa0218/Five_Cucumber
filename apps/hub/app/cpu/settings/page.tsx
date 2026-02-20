@@ -25,7 +25,11 @@ export default function CpuSettingsPage() {
 
   const handleStartGame = () => {
     if (isAllSettingsComplete) {
-      router.push('/play/cpu');
+      const query = new URLSearchParams({
+        players: String(settings.players),
+        difficulty: settings.difficulty
+      });
+      router.push(`/play/cpu?${query.toString()}`);
     }
   };
 
