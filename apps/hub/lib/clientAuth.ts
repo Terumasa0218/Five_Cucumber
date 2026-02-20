@@ -9,3 +9,13 @@ export async function getClientAuthToken(): Promise<string | null> {
   const credential = await signInAnonymously(auth);
   return credential.user.getIdToken();
 }
+
+
+export async function getClientAuthUid(): Promise<string> {
+  if (auth.currentUser) {
+    return auth.currentUser.uid;
+  }
+
+  const credential = await signInAnonymously(auth);
+  return credential.user.uid;
+}

@@ -1,32 +1,63 @@
 import Ably from 'ably/promises';
-import { json } from '@/lib/http';
+import { kv } from '@vercel/kv';
 import { verifyAuth } from '@/lib/auth';
+import { json } from '@/lib/http';
+import type { Room } from '@/types/room';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-function sanitizeChannel(raw: string): string {
-  // Ably のチャネル名として無難な範囲に制限（英数/アンダースコア/ハイフン/コロン/スラッシュ/ワイルドカード）
-  return (raw || '').replace(/[^-\w:/*]/g, '').slice(0, 128) || 'room-*';
+function sanitizeId(raw: string | null): string {
+  return (raw || '').replace(/[^-\w]/g, '').slice(0, 64);
+}
+
+function parseUserChannel(channelRaw: string | null): { roomId: string; participant: string } | null {
+  const channel = (channelRaw || '').trim();
+  const match = /^room-([\w-]{1,64})-user-([\w-]{1,64})$/.exec(channel);
+  if (!match) return null;
+  return { roomId: sanitizeId(match[1] ?? ''), participant: sanitizeId(match[2] ?? '') };
+}
+
+async function checkUserInRoom(roomId: string, authUid: string, participant: string): Promise<boolean> {
+  const room = await kv.get<Room>(`friend:room:${roomId}`);
+  if (!room) return false;
+
+  return room.seats.some((seat) => {
+    if (!seat) return false;
+    return seat.nickname === authUid || seat.nickname === participant;
+  });
 }
 
 export async function GET(req: Request) {
   const auth = await verifyAuth(req);
   if (!auth) return json({ error: 'Unauthorized' }, 401);
+
   try {
     const url = new URL(req.url);
-    const uid = url.searchParams.get('uid') ?? 'anon';
-    const channel = sanitizeChannel(url.searchParams.get('channel') ?? 'room-*');
+    const channelInfo = parseUserChannel(url.searchParams.get('channel'));
+    if (!channelInfo?.roomId || !channelInfo.participant) {
+      return json({ ok: false, reason: 'bad-channel' }, 400);
+    }
+
+    const isParticipant = await checkUserInRoom(channelInfo.roomId, auth.uid, channelInfo.participant);
+    if (!isParticipant) {
+      return json({ error: 'Forbidden' }, 403);
+    }
+
     const apiKey = process.env.ABLY_API_KEY;
     if (!apiKey) {
       return json({ ok: false, reason: 'no-ably-key' }, 500);
     }
+
     const ably = new Ably.Rest(apiKey);
     const token = await ably.auth.createTokenRequest({
-      clientId: uid,
-      capability: { [channel]: ['publish', 'subscribe', 'presence'] },
+      clientId: auth.uid,
+      capability: {
+        [`room-${channelInfo.roomId}-user-${channelInfo.participant}`]: ['publish', 'subscribe'],
+      },
     });
+
     return json({ ok: true, token });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
@@ -34,9 +65,6 @@ export async function GET(req: Request) {
   }
 }
 
-// CORS/プリフライト不要のはずだが、念のため 200 を返す
 export async function OPTIONS() {
   return json({ ok: true });
 }
-
-

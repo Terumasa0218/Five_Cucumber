@@ -7,12 +7,12 @@ type AblyTokenResponse =
   | { ok: true; token: Types.TokenRequest }
   | { ok: false; reason: string; message?: string };
 
-export function makeClient(uid: string, channelName: string): Types.RealtimePromise {
-  console.log('[Ably] Creating client for user:', uid, 'channel:', channelName);
+export function makeClient(clientId: string, channelName: string): Types.RealtimePromise {
+  console.log('[Ably] Creating client for user:', clientId, 'channel:', channelName);
 
   const authCallback: NonNullable<Types.AuthOptions['authCallback']> = async (_tokenParams, callback) => {
     try {
-      const qs = new URLSearchParams({ uid, channel: channelName, rnd: Date.now().toString() }).toString();
+      const qs = new URLSearchParams({ channel: channelName, rnd: Date.now().toString() }).toString();
       const data = await apiJson<AblyTokenResponse>(`/api/ably/token?${qs}`);
       if (!data.ok) {
         throw new Error(data.reason);
@@ -28,12 +28,11 @@ export function makeClient(uid: string, channelName: string): Types.RealtimeProm
   const clientOptions: Types.ClientOptions = {
     authUrl: `/api/ably/token`,
     authParams: {
-      uid,
       channel: channelName,
       rnd: Date.now().toString(),
     },
     authCallback,
-    clientId: uid,
+    clientId,
     autoConnect: true,
     transportParams: {
       heartbeatInterval: 30000,
