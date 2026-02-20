@@ -1,9 +1,8 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-import { kvExists, kvSaveJSON } from '@/lib/kv';
-import { getRoomById } from '@/lib/roomsStore';
-import { CreateRoomRequest, Room, RoomResponse } from '@/types/room';
+import { kvExists, kvSaveJSON, roomTTL } from '@/lib/kv';
+import { CreateRoomRequest, Room } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
 
@@ -112,7 +111,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     let id = '';
     for (let i = 0; i < 100; i++) {
       const cand = String(Math.floor(100000 + Math.random() * 900000));
-      const existsInFirestore = await getRoomById?.(cand);
       let existsInKv = false;
       try {
         existsInKv = await kvExists(`friend:room:${cand}`);
@@ -124,7 +122,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           { status: 503, headers: noStore }
         );
       }
-      const exists = existsInFirestore || existsInKv;
+      const exists = existsInKv;
       if (!exists) {
         id = cand;
         break;
@@ -151,7 +149,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const key = `friend:room:${roomId}`;
 
     try {
-      await kvSaveJSON(key, room, 60 * 60);
+      await kvSaveJSON(key, room, roomTTL);
       const ok = await kvExists(key);
       if (!ok) {
         const detail = 'kv-exists-check-failed';
