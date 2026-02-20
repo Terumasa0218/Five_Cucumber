@@ -10,6 +10,7 @@ import { realtime } from '@/lib/realtime';
 import { Room, RoomResponse, RoomSeat } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { verifyAuth } from '@/lib/auth';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
@@ -23,7 +24,9 @@ type JoinRoomPayload = {
 
 const isOccupiedSeat = (seat: RoomSeat): seat is Exclude<RoomSeat, null> => seat !== null;
 
-export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = await verifyAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const raw = (await req.json()) as JoinRoomPayload;
     const nicknameInput = typeof raw.nickname === 'string' ? raw.nickname.trim() : '';

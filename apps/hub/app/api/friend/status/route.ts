@@ -7,6 +7,7 @@ import { updateRoomStatus, getRoomFromMemory, putRoomToMemory } from '@/lib/room
 import { isRedisAvailable } from '@/lib/redis';
 import type { Room, RoomStatus } from '@/types/room';
 import { kv } from '@vercel/kv';
+import { verifyAuth } from '@/lib/auth';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 
@@ -20,6 +21,8 @@ const isRoomStatus = (value: string): value is RoomStatus =>
   value === 'waiting' || value === 'playing' || value === 'closed';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = await verifyAuth(req);
+  if (!auth) return json({ error: 'Unauthorized' }, 401);
   try {
     const body = (await req.json()) as StatusPayload;
     const roomId = typeof body.roomId === 'string' ? body.roomId.trim() : '';

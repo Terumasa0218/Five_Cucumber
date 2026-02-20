@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { verifyAuth } from '@/lib/auth';
 
-export const runtime = 'edge'; // Node専用クライアントなら 'nodejs'
+export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await verifyAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const hasKV = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
   const hasVercelRedisRest = Boolean(process.env.VERCEL_REDIS_URL && process.env.VERCEL_REDIS_TOKEN);
 

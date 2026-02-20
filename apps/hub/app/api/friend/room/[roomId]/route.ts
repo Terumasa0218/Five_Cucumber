@@ -6,11 +6,14 @@ export const revalidate = 0;
 import { kv } from '@vercel/kv';
 import { NextResponse } from 'next/server';
 import type { Room } from '@/types/room';
+import { verifyAuth } from '@/lib/auth';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
 
-export async function GET(_req: Request, { params }: { params: { roomId: string } }) {
+export async function GET(req: Request, { params }: { params: { roomId: string } }) {
+  const auth = await verifyAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const id = String(params.roomId);
   try {
     const room = await kv.get<Room>(keyOf(id));

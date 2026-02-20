@@ -1,5 +1,7 @@
 export const runtime = 'nodejs';
 
+import { verifyAuth } from '@/lib/auth';
+
 type EdgeAwareGlobal = typeof globalThis & { EdgeRuntime?: unknown };
 
 function getRuntime(): 'edge' | 'node' {
@@ -7,11 +9,13 @@ function getRuntime(): 'edge' | 'node' {
 }
 
 export async function GET(req: Request) {
+  const auth = await verifyAuth(req);
+  if (!auth) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const expose = process.env.EXPOSE_ENV_HEALTH === '1';
   const token = process.env.HEALTH_TOKEN || '';
   if (!expose) return new Response('Not found', { status: 404 });
-  const auth = req.headers.get('authorization') || '';
-  if (token && auth !== `Bearer ${token}`) return new Response('Not found', { status: 404 });
+  const authHeader = req.headers.get('authorization') || '';
+  if (token && authHeader !== `Bearer ${token}`) return new Response('Not found', { status: 404 });
 
   const hasKV = !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
   const hasUpstash = !!process.env.UPSTASH_REDIS_REST_URL && !!process.env.UPSTASH_REDIS_REST_TOKEN;
