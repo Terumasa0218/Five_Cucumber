@@ -137,7 +137,7 @@ function CpuPlayContent() {
     const referrer = navigation?.type === 'navigate' 
       ? (navigation as { name?: string }).name || document.referrer
       : document.referrer;
-    const isFromHome = !referrer || referrer.includes('/home') || referrer.includes('/cpu/settings');
+    const isFromHome = !referrer || referrer.includes('/home') || referrer.includes('/cucumber/cpu/settings') || referrer.includes('/cpu/settings');
     const gameStateKey = getGameStateKey(searchParams);
     
     // ホームから来た場合は常に新規ゲーム開始
