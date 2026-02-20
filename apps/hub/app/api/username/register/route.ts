@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { kv } from '@vercel/kv';
 import crypto from 'node:crypto';
+import { verifyAuth } from '@/lib/auth';
 
 const UID_COOKIE = 'fc_uid';
 const MAX_AGE = 60 * 60 * 24 * 365; // 1y
@@ -22,6 +23,8 @@ type RegisterRequest = {
 };
 
 export async function POST(req: NextRequest) {
+  const auth = await verifyAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     let body: unknown;
     try {
@@ -69,10 +72,6 @@ export async function POST(req: NextRequest) {
     await kv.set(`user:${id}`, { id, nickname, createdAt: now });
     await kv.set(keyOwner, nickname, { ex: MAX_AGE });
 
-    // プロフィール完了フラグを必ず付与（middleware通過用）
-    const opts = { httpOnly: true, sameSite: 'lax' as const, secure: true, path: '/', maxAge: MAX_AGE };
-    const jar2 = cookies();
-    jar2.set('hasProfile', '1', opts);
 
     console.log('[username/register] registered', { id, nickname });
     return NextResponse.json({ ok: true, id, nickname });

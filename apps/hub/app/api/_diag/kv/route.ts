@@ -1,6 +1,7 @@
 import { apiRequest, ApiRequestError } from '@/lib/api';
 import type { ApiResponse } from '@/lib/api';
 import { NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -10,7 +11,9 @@ function mask(s?: string | null) {
   return `${s.slice(0, 18)}…${s.slice(-6)}`;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await verifyAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const url =
     process.env.KV_REST_API_URL ||
     process.env.UPSTASH_REDIS_REST_URL ||

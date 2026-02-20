@@ -2,10 +2,13 @@ export const runtime = 'nodejs';
 
 import { kv } from '@vercel/kv';
 import { NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/auth';
 
 const keyPrefix = 'diag:shared-store';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await verifyAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const hasKV = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
   const hasVercelRedisRest = !!(process.env.VERCEL_REDIS_URL && process.env.VERCEL_REDIS_TOKEN);
 
