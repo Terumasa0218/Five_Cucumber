@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from "react";
+import Link from "next/link";
 
 export default function OnlinePage() {
   useEffect(() => {
@@ -37,6 +38,13 @@ export default function OnlinePage() {
               >
                 近日公開
               </button>
+
+              <Link
+                href="/home"
+                className="block w-full py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+              >
+                ホームに戻る
+              </Link>
             </div>
           </div>
         </div>

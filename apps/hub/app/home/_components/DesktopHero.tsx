@@ -70,6 +70,9 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
           <Link href="/cucumber/cpu/settings" className={styles.footerLink}>
             CPU対戦設定
           </Link>
+          <Link href="/online" className={styles.footerLink}>
+            オンライン対戦
+          </Link>
           <Link href="/friend/create" className={styles.footerLink}>
             フレンド対戦
           </Link>
@@ -81,5 +84,4 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
     </section>
   );
 }
-
 
