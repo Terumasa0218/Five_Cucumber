@@ -6,6 +6,7 @@ import { redis, isRedisAvailable } from '@/lib/redis';
 import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { verifyAuth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
@@ -53,6 +54,8 @@ const MoveSchema: z.ZodType<Move> = z.object({
 });
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = await verifyAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const schema = z.object({
       roomId: z.string().min(1),

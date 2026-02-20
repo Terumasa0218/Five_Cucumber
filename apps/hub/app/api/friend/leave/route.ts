@@ -8,6 +8,7 @@ import { isRedisAvailable } from '@/lib/redis';
 import { realtime } from '@/lib/realtime';
 import type { RoomSeat } from '@/types/room';
 import { kv } from '@vercel/kv';
+import { verifyAuth } from '@/lib/auth';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 
@@ -23,6 +24,8 @@ type LeaveRoomPayload = {
 const isOccupiedSeat = (seat: RoomSeat): seat is Exclude<RoomSeat, null> => seat !== null;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = await verifyAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const body = (await req.json()) as LeaveRoomPayload;
     const roomId = typeof body.roomId === 'string' ? body.roomId.trim() : '';

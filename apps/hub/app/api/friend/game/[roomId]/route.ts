@@ -2,6 +2,7 @@ import { applyServerMove, getGame, initGame } from '@/lib/friendGameStore';
 import { GameConfig, GameState, Move } from '@/lib/game-core';
 import { NextRequest, NextResponse } from 'next/server';
 import { json } from '@/lib/http';
+import { verifyAuth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,8 +23,11 @@ type GameRequestBody = GameInitBody | GameMoveBody;
 
 export async function GET(
   req: NextRequest,
+
   { params }: { params: { roomId: string } }
 ): Promise<NextResponse> {
+  const auth = await verifyAuth(req);
+  if (!auth) return json({ error: 'Unauthorized' }, 401);
   try {
     const roomId = params.roomId;
     if (!roomId) return json({ ok: false, reason: 'bad-request' }, 400);
@@ -38,8 +42,11 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
+
   { params }: { params: { roomId: string } }
 ): Promise<NextResponse> {
+  const auth = await verifyAuth(req);
+  if (!auth) return json({ error: 'Unauthorized' }, 401);
   try {
     const roomId = params.roomId;
     if (!roomId) return json({ ok: false, reason: 'bad-request' }, 400);

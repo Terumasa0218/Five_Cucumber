@@ -4,10 +4,13 @@ import { realtime } from '@/lib/realtime';
 import { redis, isRedisAvailable } from '@/lib/redis';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { verifyAuth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = await verifyAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const schema = z.object({ roomId: z.string().min(1), seats: z.array(z.string().min(1)).min(2) });
     const { roomId, seats } = schema.parse(await req.json());

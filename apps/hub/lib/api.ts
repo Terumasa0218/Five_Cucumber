@@ -35,6 +35,17 @@ export async function apiRequest<T = unknown>(path: string, init: ApiRequestInit
   const { json, parseAs = 'json', cache, ...rest } = init;
   const url = apiUrl(path);
   const headers = new Headers(rest.headers);
+  if (typeof window !== 'undefined' && !headers.has('Authorization')) {
+    try {
+      const { getClientAuthToken } = await import('@/lib/clientAuth');
+      const token = await getClientAuthToken();
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+    } catch {
+      // 認証情報が取得できない場合は未認証として処理
+    }
+  }
   if (json !== undefined) {
     headers.set('Content-Type', 'application/json');
   }
@@ -87,5 +98,4 @@ export async function apiJson<T = unknown>(path: string, init?: ApiRequestInit):
   const { data } = await apiRequest<T>(path, init ?? {});
   return data;
 }
-
 

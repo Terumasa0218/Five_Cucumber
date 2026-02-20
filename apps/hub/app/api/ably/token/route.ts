@@ -1,5 +1,6 @@
 import Ably from 'ably/promises';
 import { json } from '@/lib/http';
+import { verifyAuth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,8 @@ function sanitizeChannel(raw: string): string {
 }
 
 export async function GET(req: Request) {
+  const auth = await verifyAuth(req);
+  if (!auth) return json({ error: 'Unauthorized' }, 401);
   try {
     const url = new URL(req.url);
     const uid = url.searchParams.get('uid') ?? 'anon';

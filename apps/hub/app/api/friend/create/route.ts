@@ -5,6 +5,7 @@ import { kvExists, kvSaveJSON } from '@/lib/kv';
 import { getRoomById } from '@/lib/roomsStore';
 import { CreateRoomRequest, Room, RoomResponse } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/auth';
 
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
 
@@ -18,7 +19,9 @@ function parseNumberish(value: unknown): number | null {
   return null;
 }
 
-export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>> {
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  const auth = await verifyAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   console.info('[KV URL in runtime]', process.env.KV_REST_API_URL, process.env.UPSTASH_REDIS_REST_URL);
   try {
     // リクエストボディの取得と検証
@@ -184,6 +187,8 @@ export async function POST(req: NextRequest): Promise<NextResponse<RoomResponse>
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await verifyAuth(req);
+  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   return NextResponse.json({ ok: false, message: 'Use POST' }, { status: 405, headers: noStore });
 }
