@@ -81,6 +81,9 @@ importers:
       firebase:
         specifier: ^10.7.0
         version: 10.14.1
+      firebase-admin:
+        specifier: ^12.7.0
+        version: 12.7.0
       i18next:
         specifier: ^23.7.0
         version: 23.16.8

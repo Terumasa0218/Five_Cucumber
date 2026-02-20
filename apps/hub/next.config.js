@@ -7,11 +7,19 @@ const __dirname = path.dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: { externalDir: true },
   eslint: { ignoreDuringBuilds: true }, // ビルド時にlintで失敗させない
   transpilePackages: ['@five-cucumber/sdk', '@five-cucumber/ui', '@five-cucumber/metrics', '@five-cucumber/game-cucumber5'],
   images: {
-    domains: ['localhost'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'localhost',
+      },
+    ],
   },
   webpack: (config) => {
     config.resolve = config.resolve || {};
