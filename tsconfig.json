@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["dom", "dom.iterable", "es6"],
+    "lib": [
+      "es2022",
+      "dom",
+      "dom.iterable"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -20,9 +24,15 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./apps/hub/*"],
-      "@packages/*": ["./packages/*"],
-      "@games/*": ["./games/*"]
+      "@/*": [
+        "./apps/hub/*"
+      ],
+      "@packages/*": [
+        "./packages/*"
+      ],
+      "@games/*": [
+        "./games/*"
+      ]
     }
   },
   "include": [

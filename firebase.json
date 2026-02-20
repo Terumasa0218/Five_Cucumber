@@ -13,17 +13,11 @@
     "rules": "database.rules.json"
   },
   "hosting": {
-    "public": "apps/hub/out",
+    "source": "apps/hub",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
     ]
   },
   "emulators": {

@@ -35,25 +35,6 @@ export async function putRoomRedis(room: Room): Promise<void> {
   }
 }
 
-// TCP Redis (REDIS_URL) writer used when Vercel KV/REST is not configured
-export async function putRoomRedisTcp(room: Room): Promise<void> {
-  const url = process.env.REDIS_URL;
-  if (!url) {
-    throw new Error('REDIS_URL not configured');
-  }
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { createClient } = require('redis');
-    const client = createClient({ url, socket: { reconnectStrategy: () => 0, connectTimeout: 2000 } });
-    await client.connect();
-    await client.set(key(room.id), JSON.stringify(room));
-    await client.quit();
-  } catch (error) {
-    console.warn('[Redis TCP] Failed to save room:', error);
-    throw error;
-  }
-}
-
 export async function updateRoomRedis(roomId: string, patch: Partial<Room>): Promise<boolean> {
   if (!isRedisAvailable()) {
     console.log('[Redis] Vercel KV not available, skipping Redis update');
