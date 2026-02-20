@@ -1,8 +1,28 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isParticipant() {
+      return isSignedIn() && (
+        request.auth.uid in resource.data.players ||
+        request.auth.uid in resource.data.members ||
+        request.auth.uid in resource.data.participants
+      );
+    }
+
+    function isOwner() {
+      return isSignedIn() && (
+        request.auth.uid == resource.data.ownerId ||
+        request.auth.uid == resource.data.createdBy ||
+        request.auth.uid == resource.data.hostId
+      );
+    }
+
     match /rooms/{roomId} {
-      allow read: if request.auth != null;
+      allow read: if isSignedIn();
       allow write: if false;
 
       match /games/{gameId} {
@@ -12,37 +32,35 @@ service cloud.firestore {
         match /appliedOps/{opId} { allow read, write: if false; }
 
         match /views/{uid} {
-          allow read: if request.auth != null && request.auth.uid == uid;
+          allow read: if isSignedIn() && request.auth.uid == uid;
           allow write: if false;
         }
       }
     }
-  }
-}
 
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
     // Matches collection
     match /matches/{matchId} {
-      allow read, write: if request.auth != null;
+      allow read: if isParticipant();
+      allow create: if isSignedIn();
+      allow update: if isParticipant();
+      allow delete: if isOwner();
     }
-    
+
     // User stats collection
     match /userStats/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
-    
+
     // Metrics collection (read-only for users)
     match /metrics/{document=**} {
-      allow read: if request.auth != null;
+      allow read: if isSignedIn();
       allow write: if false; // Only functions can write
     }
-    
+
     // Game sessions collection
     match /gameSessions/{sessionId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isParticipant();
     }
   }
 }
