@@ -3,6 +3,7 @@
 import { FriendRoomLayout, PlayerSeatGrid, RoomActionBar, RoomSummaryCard } from "@/components/ui";
 import { apiJson, apiRequest, ApiRequestError } from "@/lib/api";
 import { getNickname } from "@/lib/profile";
+import { getClientAuthUid } from '@/lib/clientAuth';
 import { makeClient } from "@/lib/realtime-client";
 import { getRoom as getLocalRoom } from "@/lib/roomSystemUnified";
 import { USE_SERVER_SYNC } from "@/lib/serverSync";
@@ -139,11 +140,14 @@ export default function RoomWaitingPage() {
 
         // Ablyクライアントでリアルタイム更新を受信
         if (useServer && currentNickname) {
-          try {
-            console.log(`[RoomPage] Initializing Ably client for room: ${roomId}, user: ${currentNickname}, mobile: ${isMobile}`);
+          (async () => {
+            try {
+              const authUid = await getClientAuthUid();
+              const channelName = `room-${roomId}-user-${currentNickname}`;
+              console.log(`[RoomPage] Initializing Ably client for room: ${roomId}, user: ${currentNickname}, authUid: ${authUid}, mobile: ${isMobile}`);
 
-            const ablyClient = makeClient(currentNickname, `room-${roomId}`);
-            const channel = ablyClient.channels.get(`room-${roomId}`);
+              const ablyClient = makeClient(authUid, channelName);
+              const channel = ablyClient.channels.get(channelName);
 
             // スマホ対応: チャネル状態を監視
             channel.on('attaching', () => {
@@ -187,13 +191,14 @@ export default function RoomWaitingPage() {
 
             console.log(`[RoomPage] Subscribed to room updates for room: ${roomId}, user: ${currentNickname}`);
 
-          } catch (error) {
-            console.error('[RoomPage] Failed to initialize Ably client:', error);
-            // スマホではAblyが失敗しやすいので、警告を表示
-            if (isMobile) {
-              console.warn('[RoomPage] Ably initialization failed on mobile - relying on polling fallback');
+            } catch (error) {
+              console.error('[RoomPage] Failed to initialize Ably client:', error);
+              // スマホではAblyが失敗しやすいので、警告を表示
+              if (isMobile) {
+                console.warn('[RoomPage] Ably initialization failed on mobile - relying on polling fallback');
+              }
             }
-          }
+          })();
         }
 
     return () => {
