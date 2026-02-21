@@ -8,17 +8,15 @@ import {
     applyMove,
     createGameView,
     createInitialState,
-    endTrick,
-    finalRound,
     GameConfig,
     GameState,
     getEffectiveTurnSeconds,
     getLegalMoves,
+    determineTrickWinner,
     Move,
     PlayerController,
     RngState,
     SeededRng,
-    startNewRound
 } from '@/lib/game-core';
 import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -41,6 +39,10 @@ function CpuPlayContent() {
   const [isCardLocked, setIsCardLocked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
+  const [tableTrickCards, setTableTrickCards] = useState<Move[]>([]);
+  const [latestPlayedKey, setLatestPlayedKey] = useState<string | null>(null);
+  const [trickWinner, setTrickWinner] = useState<number | null>(null);
+  const [trickWinnerText, setTrickWinnerText] = useState<string | null>(null);
   const cpuTurnTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef<boolean>(false);
   const scheduleCpuTurnRef = useRef<(() => void) | null>(null);
@@ -85,7 +87,7 @@ function CpuPlayContent() {
     console.log(`[CPU] Scheduling turn for player ${state.currentPlayer}`);
     
     // CPUの思考時間
-    const thinkingTime = 2000 + Math.random() * 2000;
+    const thinkingTime = 600 + Math.random() * 400;
     cpuTurnTimerRef.current = setTimeout(() => {
       if (gameRef.current && !isProcessingRef.current && playCpuTurnRef.current) {
         void playCpuTurnRef.current();
@@ -109,6 +111,10 @@ function CpuPlayContent() {
       setGameState(state);
       setGameOver(false);
       setGameOverData([]);
+      setTableTrickCards([]);
+      setLatestPlayedKey(null);
+      setTrickWinner(null);
+      setTrickWinnerText(null);
       
       console.log('[Game] New game started with', config.players, 'players');
       
@@ -181,6 +187,10 @@ function CpuPlayContent() {
               setGameState(state);
               setGameOver(parsed.gameOver || false);
               setGameOverData(parsed.gameOverData || []);
+              setTableTrickCards(state.trickCards || []);
+              setLatestPlayedKey(null);
+              setTrickWinner(null);
+              setTrickWinnerText(null);
 
               console.log('[Game] State restored successfully with rebuilt controllers');
               return;
@@ -311,6 +321,36 @@ function CpuPlayContent() {
 
         // カードをプレイ
         const move: Move = { player, card, timestamp: Date.now() };
+        const isCardOnField = state.fieldCard === null || card >= state.fieldCard;
+        const trickCardsAfterPlay = [...state.trickCards, move];
+        const isTrickCompleteAfterPlay = trickCardsAfterPlay.length === config.players;
+        const playersAfterPlay = state.players.map((p, idx) => {
+          if (idx !== player) {
+            return p;
+          }
+
+          const nextHand = [...p.hand];
+          const cardIndex = nextHand.indexOf(card);
+          if (cardIndex >= 0) {
+            nextHand.splice(cardIndex, 1);
+          }
+
+          return {
+            ...p,
+            hand: nextHand,
+            graveyard: isCardOnField ? p.graveyard : [...p.graveyard, card]
+          };
+        });
+        const previewState: GameState = {
+          ...state,
+          players: playersAfterPlay,
+          currentPlayer: (state.currentPlayer + 1) % config.players,
+          fieldCard: isCardOnField ? card : state.fieldCard,
+          sharedGraveyard: isCardOnField ? state.sharedGraveyard : [...state.sharedGraveyard, card],
+          trickCards: trickCardsAfterPlay,
+          phase: isTrickCompleteAfterPlay ? 'ResolvingTrick' : 'AwaitMove'
+        };
+
         const result = applyMove(state, move, config, rng);
         
         if (!result.success) {
@@ -322,59 +362,47 @@ function CpuPlayContent() {
         console.log(`[PlayMove] Move applied successfully, new phase: ${newState.phase}`);
         
         // 状態更新
-        gameRef.current.state = newState;
-        setGameState(newState);
+        gameRef.current.state = previewState;
+        setGameState(previewState);
+        setTableTrickCards(trickCardsAfterPlay);
+        setLatestPlayedKey(`${player}-${move.timestamp}`);
+        setTrickWinner(null);
+        setTrickWinnerText(null);
         
         // 最小ターン時間の待機
         const minTurnMs = config.minTurnMs || 500;
         await delay(minTurnMs);
         
         // トリック解決フェーズの処理
-        if (newState.phase === "ResolvingTrick") {
+        if (isTrickCompleteAfterPlay) {
           console.log('[PlayMove] Resolving trick...');
+          const winner = determineTrickWinner(trickCardsAfterPlay);
+          const winnerName = player === winner ? 'あなた' : `CPU ${winner}`;
           
-          // 2秒待機してからトリック解決
-          await delay(2000);
+          // 場に出されたカードを一時表示
+          await delay(1500);
+          setTrickWinner(winner);
+          setTrickWinnerText(`${winnerName} がトリック勝利`);
           
-          const trickResult = endTrick(newState, config, rng);
-          if (trickResult.success) {
-            newState = trickResult.newState;
-            gameRef.current.state = newState;
-            setGameState(newState);
-            console.log(`[PlayMove] Trick resolved, new phase: ${newState.phase}`);
-            
-            // ラウンド終了の処理
-            if (newState.phase === "RoundEnd") {
-              console.log('[PlayMove] Round ended, processing final round...');
-              const finalResult = finalRound(newState, config, rng);
-              if (finalResult.success) {
-                newState = finalResult.newState;
-                gameRef.current.state = newState;
-                setGameState(newState);
-                console.log(`[PlayMove] Final round processed, new phase: ${newState.phase}`);
-                
-                // キュウリ付与の確認ログ
-                console.log('[PlayMove] Player cucumber counts after final round:', 
-                  newState.players.map((p, index) => `Player ${index}: ${p.cucumbers} cucumbers`));
-                
-                // キュウリ付与表示（最も多くのキュウリを得たプレイヤー）
-                if (newState.phase === "GameEnd") {
-                  console.log('[PlayMove] Game ended');
-                  setGameOver(true);
-                  setGameOverData(newState.players.map((p, index) => ({ player: index, count: p.cucumbers })));
+          // 勝者表示を維持
+          await delay(1600);
+
+          gameRef.current.state = newState;
+          setGameState(newState);
+          setTableTrickCards([]);
+          setLatestPlayedKey(null);
+          setTrickWinner(null);
+          setTrickWinnerText(null);
+          console.log(`[PlayMove] Trick resolved, new phase: ${newState.phase}`);
         } else {
-                  // 新しいラウンド開始
-                  const roundResult = startNewRound(newState, config, rng);
-                  if (roundResult.success) {
-                    newState = roundResult.newState;
-                    gameRef.current.state = newState;
-                    setGameState(newState);
-                    console.log('[PlayMove] New round started');
-          }
+          gameRef.current.state = newState;
+          setGameState(newState);
         }
-      }
-    }
-  }
+
+        if (newState.phase === "GameEnd") {
+          console.log('[PlayMove] Game ended');
+          setGameOver(true);
+          setGameOverData(newState.players.map((p, index) => ({ player: index, count: p.cucumbers })));
         }
         
         console.log(`[PlayMove] Move completed - Player: ${player}, Card: ${card}`);
@@ -497,6 +525,8 @@ function CpuPlayContent() {
     );
   }
 
+  const displayNames = gameState.players.map((_, idx) => (idx === 0 ? 'あなた' : `CPU ${idx}`));
+
   return (
     <BattleLayout showOrientationHint>
       <div className="flex-1 flex flex-col gap-6 p-4">
@@ -527,8 +557,12 @@ function CpuPlayContent() {
           className={isCardLocked ? 'cards-locked' : ''}
           isSubmitting={isSubmitting}
           lockedCardId={lockedCardId}
-          names={gameState.players.map((_, idx) => (idx === 0 ? 'あなた' : `CPU ${idx}`))}
+          names={displayNames}
           mySeatIndex={0}
+          trickCards={tableTrickCards}
+          latestPlayedCardKey={latestPlayedKey}
+          trickWinner={trickWinner}
+          trickWinnerText={trickWinnerText}
         />
 
         {gameOver ? (
