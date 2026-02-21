@@ -1,6 +1,6 @@
 // 楕円卓レイアウト用テーブルコンポーネント
 
-import { GameConfig, GameState } from '@/lib/game-core/types';
+import { GameConfig, GameState, Move } from '@/lib/game-core/types';
 import { layoutSeatsEllipse } from '@/lib/layoutEllipse';
 import { useEffect } from 'react';
 
@@ -15,9 +15,13 @@ interface EllipseTableProps {
   lockedCardId?: number | null; // ロックされたカードID
   names?: string[]; // 座席ごとの表示名（任意）
   mySeatIndex?: number; // 自分の座席インデックス（フレンド対戦用）
+  trickCards?: Move[];
+  latestPlayedCardKey?: string | null;
+  trickWinner?: number | null;
+  trickWinnerText?: string | null;
 }
 
-export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, className = '', showAllHands = false, isSubmitting = false, lockedCardId = null, names, mySeatIndex = 0 }: EllipseTableProps) {
+export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, className = '', showAllHands = false, isSubmitting = false, lockedCardId = null, names, mySeatIndex = 0, trickCards = [], latestPlayedCardKey = null, trickWinner = null, trickWinnerText = null }: EllipseTableProps) {
   const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C', 'CPU-D', 'CPU-E'];
   
   // デバッグログ（開発時のみ）
@@ -65,7 +69,38 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
       {/* 中央の場と墓地 */}
       <div className="ellipse-table__center">
         <div id="field" className="ellipse-table__field" aria-label="場のカード">
-          {state.fieldCard !== null ? (
+          {trickCards.length > 0 ? (
+            <div className="trick-cards-queue" aria-live="polite">
+              {trickCards.map((trickCard) => {
+                const cardKey = `${trickCard.player}-${trickCard.timestamp}`;
+                const isLatestPlayed = latestPlayedCardKey === cardKey;
+                const isWinnerCard = trickWinner !== null && trickCard.player === trickWinner;
+
+                return (
+                  <div
+                    key={cardKey}
+                    className={[
+                      'trick-card-entry',
+                      isLatestPlayed ? 'card-play' : '',
+                      isWinnerCard ? 'winner' : ''
+                    ].filter(Boolean).join(' ')}
+                  >
+                    <div className="trick-card-player">{getPlayerName(trickCard.player)}</div>
+                    <div className="card current-card">
+                      <div className="card-number">{trickCard.card}</div>
+                      <div className="cucumber-icons">
+                        {trickCard.card >= 2 && trickCard.card <= 5 && '🥒'}
+                        {trickCard.card >= 6 && trickCard.card <= 9 && '🥒🥒'}
+                        {trickCard.card >= 10 && trickCard.card <= 11 && '🥒🥒🥒'}
+                        {trickCard.card >= 12 && trickCard.card <= 14 && '🥒🥒🥒🥒'}
+                        {trickCard.card === 15 && '🥒🥒🥒🥒🥒'}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : state.fieldCard !== null ? (
             <div className="card current-card">
               <div className="card-number">{state.fieldCard}</div>
               <div className="cucumber-icons">
@@ -81,6 +116,7 @@ export function EllipseTable({ state, config, currentPlayerIndex, onCardClick, c
               <div className="card-number">?</div>
             </div>
           )}
+          {trickWinnerText ? <div className="trick-winner-banner">{trickWinnerText}</div> : null}
         </div>
         <div id="grave" className="ellipse-table__grave" aria-label="墓地">
           {state.sharedGraveyard.length > 0 && (

@@ -51,6 +51,45 @@
   pointer-events: none;
 }
 
+.trick-cards-queue {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(8px, 1.8vw, 16px);
+  min-height: calc(var(--ellipse-card-height) + 28px);
+}
+
+.trick-card-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.trick-card-player {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.trick-card-entry.winner .card.current-card {
+  border-color: #ffd15c;
+  box-shadow: 0 0 0 2px rgba(255, 209, 92, 0.75), 0 0 22px rgba(255, 209, 92, 0.8);
+}
+
+.trick-winner-banner {
+  margin-top: 10px;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(255, 209, 92, 0.28);
+  border: 1px solid rgba(255, 209, 92, 0.7);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
 .ellipse-table__grave {
   opacity: 0.9;
 }
@@ -107,6 +146,21 @@
 /* カードアニメーション */
 .card-slide-to-field {
   animation: slideToField 0.3s ease-out forwards;
+}
+
+.card-play {
+  animation: card-appear 0.3s ease-out;
+}
+
+@keyframes card-appear {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .card-slide-to-graveyard {
