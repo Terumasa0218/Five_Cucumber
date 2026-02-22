@@ -1,6 +1,4 @@
-import Image from "next/image";
 import Link from "next/link";
-import styles from "./DesktopHero.module.css";
 import LanguageToggle from "./LanguageToggle";
 
 type Props = { username?: string };
@@ -9,53 +7,40 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
   const normalizedName = username?.trim() || "GUEST";
 
   return (
-    <section className={`${styles.desktop} home-hero-fonts`}>
-      <Image
-        src="/home/home13-1.png"
-        alt="ホーム画面の背景"
-        fill
-        priority
-        sizes="100vw"
-        className={styles.backgroundImage}
-      />
+    <section
+      className="home-hero-fonts relative flex min-h-screen w-full flex-col items-center justify-center bg-cover bg-center bg-no-repeat text-[#2a2a2a]"
+      style={{ backgroundImage: "url('/images/home_f.png')" }}
+    >
+      <div className="relative flex min-h-screen w-full max-w-5xl flex-col items-center justify-between px-6 py-8 sm:px-10 sm:py-10">
+        <div className="flex w-full items-start justify-between gap-4 text-sm font-semibold sm:text-base">
+          <nav aria-label="補助リンク" className="flex flex-col gap-2 text-left">
+            <Link href="/rules" className="underline underline-offset-4">
+              📖 ルール説明
+            </Link>
+            <LanguageToggle className="underline underline-offset-4" />
+          </nav>
 
-      <div className={styles.inner}>
-        <nav className={styles.sideNav} aria-label="補助リンク">
-          <Link href="/rules" className={styles.linkMinor}>
-            <span aria-hidden="true">📖</span>
-            ルール説明
-          </Link>
-          <LanguageToggle className={styles.linkMinor} />
-        </nav>
-
-        <div className={styles.userPanel}>
-          <span className={styles.userLabel}>ユーザー:</span>
-          <Link
-            href="/setup"
-            className={styles.userName}
-            aria-label={`${normalizedName}のプロフィール設定を開く`}
-          >
-            {normalizedName}
-          </Link>
+          <div className="inline-flex items-center gap-2">
+            <span>ユーザー:</span>
+            <Link href="/setup" className="font-bold text-[#155724] underline underline-offset-4" aria-label={`${normalizedName}のプロフィール設定を開く`}>
+              {normalizedName}
+            </Link>
+          </div>
         </div>
 
-        <div className={styles.hero}>
-          <h1 className={styles.title}>５本のきゅうり</h1>
-          <div className={styles.ctaGroup}>
-            <p className={styles.subtitle}>習うより慣れろ！まずはCPUとやってみよう！</p>
+        <div className="flex w-full flex-1 flex-col items-center justify-center px-2 text-center">
+          <h1 className="m-0 text-[clamp(40px,9vw,84px)] tracking-[0.12em] text-[#1f3d2a]">５本のきゅうり</h1>
+          <div className="mt-6 grid w-full max-w-md gap-4">
             <Link
               href="/cucumber/cpu/settings"
-              className={`${styles.ctaButton} fc-button fc-button--primary`}
+              className="fc-button fc-button--primary w-full"
               aria-label="CPU対戦を始める"
             >
               CPU対戦
             </Link>
-          </div>
-          <div className={styles.ctaGroup}>
-            <p className={styles.note}>いつでも！どこでも！友達と！</p>
             <Link
               href="/friend/create"
-              className={`${styles.ctaButton} fc-button fc-button--secondary`}
+              className="fc-button fc-button--secondary w-full"
               aria-label="フレンド対戦を始める"
             >
               フレンド対戦
@@ -63,20 +48,20 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
           </div>
         </div>
 
-        <footer className={styles.footer} aria-label="その他のリンク">
-          <Link href="/rules" className={styles.footerLink}>
+        <footer aria-label="その他のリンク" className="flex flex-wrap items-center justify-center gap-3 text-sm font-semibold sm:gap-6 sm:text-base">
+          <Link href="/rules" className="underline underline-offset-4">
             ルール
           </Link>
-          <Link href="/cucumber/cpu/settings" className={styles.footerLink}>
+          <Link href="/cucumber/cpu/settings" className="underline underline-offset-4">
             CPU対戦設定
           </Link>
-          <Link href="/online" className={styles.footerLink}>
+          <Link href="/online" className="underline underline-offset-4">
             オンライン対戦
           </Link>
-          <Link href="/friend/create" className={styles.footerLink}>
+          <Link href="/friend/create" className="underline underline-offset-4">
             フレンド対戦
           </Link>
-          <Link href="/setup" className={styles.footerLink}>
+          <Link href="/setup" className="underline underline-offset-4">
             プロフィール設定
           </Link>
         </footer>
@@ -84,4 +69,3 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
     </section>
   );
 }
-
