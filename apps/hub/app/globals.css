@@ -590,6 +590,10 @@ html, body, #__next {
   overflow: auto;
 }
 
+body {
+  background-color: #2d5a27;
+}
+
 /* 固定背景レイヤ（最背面） */
 body::before {
   content: '';
