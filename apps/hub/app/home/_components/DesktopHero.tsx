@@ -8,8 +8,8 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
 
   return (
     <section
-      className="home-hero-fonts relative flex min-h-screen w-full flex-col items-center justify-center bg-cover bg-center bg-no-repeat text-[#2a2a2a]"
-      style={{ backgroundImage: "url('/images/home_f.png')" }}
+      className="home-hero-fonts fixed inset-0 flex min-h-screen w-full flex-col items-center justify-center bg-cover bg-center bg-no-repeat text-[#2a2a2a]"
+      style={{ backgroundImage: "url('/assets/home_f.png')" }}
     >
       <div className="relative flex min-h-screen w-full max-w-5xl flex-col items-center justify-between px-6 py-8 sm:px-10 sm:py-10">
         <div className="flex w-full items-start justify-between gap-4 text-sm font-semibold sm:text-base">
