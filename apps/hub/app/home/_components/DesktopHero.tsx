@@ -20,12 +20,12 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
           pointerEvents: "none",
-          zIndex: 0,
+          zIndex: -1,
         }}
         aria-hidden
       />
       <section className="home-hero-fonts relative flex min-h-screen w-full flex-col items-center justify-center text-[#2a2a2a]"
-        style={{ zIndex: 1 }}>
+        style={{ position: "relative", zIndex: 1 }}>
         <div className="relative flex min-h-screen w-full max-w-5xl flex-col items-center justify-between px-6 py-8 sm:px-10 sm:py-10">
           <div className="flex w-full items-start justify-between gap-4 text-sm font-semibold sm:text-base">
             <nav aria-label="補助リンク" className="flex flex-col gap-2 text-left">
