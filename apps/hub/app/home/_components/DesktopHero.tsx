@@ -17,7 +17,7 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
           height: "100vh",
           backgroundImage: "url('/assets/home_f.png')",
           pointerEvents: "none",
-          zIndex: -1,
+          zIndex: 0,
         }}
         aria-hidden
       />
