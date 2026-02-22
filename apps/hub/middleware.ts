@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const ALLOW = [
+  /^\/home(?:\/|$)/,
   /^\/setup/,
   /^\/_next\//,
   /^\/assets\//,
@@ -13,14 +14,12 @@ const ALLOW = [
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (ALLOW.some((r) => r.test(pathname))) {
-    const res = NextResponse.next();
-    res.headers.set('x-profile-gate', 'allow');
-    return res;
+  const res = NextResponse.next();
+
+  if (process.env.NODE_ENV === 'development') {
+    res.headers.set('x-profile-gate', ALLOW.some((r) => r.test(pathname)) ? 'allow' : 'disabled');
   }
 
-  const res = NextResponse.next();
-  res.headers.set('x-profile-gate', 'disabled');
   return res;
 }
 
