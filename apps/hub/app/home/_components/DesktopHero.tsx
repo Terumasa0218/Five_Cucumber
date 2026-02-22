@@ -25,22 +25,51 @@ export default function DesktopHero({ username = 'GUEST' }: Props) {
         aria-hidden
       />
       <section
-        className="home-hero-fonts relative min-h-screen w-full text-[#2a2a2a]"
-        style={{ position: 'relative', zIndex: 1 }}
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          minHeight: '100vh',
+          width: '100%',
+          color: '#2a2a2a',
+        }}
       >
-        <header className="absolute left-4 top-4 right-4 z-10 flex items-center justify-between gap-4 text-sm font-semibold sm:text-base">
-          <nav aria-label="補助リンク" className="flex items-center gap-4 text-left">
-            <Link href="/rules" className="underline underline-offset-4">
+        <header
+          style={{
+            position: 'absolute',
+            top: '1rem',
+            left: '1rem',
+            right: '1rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '1rem',
+            zIndex: 2,
+            fontSize: '0.9rem',
+            fontWeight: 600,
+          }}
+        >
+          <nav
+            aria-label="補助リンク"
+            style={{ display: 'flex', alignItems: 'center', gap: '1rem', textAlign: 'left' }}
+          >
+            <Link href="/rules" style={{ textDecoration: 'underline', textUnderlineOffset: '4px' }}>
               📖 ルール説明
             </Link>
-            <LanguageToggle className="underline underline-offset-4" />
+            <div style={{ textDecoration: 'underline', textUnderlineOffset: '4px' }}>
+              <LanguageToggle className="" />
+            </div>
           </nav>
 
-          <div className="inline-flex items-center gap-2">
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <span>ユーザー:</span>
             <Link
               href="/setup"
-              className="font-bold text-[#155724] underline underline-offset-4"
+              style={{
+                fontWeight: 'bold',
+                color: '#155724',
+                textDecoration: 'underline',
+                textUnderlineOffset: '4px',
+              }}
               aria-label={`${normalizedName}のプロフィール設定を開く`}
             >
               {normalizedName}
@@ -48,43 +77,112 @@ export default function DesktopHero({ username = 'GUEST' }: Props) {
           </div>
         </header>
 
-        <div className="flex min-h-screen w-full flex-col items-center justify-center px-6 text-center sm:px-10">
-          <h1 className="mb-12 text-5xl font-bold text-green-900 md:text-6xl">5本のきゅうり</h1>
-          <div className="flex w-64 flex-col gap-6">
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            minHeight: '100vh',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+          }}
+        >
+          <h1
+            style={{
+              fontSize: '4rem',
+              fontWeight: 'bold',
+              color: '#1a4d1a',
+              marginBottom: '3rem',
+              textShadow: '2px 2px 4px rgba(255,255,255,0.7)',
+            }}
+          >
+            5本のきゅうり
+          </h1>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '320px' }}>
             <Link
               href="/cucumber/cpu/settings"
               aria-label="CPU対戦を始める"
-              className="w-full rounded-lg bg-gradient-to-b from-green-400 to-green-600 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+              style={{ textDecoration: 'none' }}
             >
-              CPU対戦
+              <button
+                type="button"
+                style={{
+                  width: '100%',
+                  padding: '1.2rem 2rem',
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                  color: 'white',
+                  background: 'linear-gradient(to bottom, #4ade80, #16a34a)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                }}
+              >
+                CPU対戦
+              </button>
             </Link>
             <Link
               href="/online"
               aria-label="フレンド対戦を始める"
-              className="w-full rounded-lg bg-gradient-to-b from-orange-300 to-orange-500 px-8 py-4 text-xl font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+              style={{ textDecoration: 'none' }}
             >
-              フレンド対戦
+              <button
+                type="button"
+                style={{
+                  width: '100%',
+                  padding: '1.2rem 2rem',
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                  color: 'white',
+                  background: 'linear-gradient(to bottom, #fdba74, #f97316)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                }}
+              >
+                フレンド対戦
+              </button>
             </Link>
           </div>
         </div>
 
         <footer
           aria-label="その他のリンク"
-          className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-wrap items-center justify-center gap-6 text-sm font-semibold text-green-800 sm:text-base"
+          style={{
+            position: 'absolute',
+            bottom: '2rem',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: '2rem',
+            fontSize: '0.9rem',
+            fontWeight: 600,
+            color: '#1a4d1a',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+          }}
         >
-          <Link href="/rules" className="underline underline-offset-4">
+          <Link href="/rules" style={{ color: '#1a4d1a', textDecoration: 'underline' }}>
             ルール
           </Link>
-          <Link href="/cucumber/cpu/settings" className="underline underline-offset-4">
+          <Link
+            href="/cucumber/cpu/settings"
+            style={{ color: '#1a4d1a', textDecoration: 'underline' }}
+          >
             CPU対戦設定
           </Link>
-          <Link href="/online" className="underline underline-offset-4">
+          <Link href="/online" style={{ color: '#1a4d1a', textDecoration: 'underline' }}>
             オンライン対戦
           </Link>
-          <Link href="/friend/create" className="underline underline-offset-4">
+          <Link href="/friend/create" style={{ color: '#1a4d1a', textDecoration: 'underline' }}>
             フレンド対戦
           </Link>
-          <Link href="/setup" className="underline underline-offset-4">
+          <Link href="/setup" style={{ color: '#1a4d1a', textDecoration: 'underline' }}>
             プロフィール設定
           </Link>
         </footer>
