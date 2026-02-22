@@ -9,13 +9,16 @@ export default function DesktopHero({ username = "GUEST" }: Props) {
   return (
     <>
       <div
-        className="bg-cover bg-center bg-no-repeat"
         style={{
           position: "fixed",
-          inset: 0,
+          top: 0,
+          left: 0,
           width: "100vw",
           height: "100vh",
           backgroundImage: "url('/assets/home_f.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
           pointerEvents: "none",
           zIndex: 0,
         }}

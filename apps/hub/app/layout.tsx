@@ -59,10 +59,12 @@ function resolveLocale(): 'ja' | 'en' {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = resolveLocale();
+  const pathname = headers().get('x-pathname') || '';
+  const isHome = pathname.startsWith('/home');
 
   return (
     <html lang={locale} data-theme="light">
-      <body>
+      <body data-page={isHome ? 'home' : ''}>
         <Script id="suppress-extension-noise" strategy="beforeInteractive">
           {`
             (function(){
