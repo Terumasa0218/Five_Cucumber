@@ -608,6 +608,10 @@ body::before {
   background-attachment: fixed;
 }
 
+body[data-page="home"]::before {
+  display: none;
+}
+
 /* ホーム背景 */
 body[data-bg="home"]::before {
   background-image: url("/images/home1.png");
