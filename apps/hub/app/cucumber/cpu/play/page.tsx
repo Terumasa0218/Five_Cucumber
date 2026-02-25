@@ -12,6 +12,7 @@ import {
   GameState,
   getEffectiveTurnSeconds,
   getLegalMoves,
+  calculateFinalTrickPenalty,
   determineTrickWinner,
   Move,
   PlayerController,
@@ -353,6 +354,8 @@ function CpuPlayContent() {
           : [...state.trickCards, move];
         const actionCountAfterPlay = (state.actionCount ?? 0) + 1;
         const isTrickCompleteAfterPlay = actionCountAfterPlay === config.players;
+        const isFinalTrickAfterPlay =
+          isTrickCompleteAfterPlay && state.currentTrick === config.initialCards;
         const playersAfterPlay = state.players.map((p, idx) => {
           if (idx !== player) {
             return p;
@@ -413,12 +416,26 @@ function CpuPlayContent() {
         if (isTrickCompleteAfterPlay) {
           console.log('[PlayMove] Resolving trick...');
           const winner = determineTrickWinner(trickCardsAfterPlay);
-          const winnerName = player === winner ? 'あなた' : `CPU ${winner}`;
 
           // 場に出されたカードを一時表示
           await delay(1500);
           setTrickWinner(winner);
-          setTrickWinnerText(`${winnerName} がトリック勝利`);
+
+          if (isFinalTrickAfterPlay) {
+            const winnerName = winner === 0 ? 'あなた' : `CPU ${winner}`;
+            const allOnes = trickCardsAfterPlay.every(trickCard => trickCard.card === 1);
+
+            if (allOnes) {
+              setTrickWinnerText('ペナルティなし');
+            } else {
+              const penaltyResult = calculateFinalTrickPenalty(trickCardsAfterPlay, config);
+              const hasOne = trickCardsAfterPlay.some(trickCard => trickCard.card === 1);
+              const penaltyText = `${winnerName}が${penaltyResult.penalty}本のきゅうりを獲得しました`;
+              setTrickWinnerText(hasOne ? `${penaltyText}（2倍ペナルティ）` : penaltyText);
+            }
+          } else {
+            setTrickWinnerText(null);
+          }
 
           // 勝者表示を維持
           await delay(1600);

@@ -44,24 +44,38 @@ export function getLegalMoves(state: GameState, player: number): number[] {
 // トリックの勝者を決定
 export function determineTrickWinner(trickCards: Move[]): number {
   if (trickCards.length === 0) return -1;
-  
-  const maxCard = Math.max(...trickCards.map(tc => tc.card));
-  const maxCardPlayers = trickCards.filter(tc => tc.card === maxCard);
-  
-  // 同値最大が複数の場合、最後に出した人が勝者
-  return maxCardPlayers[maxCardPlayers.length - 1].player;
+
+  let winnerIndex = 0;
+  let highestValue = trickCards[0].card;
+
+  for (let i = 1; i < trickCards.length; i++) {
+    // 同値の場合は後から出したカードを勝者として上書きする
+    if (trickCards[i].card >= highestValue) {
+      highestValue = trickCards[i].card;
+      winnerIndex = i;
+    }
+  }
+
+  return trickCards[winnerIndex].player;
 }
 
 // 最終トリックのペナルティ計算
 export function calculateFinalTrickPenalty(trickCards: Move[], _config: GameConfig): { winner: number; penalty: number } {
   if (trickCards.length === 0) return { winner: -1, penalty: 0 };
-  
-  const maxCard = Math.max(...trickCards.map(tc => tc.card));
+
+  let winnerIndex = 0;
+  let maxCard = trickCards[0].card;
+
+  for (let i = 1; i < trickCards.length; i++) {
+    if (trickCards[i].card >= maxCard) {
+      maxCard = trickCards[i].card;
+      winnerIndex = i;
+    }
+  }
+
   const hasOne = trickCards.some(tc => tc.card === 1);
-  
-  // 最大カードを出したプレイヤーの中で、最後に出した人が勝者
-  const winners = trickCards.filter(tc => tc.card === maxCard);
-  const winner = winners[winners.length - 1].player;
+
+  const winner = trickCards[winnerIndex].player;
   
   let penalty = getCucumberCount(maxCard);
   if (hasOne) penalty *= 2;
