@@ -628,7 +628,7 @@ body,
 }
 
 body {
-  background-color: #2d5a27;
+  background: transparent;
 }
 
 /* 固定背景レイヤ（最背面） */

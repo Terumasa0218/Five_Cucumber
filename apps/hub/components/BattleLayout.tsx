@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { BackgroundFrame } from '@/components/ui';
 import { useEffect, useState } from 'react';
@@ -7,9 +7,15 @@ interface BattleLayoutProps {
   children: React.ReactNode;
   className?: string;
   showOrientationHint?: boolean;
+  useFrameBackground?: boolean;
 }
 
-export default function BattleLayout({ children, className, showOrientationHint }: BattleLayoutProps) {
+export default function BattleLayout({
+  children,
+  className,
+  showOrientationHint,
+  useFrameBackground = true,
+}: BattleLayoutProps) {
   const [isPortrait, setIsPortrait] = useState(false);
 
   // 画面向きの監視
@@ -35,8 +41,8 @@ export default function BattleLayout({ children, className, showOrientationHint 
     };
   }, []);
 
-  return (
-    <BackgroundFrame src="/images/battle1.png" objectPosition="center" priority className={className}>
+  const content = (
+    <div className={['battle-layout', className].filter(Boolean).join(' ')}>
       {/* 縦向き時の回転案内オーバーレイ（必要時のみ） */}
       {showOrientationHint && isPortrait && (
         <div className="battle-layout__orientation-overlay">
@@ -51,9 +57,22 @@ export default function BattleLayout({ children, className, showOrientationHint 
       )}
 
       {/* ステージ */}
-      <div className="battle-layout__stage">
-        {children}
-      </div>
+      <div className="battle-layout__stage">{children}</div>
+    </div>
+  );
+
+  if (!useFrameBackground) {
+    return content;
+  }
+
+  return (
+    <BackgroundFrame
+      src="/images/battle1.png"
+      objectPosition="center"
+      priority
+      className={className}
+    >
+      {content}
     </BackgroundFrame>
   );
 }
