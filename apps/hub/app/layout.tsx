@@ -59,12 +59,9 @@ function resolveLocale(): 'ja' | 'en' {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = resolveLocale();
-  const pathname = headers().get('x-pathname') || '';
-  const isCustomBg = pathname.startsWith('/home') || pathname.includes('/play') || pathname.includes('/cucumber');
-
   return (
     <html lang={locale} data-theme="light">
-      <body data-page={isCustomBg ? 'custom-bg' : ''}>
+      <body>
         <Script id="suppress-extension-noise" strategy="beforeInteractive">
           {`
             (function(){

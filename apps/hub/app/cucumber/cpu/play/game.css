@@ -36,9 +36,7 @@
   align-items: stretch;
   justify-items: center;
   gap: inherit;
-  background:
-    radial-gradient(ellipse at center, rgba(255, 255, 255, 0.05) 0%, transparent 70%),
-    linear-gradient(135deg, #1a5c2a 0%, #1b6b31 50%, #186128 100%);
+  background: linear-gradient(135deg, #1a5c2a 0%, #1b6b31 50%, #186128 100%);
 }
 
 .game-container {
