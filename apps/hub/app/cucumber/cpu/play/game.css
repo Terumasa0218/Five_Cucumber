@@ -13,6 +13,7 @@
   gap: clamp(16px, 3vw, 32px);
   overflow: hidden;
   box-sizing: border-box;
+  background: transparent;
   border: 3px solid rgba(101, 67, 33, 0.8);
   outline: none;
   box-shadow:
@@ -41,6 +42,7 @@
 
 .game-container {
   position: relative;
+  width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
