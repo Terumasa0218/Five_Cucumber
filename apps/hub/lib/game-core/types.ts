@@ -9,6 +9,7 @@ export interface Move {
   player: number;
   card: number;
   timestamp: number;
+  isDiscard?: boolean;
 }
 
 export interface Trick {
@@ -23,7 +24,7 @@ export interface PlayerState {
   graveyard: number[];
 }
 
-export type GamePhase = "AwaitMove" | "ResolvingTrick" | "RoundEnd" | "GameEnd";
+export type GamePhase = 'AwaitMove' | 'ResolvingTrick' | 'RoundEnd' | 'GameEnd';
 
 export interface GameState {
   players: PlayerState[];
@@ -85,7 +86,6 @@ export interface PlayerController {
   onGameEnd?(result: SimulationResult): void;
   onTrickEnd?(trick: Trick): void;
 }
-
 
 export interface GameSnapshot {
   state: GameState;

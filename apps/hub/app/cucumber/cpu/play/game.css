@@ -13,7 +13,14 @@
   gap: clamp(16px, 3vw, 32px);
   overflow: hidden;
   box-sizing: border-box;
-  background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.08), transparent 68%);
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.08), transparent 68%),
+    radial-gradient(120% 80% at 50% 55%, rgba(8, 34, 28, 0.35), rgba(0, 0, 0, 0) 70%);
+  border: none;
+  outline: none;
+  box-shadow:
+    inset 0 20px 40px rgba(255, 255, 255, 0.04),
+    inset 0 -26px 50px rgba(0, 0, 0, 0.25);
   --ellipse-card-width: clamp(44px, 6vw, 72px);
   --ellipse-card-height: clamp(60px, 9vw, 108px);
   --ellipse-card-gap: clamp(6px, 2vw, 14px);
@@ -75,7 +82,9 @@
 
 .trick-card-entry.winner .card.current-card {
   border-color: #ffd15c;
-  box-shadow: 0 0 0 2px rgba(255, 209, 92, 0.75), 0 0 22px rgba(255, 209, 92, 0.8);
+  box-shadow:
+    0 0 0 2px rgba(255, 209, 92, 0.75),
+    0 0 22px rgba(255, 209, 92, 0.8);
 }
 
 .trick-winner-banner {
@@ -214,10 +223,22 @@
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-  20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
 }
 
 /* ゲーム終了時のキュウリ表示 */
@@ -235,10 +256,22 @@
 }
 
 @keyframes slideUp {
-  0% { opacity: 0; transform: translate(-50%, -50%) translateY(50px); }
-  10% { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
-  90% { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
-  100% { opacity: 0; transform: translate(-50%, -50%) translateY(-50px); }
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(50px);
+  }
+  10% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  90% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-50px);
+  }
 }
 
 /* プレイヤー手札の横並び表示 */
@@ -303,8 +336,15 @@
 }
 
 @keyframes pulse-warning {
-  0%, 100% { transform: scale(1); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); }
-  50% { transform: scale(1.08); box-shadow: 0 8px 30px rgba(247, 70, 95, 0.6); }
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 8px 30px rgba(247, 70, 95, 0.6);
+  }
 }
 
 .game-title {
@@ -344,7 +384,7 @@
 
 .player-panel.current-turn {
   border: 4px solid #ffbe3b;
-  box-shadow: 
+  box-shadow:
     0 0 30px rgba(255, 190, 59, 0.8),
     0 6px 25px rgba(0, 0, 0, 0.4);
   background: linear-gradient(135deg, rgba(255, 190, 59, 0.25), rgba(255, 190, 59, 0.12));
@@ -352,20 +392,35 @@
 }
 
 /* 手番ハイライト（光る枠） */
-.player-zone[data-active="true"]::after {
-  content: "";
+.player-zone[data-active='true']::after {
+  content: '';
   position: absolute;
   inset: -6px;
   border-radius: 16px;
-  box-shadow: 0 0 0 2px #ffe7a1, 0 0 16px #ffd15c, 0 0 36px rgba(255, 178, 0, 0.55);
+  box-shadow:
+    0 0 0 2px #ffe7a1,
+    0 0 16px #ffd15c,
+    0 0 36px rgba(255, 178, 0, 0.55);
   animation: pulse 1.2s ease-in-out infinite;
   pointer-events: none;
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 2px #ffe7a1, 0 0 10px #ffd15c; }
-  50% { box-shadow: 0 0 0 4px #ffd15c, 0 0 24px #ffb400; }
-  100% { box-shadow: 0 0 0 2px #ffe7a1, 0 0 10px #ffd15c; }
+  0% {
+    box-shadow:
+      0 0 0 2px #ffe7a1,
+      0 0 10px #ffd15c;
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px #ffd15c,
+      0 0 24px #ffb400;
+  }
+  100% {
+    box-shadow:
+      0 0 0 2px #ffe7a1,
+      0 0 10px #ffd15c;
+  }
 }
 
 .turn-badge {
@@ -382,8 +437,16 @@
 }
 
 @keyframes glow-pulse {
-  0% { box-shadow: 0 0 30px rgba(255, 190, 59, 0.8), 0 6px 25px rgba(0, 0, 0, 0.4); }
-  100% { box-shadow: 0 0 40px rgba(255, 190, 59, 1), 0 8px 30px rgba(0, 0, 0, 0.4); }
+  0% {
+    box-shadow:
+      0 0 30px rgba(255, 190, 59, 0.8),
+      0 6px 25px rgba(0, 0, 0, 0.4);
+  }
+  100% {
+    box-shadow:
+      0 0 40px rgba(255, 190, 59, 1),
+      0 8px 30px rgba(0, 0, 0, 0.4);
+  }
 }
 
 .player-info {
@@ -544,7 +607,9 @@
   justify-content: center;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   position: relative;
   border: 2px solid rgba(255, 255, 255, 0.4);
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4);
@@ -605,8 +670,14 @@
 }
 
 @keyframes card-glow {
-  0% { box-shadow: 0 0 30px rgba(49, 153, 255, 0.8); }
-  100% { box-shadow: 0 0 40px rgba(49, 153, 255, 1), 0 0 60px rgba(255, 190, 59, 0.6); }
+  0% {
+    box-shadow: 0 0 30px rgba(49, 153, 255, 0.8);
+  }
+  100% {
+    box-shadow:
+      0 0 40px rgba(49, 153, 255, 1),
+      0 0 60px rgba(255, 190, 59, 0.6);
+  }
 }
 
 .card:hover:not(.disabled) {
@@ -679,7 +750,7 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0, 0, 0, 0.8);
   color: #fff;
   padding: 10px 14px;
   border-radius: 8px;
@@ -695,14 +766,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.35);
   z-index: 1100;
 }
 .countdown-number {
   color: #fff;
   font-size: 96px;
   font-weight: 800;
-  text-shadow: 0 0 12px rgba(255,255,255,0.7), 0 0 30px rgba(0,0,0,0.6);
+  text-shadow:
+    0 0 12px rgba(255, 255, 255, 0.7),
+    0 0 30px rgba(0, 0, 0, 0.6);
 }
 
 .game-over-content {
@@ -852,4 +925,38 @@
   .player-hand {
     min-height: clamp(68px, 30svh, 128px);
   }
+}
+
+.discard-notice,
+.discard-result-notice {
+  align-self: center;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+.discard-notice {
+  background: rgba(247, 70, 95, 0.25);
+  border: 1px solid rgba(247, 70, 95, 0.7);
+}
+
+.discard-result-notice {
+  background: rgba(49, 153, 255, 0.2);
+  border: 1px solid rgba(49, 153, 255, 0.65);
+}
+
+.discard-tag {
+  position: absolute;
+  top: -10px;
+  right: -6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #c73145;
+  border: 1px solid rgba(199, 49, 69, 0.4);
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 1px 6px;
 }
