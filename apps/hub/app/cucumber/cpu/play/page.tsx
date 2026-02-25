@@ -45,6 +45,9 @@ function CpuPlayContent() {
   const [trickWinner, setTrickWinner] = useState<number | null>(null);
   const [trickWinnerText, setTrickWinnerText] = useState<string | null>(null);
   const [turnNotice, setTurnNotice] = useState<string | null>(null);
+  const [finalTrickSelectedPlayers, setFinalTrickSelectedPlayers] = useState<number[]>([]);
+  const [finalTrickOpenedPlayers, setFinalTrickOpenedPlayers] = useState<number[]>([]);
+  const [finalTrickStatusText, setFinalTrickStatusText] = useState<string | null>(null);
   const cpuTurnTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef<boolean>(false);
   const scheduleCpuTurnRef = useRef<(() => void) | null>(null);
@@ -118,6 +121,9 @@ function CpuPlayContent() {
       setTrickWinner(null);
       setTrickWinnerText(null);
       setTurnNotice(null);
+      setFinalTrickSelectedPlayers([]);
+      setFinalTrickOpenedPlayers([]);
+      setFinalTrickStatusText(null);
 
       console.log('[Game] New game started with', config.players, 'players');
 
@@ -214,6 +220,9 @@ function CpuPlayContent() {
               setTrickWinner(null);
               setTrickWinnerText(null);
               setTurnNotice(null);
+              setFinalTrickSelectedPlayers([]);
+              setFinalTrickOpenedPlayers([]);
+              setFinalTrickStatusText(null);
 
               console.log('[Game] State restored successfully with rebuilt controllers');
               return;
@@ -317,49 +326,24 @@ function CpuPlayContent() {
 
         const { state, config, rng } = gameRef.current;
 
-        // 状態チェック
-        if (state.phase !== 'AwaitMove') {
-          console.warn(`[PlayMove] Invalid phase: ${state.phase}`);
+        if (state.phase !== 'AwaitMove' || state.currentPlayer !== player) {
           return;
         }
 
-        // プレイヤー番号の検証
-        if (state.currentPlayer !== player) {
-          console.warn(
-            `[PlayMove] Player mismatch: requested ${player}, current ${state.currentPlayer}`
-          );
-          return;
-        }
-
-        // 手札の確認
-        const playerHand = state.players[player]?.hand;
-        if (!playerHand || !playerHand.includes(card)) {
-          console.error(`[PlayMove] Card ${card} not in player ${player} hand`);
-          return;
-        }
-
-        // 合法手の確認
         const legalMoves = getLegalMoves(state, player);
         if (!legalMoves.includes(card)) {
-          console.error(`[PlayMove] Card ${card} is not legal for player ${player}`);
           return;
         }
 
-        // カードをプレイ
         const isDiscardMove = state.fieldCard !== null && card < state.fieldCard;
         const move: Move = { player, card, timestamp: Date.now(), isDiscard: isDiscardMove };
-        const isCardOnField = state.fieldCard === null || card >= state.fieldCard;
-        const trickCardsAfterPlay = isDiscardMove
-          ? [...state.trickCards]
-          : [...state.trickCards, move];
+        const trickCardsAfterPlay = isDiscardMove ? [...state.trickCards] : [...state.trickCards, move];
         const actionCountAfterPlay = (state.actionCount ?? 0) + 1;
         const isTrickCompleteAfterPlay = actionCountAfterPlay === config.players;
-        const isFinalTrickAfterPlay =
-          isTrickCompleteAfterPlay && state.currentTrick === config.initialCards;
+        const isFinalTrickMode = state.currentTrick === config.initialCards;
+
         const playersAfterPlay = state.players.map((p, idx) => {
-          if (idx !== player) {
-            return p;
-          }
+          if (idx !== player) return p;
 
           const nextHand = [...p.hand];
           const cardIndex = nextHand.indexOf(card);
@@ -367,77 +351,83 @@ function CpuPlayContent() {
             nextHand.splice(cardIndex, 1);
           }
 
-          return {
-            ...p,
-            hand: nextHand,
-            graveyard: isCardOnField ? p.graveyard : [...p.graveyard, card],
-          };
+          return { ...p, hand: nextHand };
         });
+
         const previewState: GameState = {
           ...state,
           players: playersAfterPlay,
           currentPlayer: (state.currentPlayer + 1) % config.players,
-          fieldCard: isCardOnField ? card : state.fieldCard,
-          sharedGraveyard: isCardOnField ? state.sharedGraveyard : [...state.sharedGraveyard, card],
+          fieldCard: isDiscardMove ? state.fieldCard : card,
+          sharedGraveyard: isDiscardMove ? [...state.sharedGraveyard, card] : state.sharedGraveyard,
           trickCards: trickCardsAfterPlay,
           actionCount: actionCountAfterPlay,
           phase: isTrickCompleteAfterPlay ? 'ResolvingTrick' : 'AwaitMove',
+          isFinalTrick: isFinalTrickMode,
         };
 
         const result = applyMove(state, move, config, rng);
-
         if (!result.success) {
-          console.error(`[PlayMove] Failed to apply move:`, result.message);
           return;
         }
 
         let newState = result.newState;
-        console.log(`[PlayMove] Move applied successfully, new phase: ${newState.phase}`);
 
-        // 状態更新
         gameRef.current.state = previewState;
         setGameState(previewState);
         setTableTrickCards(trickCardsAfterPlay);
         setLatestPlayedKey(`${player}-${move.timestamp}`);
         setTrickWinner(null);
         setTrickWinnerText(null);
-        if (isDiscardMove) {
+
+        if (isFinalTrickMode) {
+          setFinalTrickSelectedPlayers(prev => (prev.includes(player) ? prev : [...prev, player]));
+          setFinalTrickStatusText('最終トリック: 全員の選択を待っています…');
+        } else if (isDiscardMove) {
           const actorName = player === 0 ? 'あなた' : `CPU ${player}`;
           setTurnNotice(`${actorName} は出せるカードがないため ${card} を捨てました`);
         } else {
           setTurnNotice(null);
         }
 
-        // 最小ターン時間の待機
-        const minTurnMs = config.minTurnMs || 500;
-        await delay(minTurnMs);
+        await delay(config.minTurnMs || 500);
 
-        // トリック解決フェーズの処理
         if (isTrickCompleteAfterPlay) {
-          console.log('[PlayMove] Resolving trick...');
           const winner = determineTrickWinner(trickCardsAfterPlay);
 
-          // 場に出されたカードを一時表示
-          await delay(1500);
+          if (isFinalTrickMode) {
+            setFinalTrickStatusText('オープン！');
+            await delay(700);
+
+            const revealOrder = Array.from({ length: config.players }, (_, idx) => (state.firstPlayer + idx) % config.players);
+            for (const revealPlayer of revealOrder) {
+              setFinalTrickOpenedPlayers(prev => (prev.includes(revealPlayer) ? prev : [...prev, revealPlayer]));
+              const opened = trickCardsAfterPlay.find(tc => tc.player === revealPlayer);
+              if (opened) {
+                setLatestPlayedKey(`${opened.player}-${opened.timestamp}`);
+              }
+              await delay(650);
+            }
+          } else {
+            await delay(1500);
+          }
+
           setTrickWinner(winner);
 
-          if (isFinalTrickAfterPlay) {
+          if (isFinalTrickMode) {
             const winnerName = winner === 0 ? 'あなた' : `CPU ${winner}`;
             const allOnes = trickCardsAfterPlay.every(trickCard => trickCard.card === 1);
-
             if (allOnes) {
-              setTrickWinnerText('ペナルティなし');
+              setTrickWinnerText('全員が1を出したためペナルティなし！');
             } else {
               const penaltyResult = calculateFinalTrickPenalty(trickCardsAfterPlay, config);
               const hasOne = trickCardsAfterPlay.some(trickCard => trickCard.card === 1);
               const penaltyText = `${winnerName}が${penaltyResult.penalty}本のきゅうりを獲得しました`;
-              setTrickWinnerText(hasOne ? `${penaltyText}（2倍ペナルティ）` : penaltyText);
+              setTrickWinnerText(hasOne ? `${penaltyText}（1が場にあるため2倍！）` : penaltyText);
             }
-          } else {
-            setTrickWinnerText(null);
+            setFinalTrickStatusText('最終トリック結果');
           }
 
-          // 勝者表示を維持
           await delay(1600);
 
           gameRef.current.state = newState;
@@ -447,31 +437,24 @@ function CpuPlayContent() {
           setTrickWinner(null);
           setTrickWinnerText(null);
           setTurnNotice(null);
-          console.log(`[PlayMove] Trick resolved, new phase: ${newState.phase}`);
+          setFinalTrickSelectedPlayers([]);
+          setFinalTrickOpenedPlayers([]);
+          setFinalTrickStatusText(null);
         } else {
           gameRef.current.state = newState;
           setGameState(newState);
         }
 
         if (newState.phase === 'GameEnd') {
-          console.log('[PlayMove] Game ended');
           setGameOver(true);
-          setGameOverData(
-            newState.players.map((p, index) => ({ player: index, count: p.cucumbers }))
-          );
+          setGameOverData(newState.players.map((p, index) => ({ player: index, count: p.cucumbers })));
         }
 
-        console.log(`[PlayMove] Move completed - Player: ${player}, Card: ${card}`);
-
-        // プレイヤー0（人間）のターン後、次のCPUターンをスケジューリング
         if (player === 0) {
           setTimeout(() => {
             if (gameRef.current && !gameOver) {
               const { state } = gameRef.current;
               if (state.currentPlayer !== 0 && state.phase === 'AwaitMove') {
-                console.log(
-                  `[PlayMove] Scheduling next CPU turn for player ${state.currentPlayer}`
-                );
                 if (scheduleCpuTurnRef.current) {
                   scheduleCpuTurnRef.current();
                 }
@@ -611,6 +594,12 @@ function CpuPlayContent() {
           onExit={handleBackToHome}
         />
 
+        {gameState.currentTrick === (gameRef.current?.config?.initialCards || 7) ? (
+          <div className="final-trick-notice" role="status" aria-live="polite">
+            最終トリック
+          </div>
+        ) : null}
+
         {shouldDiscardMinCard ? (
           <div className="discard-notice" role="status" aria-live="polite">
             出せるカードがありません。最小のカードを捨てます。
@@ -645,6 +634,10 @@ function CpuPlayContent() {
           latestPlayedCardKey={latestPlayedKey}
           trickWinner={trickWinner}
           trickWinnerText={trickWinnerText}
+          isFinalTrickMode={gameState.isFinalTrick || gameState.currentTrick === (gameRef.current?.config?.initialCards || 7)}
+          finalTrickSelectedPlayers={finalTrickSelectedPlayers}
+          finalTrickOpenedPlayers={finalTrickOpenedPlayers}
+          finalTrickStatusText={finalTrickStatusText}
         />
 
         {gameOver ? (
