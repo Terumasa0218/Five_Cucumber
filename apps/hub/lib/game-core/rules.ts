@@ -63,23 +63,20 @@ export function determineTrickWinner(trickCards: Move[]): number {
 export function calculateFinalTrickPenalty(trickCards: Move[], _config: GameConfig): { winner: number; penalty: number } {
   if (trickCards.length === 0) return { winner: -1, penalty: 0 };
 
-  let winnerIndex = 0;
-  let maxCard = trickCards[0].card;
+  const winner = determineTrickWinner(trickCards);
+  const winnerCard = trickCards.find(tc => tc.player === winner)?.card ?? 0;
 
-  for (let i = 1; i < trickCards.length; i++) {
-    if (trickCards[i].card >= maxCard) {
-      maxCard = trickCards[i].card;
-      winnerIndex = i;
-    }
+  const allPlayedOne = trickCards.every(tc => tc.card === 1);
+  if (allPlayedOne) {
+    return { winner, penalty: 0 };
   }
 
-  const hasOne = trickCards.some(tc => tc.card === 1);
+  const hasOneOnTable = trickCards.some(tc => tc.card === 1);
+  let penalty = winnerCard;
+  if (hasOneOnTable) {
+    penalty *= 2;
+  }
 
-  const winner = trickCards[winnerIndex].player;
-  
-  let penalty = getCucumberCount(maxCard);
-  if (hasOne) penalty *= 2;
-  
   return { winner, penalty };
 }
 

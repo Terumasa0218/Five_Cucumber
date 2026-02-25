@@ -19,6 +19,10 @@ interface EllipseTableProps {
   latestPlayedCardKey?: string | null;
   trickWinner?: number | null;
   trickWinnerText?: string | null;
+  isFinalTrickMode?: boolean;
+  finalTrickSelectedPlayers?: number[];
+  finalTrickOpenedPlayers?: number[];
+  finalTrickStatusText?: string | null;
 }
 
 export function EllipseTable({
@@ -36,6 +40,10 @@ export function EllipseTable({
   latestPlayedCardKey = null,
   trickWinner = null,
   trickWinnerText = null,
+  isFinalTrickMode = false,
+  finalTrickSelectedPlayers = [],
+  finalTrickOpenedPlayers = [],
+  finalTrickStatusText = null,
 }: EllipseTableProps) {
   const playerNames = ['あなた', 'CPU-A', 'CPU-B', 'CPU-C', 'CPU-D', 'CPU-E'];
 
@@ -105,15 +113,30 @@ export function EllipseTable({
                         .join(' ')}
                     >
                       <div className="trick-card-player">{getPlayerName(trickCard.player)}</div>
-                      <div className="card current-card">
-                        <div className="card-number">{trickCard.card}</div>
-                          <div className="cucumber-icons">
-                          {trickCard.card >= 2 && trickCard.card <= 5 && '🥒'}
-                          {trickCard.card >= 6 && trickCard.card <= 9 && '🥒🥒'}
-                          {trickCard.card >= 10 && trickCard.card <= 11 && '🥒🥒🥒'}
-                          {trickCard.card >= 12 && trickCard.card <= 14 && '🥒🥒🥒🥒'}
-                          {trickCard.card === 15 && '🥒🥒🥒🥒🥒'}
-                        </div>
+                      <div
+                        className={[
+                          'card current-card',
+                          isFinalTrickMode && finalTrickOpenedPlayers.includes(trickCard.player)
+                            ? 'card-flip'
+                            : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                      >
+                        {isFinalTrickMode && !finalTrickOpenedPlayers.includes(trickCard.player) ? (
+                          <div className="card-back">選択済み</div>
+                        ) : (
+                          <>
+                            <div className="card-number">{trickCard.card}</div>
+                            <div className="cucumber-icons">
+                              {trickCard.card >= 2 && trickCard.card <= 5 && '🥒'}
+                              {trickCard.card >= 6 && trickCard.card <= 9 && '🥒🥒'}
+                              {trickCard.card >= 10 && trickCard.card <= 11 && '🥒🥒🥒'}
+                              {trickCard.card >= 12 && trickCard.card <= 14 && '🥒🥒🥒🥒'}
+                              {trickCard.card === 15 && '🥒🥒🥒🥒🥒'}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   );
@@ -135,7 +158,11 @@ export function EllipseTable({
               <div className="card-number">?</div>
             </div>
           )}
-          {trickWinnerText ? <div className="trick-winner-banner">{trickWinnerText}</div> : null}
+          {finalTrickStatusText ? (
+            <div className="trick-winner-banner">{finalTrickStatusText}</div>
+          ) : trickWinnerText ? (
+            <div className="trick-winner-banner">{trickWinnerText}</div>
+          ) : null}
         </div>
         <div id="grave" className="ellipse-table__grave" aria-label="墓地">
           {state.sharedGraveyard.length > 0 && (
@@ -167,6 +194,9 @@ export function EllipseTable({
                     🃏 <span>{player.hand.length}</span>
                   </div>
                 </div>
+                {isFinalTrickMode && finalTrickSelectedPlayers.includes(i) ? (
+                  <div className="final-selected-badge">選択済み</div>
+                ) : null}
                 {i !== mySeatIndex && (
                   <div className="player-hand-visual">
                     {showAllHands

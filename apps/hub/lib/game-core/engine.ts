@@ -30,6 +30,7 @@ function cloneState(state: GameState): GameState {
     gameOverPlayers: [...state.gameOverPlayers],
     remainingCards: [...state.remainingCards],
     cardCounts: [...state.cardCounts],
+    isFinalTrick: state.isFinalTrick,
   };
 }
 
@@ -60,6 +61,7 @@ export function createInitialState(config: GameConfig, rng: SeededRng): GameStat
     remainingCards: deck.slice(config.players * config.initialCards),
     cardCounts: initializeCardCounts(),
     phase: 'AwaitMove' as GamePhase,
+    isFinalTrick: config.initialCards === 1,
   };
 }
 
@@ -190,6 +192,7 @@ export function endTrick(state: GameState, config: GameConfig, rng: SeededRng): 
 
   // 次のトリックに進む
   newState.currentTrick++;
+  newState.isFinalTrick = newState.currentTrick === config.initialCards;
   newState.fieldCard = null;
   newState.trickCards = [];
   newState.actionCount = 0;
@@ -245,6 +248,7 @@ export function startNewRound(state: GameState, config: GameConfig, rng: SeededR
   newState.remainingCards = deck.slice(config.players * config.initialCards);
   newState.cardCounts = initializeCardCounts();
   newState.phase = 'AwaitMove';
+  newState.isFinalTrick = config.initialCards === 1;
 
   return { success: true, newState };
 }
