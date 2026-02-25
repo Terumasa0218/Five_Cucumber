@@ -584,7 +584,7 @@ function CpuPlayContent() {
 
   if (!gameState) {
     return (
-      <BattleLayout showOrientationHint>
+      <BattleLayout showOrientationHint useFrameBackground={false}>
         <div className="flex-1 flex flex-col p-4">
           <div className="grid place-items-center h-full text-white/80">Loading...</div>
         </div>
@@ -609,7 +609,7 @@ function CpuPlayContent() {
   return (
     <>
       <PageBackground image={BACKGROUNDS.battle} />
-      <BattleLayout showOrientationHint>
+      <BattleLayout showOrientationHint useFrameBackground={false}>
         <div className="relative z-10 flex-1 flex flex-col gap-6 p-4">
           <div
             key={`${gameState.currentRound}-${gameState.currentTrick}`}

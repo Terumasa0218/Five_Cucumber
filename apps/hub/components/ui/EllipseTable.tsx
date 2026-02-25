@@ -91,218 +91,220 @@ export function EllipseTable({
 
   return (
     <div className={rootClassName}>
-      {/* 中央の場と墓地 */}
-      <div className="ellipse-table__center">
-        <div id="field" className="ellipse-table__field" aria-label="場のカード">
-          {visibleTrickCards.length > 0 ? (
-            <div className="trick-cards-queue" aria-live="polite">
-              {visibleTrickCards.map((trickCard, index) => {
-                const cardKey = `${trickCard.player}-${trickCard.timestamp}`;
-                const isLatestPlayed = latestPlayedCardKey === cardKey;
-                const isWinnerCard = trickWinner !== null && trickCard.player === trickWinner;
-                const seed = trickCard.card * 7 + index * 13;
-                const rotate = (seed % 11) - 5;
-                const offsetX = (seed % 21) - 10;
-                const offsetY = ((seed * 3) % 15) - 7;
+      <div className="ellipse-table-inner">
+        {/* 中央の場と墓地 */}
+        <div className="ellipse-table__center">
+          <div id="field" className="ellipse-table__field" aria-label="場のカード">
+            {visibleTrickCards.length > 0 ? (
+              <div className="trick-cards-queue" aria-live="polite">
+                {visibleTrickCards.map((trickCard, index) => {
+                  const cardKey = `${trickCard.player}-${trickCard.timestamp}`;
+                  const isLatestPlayed = latestPlayedCardKey === cardKey;
+                  const isWinnerCard = trickWinner !== null && trickCard.player === trickWinner;
+                  const seed = trickCard.card * 7 + index * 13;
+                  const rotate = (seed % 11) - 5;
+                  const offsetX = (seed % 21) - 10;
+                  const offsetY = ((seed * 3) % 15) - 7;
 
-                return (
-                  <div
-                    key={cardKey}
-                    className={[
-                      'trick-card-entry',
-                      isLatestPlayed ? 'card-play-to-center' : '',
-                      isWinnerCard ? 'winner' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    style={
-                      {
-                        '--offset-x': `${offsetX}px`,
-                        '--offset-y': `${offsetY}px`,
-                        '--rotate': `${rotate}deg`,
-                        zIndex: index + 1,
-                      } as CSSProperties
-                    }
-                  >
+                  return (
                     <div
+                      key={cardKey}
                       className={[
-                        'card game-card current-card',
-                        isFinalTrickMode && finalTrickOpenedPlayers.includes(trickCard.player)
-                          ? 'card-flip'
-                          : '',
+                        'trick-card-entry',
+                        isLatestPlayed ? 'card-play-to-center' : '',
+                        isWinnerCard ? 'winner' : '',
                       ]
                         .filter(Boolean)
                         .join(' ')}
+                      style={
+                        {
+                          '--offset-x': `${offsetX}px`,
+                          '--offset-y': `${offsetY}px`,
+                          '--rotate': `${rotate}deg`,
+                          zIndex: index + 1,
+                        } as CSSProperties
+                      }
                     >
-                      {isFinalTrickMode && !finalTrickOpenedPlayers.includes(trickCard.player) ? (
-                        <div className="card-back">選択済み</div>
-                      ) : (
-                        <>
-                          <div className="card-number">{trickCard.card}</div>
-                          <div className="cucumber-icons">
-                            {trickCard.card >= 2 && trickCard.card <= 5 && '🥒'}
-                            {trickCard.card >= 6 && trickCard.card <= 9 && '🥒🥒'}
-                            {trickCard.card >= 10 && trickCard.card <= 11 && '🥒🥒🥒'}
-                            {trickCard.card >= 12 && trickCard.card <= 14 && '🥒🥒🥒🥒'}
-                            {trickCard.card === 15 && '🥒🥒🥒🥒🥒'}
-                          </div>
-                        </>
-                      )}
+                      <div
+                        className={[
+                          'card game-card current-card',
+                          isFinalTrickMode && finalTrickOpenedPlayers.includes(trickCard.player)
+                            ? 'card-flip'
+                            : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                      >
+                        {isFinalTrickMode && !finalTrickOpenedPlayers.includes(trickCard.player) ? (
+                          <div className="card-back">選択済み</div>
+                        ) : (
+                          <>
+                            <div className="card-number">{trickCard.card}</div>
+                            <div className="cucumber-icons">
+                              {trickCard.card >= 2 && trickCard.card <= 5 && '🥒'}
+                              {trickCard.card >= 6 && trickCard.card <= 9 && '🥒🥒'}
+                              {trickCard.card >= 10 && trickCard.card <= 11 && '🥒🥒🥒'}
+                              {trickCard.card >= 12 && trickCard.card <= 14 && '🥒🥒🥒🥒'}
+                              {trickCard.card === 15 && '🥒🥒🥒🥒🥒'}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {lastPlayedTrickCard ? (
+                  <div className="trick-last-player-label">
+                    {getPlayerName(lastPlayedTrickCard.player)}
+                  </div>
+                ) : null}
+              </div>
+            ) : state.fieldCard !== null ? (
+              <div className="card game-card current-card">
+                <div className="card-number">{state.fieldCard}</div>
+                <div className="cucumber-icons">
+                  {state.fieldCard >= 2 && state.fieldCard <= 5 && '🥒'}
+                  {state.fieldCard >= 6 && state.fieldCard <= 9 && '🥒🥒'}
+                  {state.fieldCard >= 10 && state.fieldCard <= 11 && '🥒🥒🥒'}
+                  {state.fieldCard >= 12 && state.fieldCard <= 14 && '🥒🥒🥒🥒'}
+                  {state.fieldCard === 15 && '🥒🥒🥒🥒🥒'}
+                </div>
+              </div>
+            ) : (
+              <div className="card game-card disabled">
+                <div className="card-number">?</div>
+              </div>
+            )}
+            {finalTrickStatusText ? (
+              <div className="trick-winner-banner">{finalTrickStatusText}</div>
+            ) : trickWinnerText ? (
+              <div className="trick-winner-banner">{trickWinnerText}</div>
+            ) : null}
+          </div>
+          <div id="grave" className="ellipse-table__grave" aria-label="墓地">
+            {state.sharedGraveyard.length > 0 && (
+              <div className="graveyard-card">
+                {state.sharedGraveyard[state.sharedGraveyard.length - 1]}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 楕円座席（外枠と内枠の間の帯） */}
+        <section id="seats" className={`players-${config.players}`}>
+          {state.players.map((player, i) => {
+            const isTurn = currentPlayerIndex !== null && i === currentPlayerIndex;
+
+            return (
+              <div
+                key={i}
+                className={`seat player-seat ${isTurn ? 'turn active-turn' : ''}`}
+                data-active={state.currentPlayer === i}
+              >
+                <div className="content player-info">
+                  <div className="player-name">{getPlayerName(i)}</div>
+                  <div className="player-stats">
+                    <div className="cucumber-count">
+                      🥒 <span>{player.cucumbers}</span>
+                    </div>
+                    <div className="cards-count">
+                      🃏 <span>{player.hand.length}</span>
                     </div>
                   </div>
-                );
-              })}
-              {lastPlayedTrickCard ? (
-                <div className="trick-last-player-label">
-                  {getPlayerName(lastPlayedTrickCard.player)}
+                  {isFinalTrickMode && finalTrickSelectedPlayers.includes(i) ? (
+                    <div className="final-selected-badge">選択済み</div>
+                  ) : null}
+                  {i !== mySeatIndex && (
+                    <div className="player-hand-visual">
+                      {showAllHands
+                        ? // デバッグモード：実際のカード値を表示
+                          player.hand.map((card, cardIndex) => (
+                            <div key={cardIndex} className="debug-card" title={`カード${card}`}>
+                              {card}
+                            </div>
+                          ))
+                        : // 通常モード：裏面のカードを表示
+                          player.hand.map((_, cardIndex) => (
+                            <div key={cardIndex} className="mini-card" />
+                          ))}
+                    </div>
+                  )}
                 </div>
-              ) : null}
-            </div>
-          ) : state.fieldCard !== null ? (
-            <div className="card game-card current-card">
-              <div className="card-number">{state.fieldCard}</div>
-              <div className="cucumber-icons">
-                {state.fieldCard >= 2 && state.fieldCard <= 5 && '🥒'}
-                {state.fieldCard >= 6 && state.fieldCard <= 9 && '🥒🥒'}
-                {state.fieldCard >= 10 && state.fieldCard <= 11 && '🥒🥒🥒'}
-                {state.fieldCard >= 12 && state.fieldCard <= 14 && '🥒🥒🥒🥒'}
-                {state.fieldCard === 15 && '🥒🥒🥒🥒🥒'}
               </div>
-            </div>
-          ) : (
-            <div className="card game-card disabled">
-              <div className="card-number">?</div>
-            </div>
-          )}
-          {finalTrickStatusText ? (
-            <div className="trick-winner-banner">{finalTrickStatusText}</div>
-          ) : trickWinnerText ? (
-            <div className="trick-winner-banner">{trickWinnerText}</div>
-          ) : null}
-        </div>
-        <div id="grave" className="ellipse-table__grave" aria-label="墓地">
-          {state.sharedGraveyard.length > 0 && (
-            <div className="graveyard-card">
-              {state.sharedGraveyard[state.sharedGraveyard.length - 1]}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 楕円座席（外枠と内枠の間の帯） */}
-      <section id="seats" className={`players-${config.players}`}>
-        {state.players.map((player, i) => {
-          const isTurn = currentPlayerIndex !== null && i === currentPlayerIndex;
-
-          return (
-            <div
-              key={i}
-              className={`seat player-seat ${isTurn ? 'turn active-turn' : ''}`}
-              data-active={state.currentPlayer === i}
-            >
-              <div className="content player-info">
-                <div className="player-name">{getPlayerName(i)}</div>
-                <div className="player-stats">
-                  <div className="cucumber-count">
-                    🥒 <span>{player.cucumbers}</span>
-                  </div>
-                  <div className="cards-count">
-                    🃏 <span>{player.hand.length}</span>
-                  </div>
-                </div>
-                {isFinalTrickMode && finalTrickSelectedPlayers.includes(i) ? (
-                  <div className="final-selected-badge">選択済み</div>
-                ) : null}
-                {i !== mySeatIndex && (
-                  <div className="player-hand-visual">
-                    {showAllHands
-                      ? // デバッグモード：実際のカード値を表示
-                        player.hand.map((card, cardIndex) => (
-                          <div key={cardIndex} className="debug-card" title={`カード${card}`}>
-                            {card}
-                          </div>
-                        ))
-                      : // 通常モード：裏面のカードを表示
-                        player.hand.map((_, cardIndex) => (
-                          <div key={cardIndex} className="mini-card" />
-                        ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </section>
-
-      {/* 自分の手札と名前（下辺） */}
-      <section id="hand-dock" className="ellipse-table__hand" aria-label="自分の手札">
-        <div className="me-name">{getPlayerName(mySeatIndex)}</div>
-        <div className="hand">
-          {(() => {
-            const myHand = state.players[mySeatIndex]?.hand ?? [];
-            const highestOnTable = state.fieldCard;
-            const hasLegalPlay = myHand.some(
-              handCard => highestOnTable === null || handCard >= highestOnTable
             );
-            const minCard = myHand.length > 0 ? Math.min(...myHand) : null;
+          })}
+        </section>
 
-            return myHand.map((card, index) => {
-              const isPlayable = highestOnTable === null || card >= highestOnTable;
-              const isDiscard = !hasLegalPlay && minCard !== null && card === minCard;
-              const isIllegalWhileLegalExists = hasLegalPlay && !isPlayable;
-              const isMyTurn = currentPlayerIndex === mySeatIndex;
-
-              // カードが送信中またはロックされているかチェック
-              const isCardLocked = lockedCardId === card;
-              const isAllLocked = isSubmitting || className?.includes('cards-locked');
-              const isDisabled =
-                !isMyTurn ||
-                isAllLocked ||
-                isCardLocked ||
-                state.phase !== 'AwaitMove' ||
-                isIllegalWhileLegalExists;
-
-              const handleCardClick = (e: React.MouseEvent) => {
-                e.preventDefault();
-                if (isDisabled || isSubmitting || !isMyTurn) return;
-                onCardClick?.(card);
-              };
-
-              return (
-                <div
-                  key={`${card}-${index}`}
-                  className={`card game-card ${
-                    isCardLocked
-                      ? 'disabled locked'
-                      : isDisabled
-                        ? 'disabled'
-                        : isPlayable
-                          ? 'playable'
-                          : isDiscard
-                            ? 'discard'
-                            : 'disabled'
-                  }`}
-                  onClick={handleCardClick}
-                  onPointerDown={handleCardClick}
-                  style={{ pointerEvents: isDisabled ? 'none' : 'auto' }}
-                  data-card={card}
-                  aria-disabled={isDisabled}
-                >
-                  <div className="card-number">{card}</div>
-                  <div className="cucumber-icons">
-                    {card >= 2 && card <= 5 && '🥒'}
-                    {card >= 6 && card <= 9 && '🥒🥒'}
-                    {card >= 10 && card <= 11 && '🥒🥒🥒'}
-                    {card >= 12 && card <= 14 && '🥒🥒🥒🥒'}
-                    {card === 15 && '🥒🥒🥒🥒🥒'}
-                  </div>
-                  {isDiscard ? <div className="discard-tag">捨てる</div> : null}
-                </div>
+        {/* 自分の手札と名前（下辺） */}
+        <section id="hand-dock" className="ellipse-table__hand" aria-label="自分の手札">
+          <div className="me-name">{getPlayerName(mySeatIndex)}</div>
+          <div className="hand">
+            {(() => {
+              const myHand = state.players[mySeatIndex]?.hand ?? [];
+              const highestOnTable = state.fieldCard;
+              const hasLegalPlay = myHand.some(
+                handCard => highestOnTable === null || handCard >= highestOnTable
               );
-            });
-          })()}
-        </div>
-      </section>
+              const minCard = myHand.length > 0 ? Math.min(...myHand) : null;
+
+              return myHand.map((card, index) => {
+                const isPlayable = highestOnTable === null || card >= highestOnTable;
+                const isDiscard = !hasLegalPlay && minCard !== null && card === minCard;
+                const isIllegalWhileLegalExists = hasLegalPlay && !isPlayable;
+                const isMyTurn = currentPlayerIndex === mySeatIndex;
+
+                // カードが送信中またはロックされているかチェック
+                const isCardLocked = lockedCardId === card;
+                const isAllLocked = isSubmitting || className?.includes('cards-locked');
+                const isDisabled =
+                  !isMyTurn ||
+                  isAllLocked ||
+                  isCardLocked ||
+                  state.phase !== 'AwaitMove' ||
+                  isIllegalWhileLegalExists;
+
+                const handleCardClick = (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  if (isDisabled || isSubmitting || !isMyTurn) return;
+                  onCardClick?.(card);
+                };
+
+                return (
+                  <div
+                    key={`${card}-${index}`}
+                    className={`card game-card ${
+                      isCardLocked
+                        ? 'disabled locked'
+                        : isDisabled
+                          ? 'disabled'
+                          : isPlayable
+                            ? 'playable'
+                            : isDiscard
+                              ? 'discard'
+                              : 'disabled'
+                    }`}
+                    onClick={handleCardClick}
+                    onPointerDown={handleCardClick}
+                    style={{ pointerEvents: isDisabled ? 'none' : 'auto' }}
+                    data-card={card}
+                    aria-disabled={isDisabled}
+                  >
+                    <div className="card-number">{card}</div>
+                    <div className="cucumber-icons">
+                      {card >= 2 && card <= 5 && '🥒'}
+                      {card >= 6 && card <= 9 && '🥒🥒'}
+                      {card >= 10 && card <= 11 && '🥒🥒🥒'}
+                      {card >= 12 && card <= 14 && '🥒🥒🥒🥒'}
+                      {card === 15 && '🥒🥒🥒🥒🥒'}
+                    </div>
+                    {isDiscard ? <div className="discard-tag">捨てる</div> : null}
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
