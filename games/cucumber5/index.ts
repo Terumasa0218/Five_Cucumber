@@ -1,4 +1,13 @@
-import { Cucumber5Card, Cucumber5Player, Cucumber5State, GameEvent, GameHandle, GameMeta, GameModule, GameOptions } from '@five-cucumber/sdk';
+import {
+  Cucumber5Card,
+  Cucumber5Player,
+  Cucumber5State,
+  GameEvent,
+  GameHandle,
+  GameMeta,
+  GameModule,
+  GameOptions,
+} from '@five-cucumber/sdk';
 import { cpuManager, Difficulty } from './cpu';
 import { Cucumber5Rules } from './rules';
 import { Cucumber5View, Cucumber5ViewAction } from './view';
@@ -17,7 +26,7 @@ export class Cucumber5GameModule implements GameModule {
     icon: '🥒',
     theme: 'antique',
     description: 'きゅうりを5本集めないようにするカードゲーム',
-    rules: '数字の大きいカードがトリックを取ります。最終トリックで最大値を出すときゅうり2本！'
+    rules: '数字の大きいカードがトリックを取ります。最終トリックで最大値を出すときゅうり2本！',
   };
 
   private gameState: Cucumber5State | null = null;
@@ -49,11 +58,7 @@ class Cucumber5GameHandle implements GameHandle {
   private humanPlayerIndex = 0;
   private view: Cucumber5View | null = null;
 
-  constructor(
-    element: HTMLElement,
-    options: GameOptions,
-    onEvent: (event: GameEvent) => void
-  ) {
+  constructor(element: HTMLElement, options: GameOptions, onEvent: (event: GameEvent) => void) {
     this.element = element;
     this.options = options;
     this.onEvent = onEvent;
@@ -76,8 +81,8 @@ class Cucumber5GameHandle implements GameHandle {
       gameId: 'cucumber5',
       data: {
         players: this.state.players.map(p => p.id),
-        options: this.options
-      }
+        options: this.options,
+      },
     });
 
     // Start first turn
@@ -138,7 +143,7 @@ class Cucumber5GameHandle implements GameHandle {
       hand: hands[index] || [],
       cucumbers: 0,
       graveyard: [],
-      isCPU: player.isCPU
+      isCPU: player.isCPU,
     }));
 
     return {
@@ -152,7 +157,7 @@ class Cucumber5GameHandle implements GameHandle {
       timeLeft: 15,
       phase: 'playing',
       turn: 1,
-      data: {}
+      data: {},
     };
   }
 
@@ -161,7 +166,7 @@ class Cucumber5GameHandle implements GameHandle {
       state: this.state,
       locale: this.options.locale,
       onEvent: this.onEvent,
-      onRequestAction: this.handleViewAction
+      onRequestAction: this.handleViewAction,
     });
   }
 
@@ -209,7 +214,10 @@ class Cucumber5GameHandle implements GameHandle {
 
     const selectedCard = player.hand[cardIndex];
 
-    if (this.state.fieldCard === null || selectedCard.number >= (this.state.fieldCard?.number ?? 0)) {
+    if (
+      this.state.fieldCard === null ||
+      selectedCard.number >= (this.state.fieldCard?.number ?? 0)
+    ) {
       this.playCard(selectedCard, cardIndex);
     } else {
       this.discardCard(selectedCard, cardIndex);
@@ -222,14 +230,17 @@ class Cucumber5GameHandle implements GameHandle {
     const player = this.state.players[this.state.currentPlayer];
     if (!player) return;
 
-    const index = typeof handIndex === 'number' ? handIndex : player.hand.findIndex(c => this.isSameCard(c, card));
+    const index =
+      typeof handIndex === 'number'
+        ? handIndex
+        : player.hand.findIndex(c => this.isSameCard(c, card));
     if (index === -1) return;
 
     const [playedCard] = player.hand.splice(index, 1);
 
     this.state.trickCards.push({
       player: this.state.currentPlayer,
-      card: playedCard
+      card: playedCard,
     });
 
     this.state.fieldCard = playedCard;
@@ -250,17 +261,16 @@ class Cucumber5GameHandle implements GameHandle {
     const player = this.state.players[this.state.currentPlayer];
     if (!player) return;
 
-    const index = typeof handIndex === 'number' ? handIndex : player.hand.findIndex(c => this.isSameCard(c, card));
+    const index =
+      typeof handIndex === 'number'
+        ? handIndex
+        : player.hand.findIndex(c => this.isSameCard(c, card));
     if (index === -1) return;
 
     const [discardedCard] = player.hand.splice(index, 1);
 
     player.graveyard.push(discardedCard);
     this.state.sharedGraveyard.push(discardedCard);
-    this.state.trickCards.push({
-      player: this.state.currentPlayer,
-      card: discardedCard
-    });
     this.isAnimating = true;
 
     this.updateView();
@@ -274,7 +284,7 @@ class Cucumber5GameHandle implements GameHandle {
 
   private nextPlayer(): void {
     this.state.currentPlayer = (this.state.currentPlayer + 1) % this.state.players.length;
-    
+
     if (this.state.trickCards.length === this.state.players.length) {
       this.endTrick();
     } else {
@@ -290,7 +300,7 @@ class Cucumber5GameHandle implements GameHandle {
     }
 
     const { winner, maxCard } = Cucumber5Rules.processTrick(this.state.trickCards);
-    
+
     this.state.currentPlayer = winner;
     this.state.trick++;
     this.state.turn++;
@@ -320,7 +330,7 @@ class Cucumber5GameHandle implements GameHandle {
 
     // Check game over
     const { isOver, losers } = Cucumber5Rules.isGameOver(this.state.players);
-    
+
     if (isOver) {
       this.endGame(losers);
     } else {
@@ -340,7 +350,7 @@ class Cucumber5GameHandle implements GameHandle {
     // Deal new cards
     const deck = Cucumber5Rules.createDeck();
     const hands = Cucumber5Rules.dealCards(deck, this.state.players.length);
-    
+
     this.state.players.forEach((player, index) => {
       player.hand = hands[index] || [];
       player.graveyard = [];
@@ -360,30 +370,32 @@ class Cucumber5GameHandle implements GameHandle {
     this.stopTimer();
     this.state.phase = 'game_over';
 
-    const scores = this.state.players.reduce((acc, player, index) => {
-      acc[player.id] = player.cucumbers;
-      return acc;
-    }, {} as Record<string, number>);
+    const scores = this.state.players.reduce(
+      (acc, player, index) => {
+        acc[player.id] = player.cucumbers;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     this.onEvent({
       type: 'match:end',
       timestamp: Date.now(),
       gameId: 'cucumber5',
       data: {
-        winnerIds: this.state.players
-          .filter((_, index) => !losers.includes(index))
-          .map(p => p.id),
+        winnerIds: this.state.players.filter((_, index) => !losers.includes(index)).map(p => p.id),
         scores,
         duration: Date.now() - (this.state as any).startTime || 0,
-        reason: 'completed'
-      }
+        reason: 'completed',
+      },
     });
 
     this.updateView();
   }
 
   private scheduleCPUAction(): void {
-    if (!this.isRunning || this.isAnimating || this.state.currentPlayer === this.humanPlayerIndex) return;
+    if (!this.isRunning || this.isAnimating || this.state.currentPlayer === this.humanPlayerIndex)
+      return;
 
     const playerIndex = this.state.currentPlayer;
     const player = this.state.players[playerIndex];
@@ -406,7 +418,10 @@ class Cucumber5GameHandle implements GameHandle {
 
       const targetCard = currentPlayer.hand[handIndex];
 
-      if (this.state.fieldCard === null || targetCard.number >= (this.state.fieldCard?.number ?? 0)) {
+      if (
+        this.state.fieldCard === null ||
+        targetCard.number >= (this.state.fieldCard?.number ?? 0)
+      ) {
         this.playCard(targetCard, handIndex);
       } else {
         this.discardCard(targetCard, handIndex);
@@ -418,13 +433,13 @@ class Cucumber5GameHandle implements GameHandle {
     this.stopTimer();
     this.state.timeLeft = 15;
     this.patchView({ timeLeft: this.state.timeLeft });
-    
+
     this.timer = setInterval(() => {
       if (!this.isRunning) return;
-      
+
       this.state.timeLeft--;
       this.patchView({ timeLeft: this.state.timeLeft });
-      
+
       if (this.state.timeLeft <= 0) {
         this.stopTimer();
         this.autoPlay();
@@ -449,7 +464,7 @@ class Cucumber5GameHandle implements GameHandle {
     const player = this.state.players[this.humanPlayerIndex];
     if (!player) return;
     const playableCards = Cucumber5Rules.getPlayableCards(player, this.state.fieldCard);
-    
+
     if (playableCards.length > 0) {
       const card = playableCards[0];
       const handIndex = player.hand.findIndex(c => this.isSameCard(c, card));
@@ -457,7 +472,10 @@ class Cucumber5GameHandle implements GameHandle {
 
       const targetCard = player.hand[handIndex];
 
-      if (this.state.fieldCard === null || targetCard.number >= (this.state.fieldCard?.number ?? 0)) {
+      if (
+        this.state.fieldCard === null ||
+        targetCard.number >= (this.state.fieldCard?.number ?? 0)
+      ) {
         this.playCard(targetCard, handIndex);
       } else {
         this.discardCard(targetCard, handIndex);
@@ -476,7 +494,7 @@ class Cucumber5GameHandle implements GameHandle {
     const indexCandidates = [
       rawOptions.humanPlayerIndex,
       rawOptions.playerIndex,
-      rawOptions.localPlayerIndex
+      rawOptions.localPlayerIndex,
     ];
 
     for (const candidate of indexCandidates) {
@@ -486,7 +504,9 @@ class Cucumber5GameHandle implements GameHandle {
     }
 
     if (typeof rawOptions.localPlayerId === 'string') {
-      const playerIndex = options.players.findIndex(player => player.id === rawOptions.localPlayerId);
+      const playerIndex = options.players.findIndex(
+        player => player.id === rawOptions.localPlayerId
+      );
       if (playerIndex >= 0) return playerIndex;
     }
 
@@ -499,7 +519,7 @@ class Cucumber5GameHandle implements GameHandle {
       type: 'game_action',
       timestamp: Date.now(),
       gameId: 'cucumber5',
-      data: { action: type, ...data }
+      data: { action: type, ...data },
     });
   }
 

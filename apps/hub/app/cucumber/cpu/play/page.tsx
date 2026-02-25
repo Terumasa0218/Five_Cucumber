@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
 import BattleLayout from '@/components/BattleLayout';
 import { BattleHud, EllipseTable, GameFooter, Timer } from '@/components/ui';
 import { HumanController } from '@/lib/controllers/human';
 import { delay, runAnimation } from '@/lib/animQueue';
 import {
-    applyMove,
-    createGameView,
-    createInitialState,
-    GameConfig,
-    GameState,
-    getEffectiveTurnSeconds,
-    getLegalMoves,
-    determineTrickWinner,
-    Move,
-    PlayerController,
-    RngState,
-    SeededRng,
+  applyMove,
+  createGameView,
+  createInitialState,
+  GameConfig,
+  GameState,
+  getEffectiveTurnSeconds,
+  getLegalMoves,
+  determineTrickWinner,
+  Move,
+  PlayerController,
+  RngState,
+  SeededRng,
 } from '@/lib/game-core';
 import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -43,11 +43,12 @@ function CpuPlayContent() {
   const [latestPlayedKey, setLatestPlayedKey] = useState<string | null>(null);
   const [trickWinner, setTrickWinner] = useState<number | null>(null);
   const [trickWinnerText, setTrickWinnerText] = useState<string | null>(null);
+  const [turnNotice, setTurnNotice] = useState<string | null>(null);
   const cpuTurnTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef<boolean>(false);
   const scheduleCpuTurnRef = useRef<(() => void) | null>(null);
   const playCpuTurnRef = useRef<(() => Promise<void>) | null>(null);
-  
+
   // ゲーム状態の保存キー
   const getGameStateKey = useCallback((params: URLSearchParams) => {
     const players = params.get('players') || '4';
@@ -70,22 +71,22 @@ function CpuPlayContent() {
 
   const scheduleCpuTurn = useCallback(() => {
     if (!gameRef.current || !gameState || isProcessingRef.current) return;
-    
+
     const { state } = gameRef.current;
-    
+
     // 条件チェック
-    if (state.currentPlayer === 0 || gameOver || state.phase !== "AwaitMove") {
+    if (state.currentPlayer === 0 || gameOver || state.phase !== 'AwaitMove') {
       return;
     }
-    
+
     // 既存のタイマーをクリア
     if (cpuTurnTimerRef.current) {
       clearTimeout(cpuTurnTimerRef.current);
       cpuTurnTimerRef.current = null;
     }
-    
+
     console.log(`[CPU] Scheduling turn for player ${state.currentPlayer}`);
-    
+
     // CPUの思考時間
     const thinkingTime = 600 + Math.random() * 400;
     cpuTurnTimerRef.current = setTimeout(() => {
@@ -106,7 +107,7 @@ function CpuPlayContent() {
       const { SeededRng } = await import('@/lib/game-core');
       const rng = new SeededRng(config.seed);
       const state = createInitialState(config, rng);
-      
+
       gameRef.current = { state, config, controllers, rng, humanController };
       setGameState(state);
       setGameOver(false);
@@ -115,13 +116,18 @@ function CpuPlayContent() {
       setLatestPlayedKey(null);
       setTrickWinner(null);
       setTrickWinnerText(null);
-      
+      setTurnNotice(null);
+
       console.log('[Game] New game started with', config.players, 'players');
-      
+
       // 最初のプレイヤーがCPUの場合は自動プレイ
       if (state.currentPlayer !== 0) {
         setTimeout(() => {
-          if (gameRef.current && gameRef.current.state.currentPlayer !== 0 && scheduleCpuTurnRef.current) {
+          if (
+            gameRef.current &&
+            gameRef.current.state.currentPlayer !== 0 &&
+            scheduleCpuTurnRef.current
+          ) {
             scheduleCpuTurnRef.current();
           }
         }, 2000);
@@ -133,19 +139,24 @@ function CpuPlayContent() {
 
   useEffect(() => {
     document.title = 'CPU対戦 | Five Cucumber';
-    
-    
+
     // リファラーをチェックして新規開始かリロード復元かを判定
     // document.referrerの代わりにnavigation APIを使用
-    const navigation = typeof performance !== 'undefined' && performance.getEntriesByType 
-      ? performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
-      : null;
-    const referrer = navigation?.type === 'navigate' 
-      ? (navigation as { name?: string }).name || document.referrer
-      : document.referrer;
-    const isFromHome = !referrer || referrer.includes('/home') || referrer.includes('/cucumber/cpu/settings') || referrer.includes('/cpu/settings');
+    const navigation =
+      typeof performance !== 'undefined' && performance.getEntriesByType
+        ? (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)
+        : null;
+    const referrer =
+      navigation?.type === 'navigate'
+        ? (navigation as { name?: string }).name || document.referrer
+        : document.referrer;
+    const isFromHome =
+      !referrer ||
+      referrer.includes('/home') ||
+      referrer.includes('/cucumber/cpu/settings') ||
+      referrer.includes('/cpu/settings');
     const gameStateKey = getGameStateKey(searchParams);
-    
+
     // ホームから来た場合は常に新規ゲーム開始
     if (isFromHome) {
       console.log('[Game] Starting fresh game (from home/settings)');
@@ -168,19 +179,29 @@ function CpuPlayContent() {
             };
             const now = Date.now();
             const age = now - parsed.timestamp;
-            
+
             // 5分以内のセーブデータのみ復元
             if (age < 5 * 60 * 1000) {
-              console.log('[Game] Restoring from saved state (age:', Math.round(age / 1000), 'seconds)');
+              console.log(
+                '[Game] Restoring from saved state (age:',
+                Math.round(age / 1000),
+                'seconds)'
+              );
               // RNG復元とコントローラ再構築
               const { SeededRng: SeededRngClass } = await import('@/lib/game-core');
               const restoredRng = new SeededRngClass(parsed.config?.seed);
-              if (parsed.rngState && typeof parsed.rngState === 'object' && 'seed' in parsed.rngState && 'state' in parsed.rngState) {
+              if (
+                parsed.rngState &&
+                typeof parsed.rngState === 'object' &&
+                'seed' in parsed.rngState &&
+                'state' in parsed.rngState
+              ) {
                 restoredRng.setState(parsed.rngState);
               }
 
               // URLパラメータ or 保存されたconfigでテーブルを再生成
-              const { config, controllers, humanController } = createCpuTableFromUrlParams(searchParams);
+              const { config, controllers, humanController } =
+                createCpuTableFromUrlParams(searchParams);
               const state = parsed.gameState;
 
               gameRef.current = { state, config, controllers, rng: restoredRng, humanController };
@@ -191,6 +212,7 @@ function CpuPlayContent() {
               setLatestPlayedKey(null);
               setTrickWinner(null);
               setTrickWinnerText(null);
+              setTurnNotice(null);
 
               console.log('[Game] State restored successfully with rebuilt controllers');
               return;
@@ -215,36 +237,38 @@ function CpuPlayContent() {
 
   const playCpuTurn = async () => {
     if (!gameRef.current || isProcessingRef.current) return;
-    
+
     isProcessingRef.current = true;
     cpuTurnTimerRef.current = null;
-    
+
     try {
       const { state, config, controllers } = gameRef.current;
       const currentPlayer = state.currentPlayer;
-      
-      if (currentPlayer === 0 || gameOver || state.phase !== "AwaitMove") {
-        console.log(`[CPU] Skipping turn - Player: ${currentPlayer}, Phase: ${state.phase}, GameOver: ${gameOver}`);
+
+      if (currentPlayer === 0 || gameOver || state.phase !== 'AwaitMove') {
+        console.log(
+          `[CPU] Skipping turn - Player: ${currentPlayer}, Phase: ${state.phase}, GameOver: ${gameOver}`
+        );
         return;
       }
-      
+
       console.log(`[CPU] Executing turn for player ${currentPlayer}`);
-      
+
       const controller = controllers[currentPlayer];
       if (!controller) {
         console.error(`[CPU] Controller not found for player ${currentPlayer}`);
         return;
       }
-      
+
       const legalMoves = getLegalMoves(state, currentPlayer);
       if (legalMoves.length === 0) {
         console.warn(`[CPU] No legal moves for player ${currentPlayer}`);
         return;
       }
-      
+
       const view = createGameView(state, config, currentPlayer);
       const move = await controller.onYourTurn(view);
-      
+
       if (move !== null && typeof move === 'number' && legalMoves.includes(move)) {
         console.log(`[CPU] Playing move: ${move}`);
         await playMove(currentPlayer, move);
@@ -254,14 +278,14 @@ function CpuPlayContent() {
         console.log(`[CPU] Using fallback move: ${fallbackMove}`);
         await playMove(currentPlayer, fallbackMove);
       }
-      
+
       console.log(`[CPU] Turn completed for player ${currentPlayer}`);
-      
+
       // ターン完了後、次のCPUターンをスケジューリング
       setTimeout(() => {
         if (gameRef.current && !gameOver) {
           const { state } = gameRef.current;
-          if (state.currentPlayer !== 0 && state.phase === "AwaitMove") {
+          if (state.currentPlayer !== 0 && state.phase === 'AwaitMove') {
             console.log(`[CPU] Auto-scheduling next turn for player ${state.currentPlayer}`);
             if (scheduleCpuTurnRef.current) {
               scheduleCpuTurnRef.current();
@@ -269,7 +293,6 @@ function CpuPlayContent() {
           }
         }
       }, 100); // 少し遅延させて状態更新を確実にする
-      
     } catch (error) {
       console.error('[CPU] Turn error:', error);
     } finally {
@@ -284,45 +307,50 @@ function CpuPlayContent() {
 
   const playMove = async (player: number, card: number) => {
     if (!gameRef.current) return;
-    
+
     console.log(`[PlayMove] Starting move - Player: ${player}, Card: ${card}`);
-    
+
     try {
       await runAnimation(async () => {
         if (!gameRef.current) return;
-        
+
         const { state, config, rng } = gameRef.current;
-        
+
         // 状態チェック
-        if (state.phase !== "AwaitMove") {
+        if (state.phase !== 'AwaitMove') {
           console.warn(`[PlayMove] Invalid phase: ${state.phase}`);
-      return;
-    }
+          return;
+        }
 
         // プレイヤー番号の検証
         if (state.currentPlayer !== player) {
-          console.warn(`[PlayMove] Player mismatch: requested ${player}, current ${state.currentPlayer}`);
+          console.warn(
+            `[PlayMove] Player mismatch: requested ${player}, current ${state.currentPlayer}`
+          );
           return;
         }
-        
+
         // 手札の確認
         const playerHand = state.players[player]?.hand;
         if (!playerHand || !playerHand.includes(card)) {
           console.error(`[PlayMove] Card ${card} not in player ${player} hand`);
           return;
         }
-        
+
         // 合法手の確認
         const legalMoves = getLegalMoves(state, player);
         if (!legalMoves.includes(card)) {
           console.error(`[PlayMove] Card ${card} is not legal for player ${player}`);
-      return;
-    }
+          return;
+        }
 
         // カードをプレイ
-        const move: Move = { player, card, timestamp: Date.now() };
+        const isDiscardMove = state.fieldCard !== null && card < state.fieldCard;
+        const move: Move = { player, card, timestamp: Date.now(), isDiscard: isDiscardMove };
         const isCardOnField = state.fieldCard === null || card >= state.fieldCard;
-        const trickCardsAfterPlay = [...state.trickCards, move];
+        const trickCardsAfterPlay = isDiscardMove
+          ? [...state.trickCards]
+          : [...state.trickCards, move];
         const isTrickCompleteAfterPlay = trickCardsAfterPlay.length === config.players;
         const playersAfterPlay = state.players.map((p, idx) => {
           if (idx !== player) {
@@ -338,7 +366,7 @@ function CpuPlayContent() {
           return {
             ...p,
             hand: nextHand,
-            graveyard: isCardOnField ? p.graveyard : [...p.graveyard, card]
+            graveyard: isCardOnField ? p.graveyard : [...p.graveyard, card],
           };
         });
         const previewState: GameState = {
@@ -348,19 +376,19 @@ function CpuPlayContent() {
           fieldCard: isCardOnField ? card : state.fieldCard,
           sharedGraveyard: isCardOnField ? state.sharedGraveyard : [...state.sharedGraveyard, card],
           trickCards: trickCardsAfterPlay,
-          phase: isTrickCompleteAfterPlay ? 'ResolvingTrick' : 'AwaitMove'
+          phase: isTrickCompleteAfterPlay ? 'ResolvingTrick' : 'AwaitMove',
         };
 
         const result = applyMove(state, move, config, rng);
-        
+
         if (!result.success) {
           console.error(`[PlayMove] Failed to apply move:`, result.message);
-      return;
-    }
-    
+          return;
+        }
+
         let newState = result.newState;
         console.log(`[PlayMove] Move applied successfully, new phase: ${newState.phase}`);
-        
+
         // 状態更新
         gameRef.current.state = previewState;
         setGameState(previewState);
@@ -368,22 +396,28 @@ function CpuPlayContent() {
         setLatestPlayedKey(`${player}-${move.timestamp}`);
         setTrickWinner(null);
         setTrickWinnerText(null);
-        
+        if (isDiscardMove) {
+          const actorName = player === 0 ? 'あなた' : `CPU ${player}`;
+          setTurnNotice(`${actorName} は出せるカードがないため ${card} を捨てました`);
+        } else {
+          setTurnNotice(null);
+        }
+
         // 最小ターン時間の待機
         const minTurnMs = config.minTurnMs || 500;
         await delay(minTurnMs);
-        
+
         // トリック解決フェーズの処理
         if (isTrickCompleteAfterPlay) {
           console.log('[PlayMove] Resolving trick...');
           const winner = determineTrickWinner(trickCardsAfterPlay);
           const winnerName = player === winner ? 'あなた' : `CPU ${winner}`;
-          
+
           // 場に出されたカードを一時表示
           await delay(1500);
           setTrickWinner(winner);
           setTrickWinnerText(`${winnerName} がトリック勝利`);
-          
+
           // 勝者表示を維持
           await delay(1600);
 
@@ -393,27 +427,32 @@ function CpuPlayContent() {
           setLatestPlayedKey(null);
           setTrickWinner(null);
           setTrickWinnerText(null);
+          setTurnNotice(null);
           console.log(`[PlayMove] Trick resolved, new phase: ${newState.phase}`);
         } else {
           gameRef.current.state = newState;
           setGameState(newState);
         }
 
-        if (newState.phase === "GameEnd") {
+        if (newState.phase === 'GameEnd') {
           console.log('[PlayMove] Game ended');
           setGameOver(true);
-          setGameOverData(newState.players.map((p, index) => ({ player: index, count: p.cucumbers })));
+          setGameOverData(
+            newState.players.map((p, index) => ({ player: index, count: p.cucumbers }))
+          );
         }
-        
+
         console.log(`[PlayMove] Move completed - Player: ${player}, Card: ${card}`);
-        
+
         // プレイヤー0（人間）のターン後、次のCPUターンをスケジューリング
-    if (player === 0) {
+        if (player === 0) {
           setTimeout(() => {
             if (gameRef.current && !gameOver) {
               const { state } = gameRef.current;
-              if (state.currentPlayer !== 0 && state.phase === "AwaitMove") {
-                console.log(`[PlayMove] Scheduling next CPU turn for player ${state.currentPlayer}`);
+              if (state.currentPlayer !== 0 && state.phase === 'AwaitMove') {
+                console.log(
+                  `[PlayMove] Scheduling next CPU turn for player ${state.currentPlayer}`
+                );
                 if (scheduleCpuTurnRef.current) {
                   scheduleCpuTurnRef.current();
                 }
@@ -431,14 +470,14 @@ function CpuPlayContent() {
   useEffect(() => {
     if (gameState && !gameOver && !isProcessingRef.current && gameRef.current) {
       const { state } = gameRef.current;
-      if (state.currentPlayer !== 0 && state.phase === "AwaitMove") {
+      if (state.currentPlayer !== 0 && state.phase === 'AwaitMove') {
         console.log(`[useEffect] Scheduling CPU turn for player ${state.currentPlayer}`);
         if (scheduleCpuTurnRef.current) {
           scheduleCpuTurnRef.current();
         }
       }
     }
-    
+
     return () => {
       if (cpuTurnTimerRef.current) {
         clearTimeout(cpuTurnTimerRef.current);
@@ -449,24 +488,24 @@ function CpuPlayContent() {
 
   const handleCardClick = async (card: number) => {
     if (!gameRef.current || isCardLocked || isSubmitting || isProcessingRef.current) return;
-    
+
     const { state } = gameRef.current;
-    
+
     if (state.currentPlayer === 0 && state.phase === 'AwaitMove') {
       setIsSubmitting(true);
       setLockedCardId(card);
       setIsCardLocked(true);
-      
+
       // カードアニメーション
       const cardElement = document.querySelector(`[data-card="${card}"]`);
       if (cardElement) {
         cardElement.classList.add('card-slide-to-field');
       }
-      
+
       try {
         await playMove(0, card);
 
-    setTimeout(() => {
+        setTimeout(() => {
           setIsCardLocked(false);
           setIsSubmitting(false);
           setLockedCardId(null);
@@ -482,15 +521,18 @@ function CpuPlayContent() {
 
   const handleTimeout = async () => {
     if (!gameRef.current || gameState?.currentPlayer !== 0 || isProcessingRef.current) return;
-    
+
     console.log('[Timeout] Handling timeout for player 0');
-    
+
     // 制限時間切れ時のランダムカード選択
     const legalMoves = getLegalMoves(gameState, 0);
     if (legalMoves.length > 0) {
       const randomIndex = Math.floor(Math.random() * legalMoves.length);
       const selectedCard = legalMoves[randomIndex];
-      console.log(`[Timeout] Auto-selecting random card: ${selectedCard} from legal moves:`, legalMoves);
+      console.log(
+        `[Timeout] Auto-selecting random card: ${selectedCard} from legal moves:`,
+        legalMoves
+      );
       await handleCardClick(selectedCard);
     } else {
       const hand = gameState.players[0].hand;
@@ -526,6 +568,13 @@ function CpuPlayContent() {
   }
 
   const displayNames = gameState.players.map((_, idx) => (idx === 0 ? 'あなた' : `CPU ${idx}`));
+  const humanLegalMoves = getLegalMoves(gameState, 0);
+  const shouldDiscardMinCard =
+    gameState.currentPlayer === 0 &&
+    gameState.phase === 'AwaitMove' &&
+    gameState.fieldCard !== null &&
+    humanLegalMoves.length === 1 &&
+    humanLegalMoves[0] < gameState.fieldCard;
 
   return (
     <BattleLayout showOrientationHint>
@@ -536,24 +585,38 @@ function CpuPlayContent() {
           timer={
             <Timer
               turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
-              isActive={gameState.currentPlayer === 0 && gameState.phase === "AwaitMove"}
+              isActive={gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove'}
               onTimeout={handleTimeout}
             />
           }
           onExit={handleBackToHome}
         />
 
+        {shouldDiscardMinCard ? (
+          <div className="discard-notice" role="status" aria-live="polite">
+            出せるカードがありません。最小のカードを捨てます。
+          </div>
+        ) : null}
+
+        {turnNotice ? (
+          <div className="discard-result-notice" role="status" aria-live="polite">
+            {turnNotice}
+          </div>
+        ) : null}
         <EllipseTable
           state={gameState}
-          config={gameRef.current?.config || {
-            players: 4,
-            turnSeconds: 15,
-            maxCucumbers: 6,
-            initialCards: 7,
-            cpuLevel: 'normal'
-          } as GameConfig}
+          config={
+            gameRef.current?.config ||
+            ({
+              players: 4,
+              turnSeconds: 15,
+              maxCucumbers: 6,
+              initialCards: 7,
+              cpuLevel: 'normal',
+            } as GameConfig)
+          }
           currentPlayerIndex={gameState.currentPlayer}
-          onCardClick={(card:number)=>handleCardClick(Number(card))}
+          onCardClick={(card: number) => handleCardClick(Number(card))}
           className={isCardLocked ? 'cards-locked' : ''}
           isSubmitting={isSubmitting}
           lockedCardId={lockedCardId}
@@ -571,15 +634,30 @@ function CpuPlayContent() {
               <h2 className="font-heading text-[clamp(18px,2.2vw,24px)]">ゲーム終了</h2>
               <div className="flex flex-wrap gap-2 text-white/80 text-sm">
                 {gameOverData.map((data, index) => (
-                  <span key={index} className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1">
+                  <span
+                    key={index}
+                    className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1"
+                  >
                     プレイヤー{data.player}: {data.count}個
                   </span>
                 ))}
               </div>
             </div>
             <div className="flex items-center gap-2 ml-auto">
-              <button type="button" onClick={handleRestart} className="fc-button fc-button--primary">再戦</button>
-              <button type="button" onClick={handleBackToHome} className="fc-button fc-button--secondary">ホーム</button>
+              <button
+                type="button"
+                onClick={handleRestart}
+                className="fc-button fc-button--primary"
+              >
+                再戦
+              </button>
+              <button
+                type="button"
+                onClick={handleBackToHome}
+                className="fc-button fc-button--secondary"
+              >
+                ホーム
+              </button>
             </div>
           </GameFooter>
         ) : null}

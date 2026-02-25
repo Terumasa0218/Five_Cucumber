@@ -2,20 +2,19 @@
 
 import { SeededRng } from './rng';
 import {
-    calculateFinalTrickPenalty,
-    createDeck,
-    dealCards,
-    determineTrickWinner,
-    getGameOverPlayers,
-    getLegalMoves,
-    initializeCardCounts,
-    isGameOver,
-    isTrickComplete,
-    shouldStartNewRound,
-    updateCardCounts
+  calculateFinalTrickPenalty,
+  createDeck,
+  dealCards,
+  determineTrickWinner,
+  getGameOverPlayers,
+  getLegalMoves,
+  initializeCardCounts,
+  isGameOver,
+  isTrickComplete,
+  shouldStartNewRound,
+  updateCardCounts,
 } from './rules';
 import { ActionResult, GameConfig, GamePhase, GameState, GameView, Move } from './types';
-
 
 function cloneState(state: GameState): GameState {
   return {
@@ -23,28 +22,28 @@ function cloneState(state: GameState): GameState {
     players: state.players.map(player => ({
       ...player,
       hand: [...player.hand],
-      graveyard: [...player.graveyard]
+      graveyard: [...player.graveyard],
     })),
     sharedGraveyard: [...state.sharedGraveyard],
     trickCards: state.trickCards.map(trickCard => ({ ...trickCard })),
     gameOverPlayers: [...state.gameOverPlayers],
     remainingCards: [...state.remainingCards],
-    cardCounts: [...state.cardCounts]
+    cardCounts: [...state.cardCounts],
   };
 }
 
 export function createInitialState(config: GameConfig, rng: SeededRng): GameState {
   const deck = rng.shuffle(createDeck());
   const hands = dealCards(deck, config.players, config.initialCards);
-  
+
   const players = hands.map(hand => ({
     hand,
     cucumbers: 0,
-    graveyard: []
+    graveyard: [],
   }));
-  
+
   const firstPlayer = rng.nextInt(config.players);
-  
+
   return {
     players,
     currentPlayer: firstPlayer,
@@ -58,40 +57,45 @@ export function createInitialState(config: GameConfig, rng: SeededRng): GameStat
     gameOverPlayers: [],
     remainingCards: deck.slice(config.players * config.initialCards),
     cardCounts: initializeCardCounts(),
-    phase: "AwaitMove" as GamePhase
+    phase: 'AwaitMove' as GamePhase,
   };
 }
 
-export function applyMove(state: GameState, move: Move, config: GameConfig, rng: SeededRng): ActionResult {
+export function applyMove(
+  state: GameState,
+  move: Move,
+  config: GameConfig,
+  rng: SeededRng
+): ActionResult {
   const { player, card } = move;
-  
+
   // フェーズチェック
-  if (state.phase !== "AwaitMove") {
+  if (state.phase !== 'AwaitMove') {
     return { success: false, newState: state, message: 'Invalid phase for move' };
   }
-  
+
   // バリデーション
   if (player !== state.currentPlayer) {
     return { success: false, newState: state, message: 'Not your turn' };
   }
-  
+
   const legalMoves = getLegalMoves(state, player);
   if (!legalMoves.includes(card)) {
     return { success: false, newState: state, message: 'Illegal move' };
   }
-  
+
   const playerHand = state.players[player].hand;
   const cardIndex = playerHand.indexOf(card);
   if (cardIndex === -1) {
     return { success: false, newState: state, message: 'Card not in hand' };
   }
-  
+
   // 新しい状態を作成
   const players = state.players.map((p, i) => {
     const base = {
       ...p,
       hand: [...p.hand],
-      graveyard: [...p.graveyard]
+      graveyard: [...p.graveyard],
     };
 
     if (i === player) {
@@ -101,18 +105,23 @@ export function applyMove(state: GameState, move: Move, config: GameConfig, rng:
     return base;
   });
 
-  const trickCards = [...state.trickCards, move];
   const sharedGraveyard = [...state.sharedGraveyard];
 
   let fieldCard = state.fieldCard;
+  let isDiscard = false;
 
   // カードを場に出すか墓地に送るか
   if (fieldCard === null || card >= fieldCard) {
     fieldCard = card;
   } else {
+    isDiscard = true;
     players[player].graveyard.push(card);
     sharedGraveyard.push(card);
   }
+
+  const trickCards = isDiscard
+    ? [...state.trickCards]
+    : [...state.trickCards, { ...move, isDiscard: false }];
 
   const newState: GameState = {
     ...state,
@@ -121,77 +130,77 @@ export function applyMove(state: GameState, move: Move, config: GameConfig, rng:
     sharedGraveyard,
     cardCounts: updateCardCounts(state.cardCounts, [card]),
     fieldCard,
-    currentPlayer: (state.currentPlayer + 1) % config.players
+    currentPlayer: (state.currentPlayer + 1) % config.players,
   };
 
   // トリックが完了したかチェック
   if (isTrickComplete(newState.trickCards, config.players, newState.firstPlayer)) {
-    newState.phase = "ResolvingTrick";
+    newState.phase = 'ResolvingTrick';
     return endTrick(newState, config, rng);
   }
-  
+
   return { success: true, newState };
 }
 
 export function endTrick(state: GameState, config: GameConfig, rng: SeededRng): ActionResult {
   const newState = cloneState(state);
-  
+
   // 勝者を決定
   const winner = determineTrickWinner(newState.trickCards);
   newState.currentPlayer = winner;
   newState.firstPlayer = winner;
-  
+
   // 最終トリックかチェック
   if (shouldStartNewRound(newState)) {
-    newState.phase = "RoundEnd";
+    newState.phase = 'RoundEnd';
     return finalRound(newState, config, rng);
   }
-  
+
   // 次のトリックに進む
   newState.currentTrick++;
   newState.fieldCard = null;
   newState.trickCards = [];
-  newState.phase = "AwaitMove";
-  
+  newState.phase = 'AwaitMove';
+
   return { success: true, newState };
 }
 
 export function finalRound(state: GameState, config: GameConfig, rng: SeededRng): ActionResult {
   const newState = cloneState(state);
-  
+
   // 最終トリックのペナルティを計算
   const { winner, penalty } = calculateFinalTrickPenalty(newState.trickCards, config);
-  
+
   if (winner >= 0) {
     newState.players[winner].cucumbers += penalty;
   }
-  
+
   // ゲーム終了チェック
   if (isGameOver(newState, config)) {
     newState.isGameOver = true;
     newState.gameOverPlayers = getGameOverPlayers(newState, config);
-    newState.phase = "GameEnd";
+    newState.phase = 'GameEnd';
     return { success: true, newState };
   }
-  
+
   // 次のラウンドに進む
   return startNewRound(newState, config, rng);
 }
 
 export function startNewRound(state: GameState, config: GameConfig, rng: SeededRng): ActionResult {
   const newState = cloneState(state);
-  
+
   // 新しいデッキを作成
   const deck = rng.shuffle(createDeck());
   const hands = dealCards(deck, config.players, config.initialCards);
-  
+
   // プレイヤー状態をリセット
   newState.players = hands.map((hand, i) => ({
     hand,
     cucumbers: newState.players[i].cucumbers,
-    graveyard: []
+    graveyard: [],
   }));
-  
+
   newState.currentRound++;
   newState.currentTrick = 1;
   newState.fieldCard = null;
@@ -201,18 +210,22 @@ export function startNewRound(state: GameState, config: GameConfig, rng: SeededR
   newState.currentPlayer = newState.firstPlayer;
   newState.remainingCards = deck.slice(config.players * config.initialCards);
   newState.cardCounts = initializeCardCounts();
-  newState.phase = "AwaitMove";
-  
+  newState.phase = 'AwaitMove';
+
   return { success: true, newState };
 }
 
-export function createGameView(state: GameState, config: GameConfig, playerIndex: number): GameView {
+export function createGameView(
+  state: GameState,
+  config: GameConfig,
+  playerIndex: number
+): GameView {
   return {
     state,
     config,
     legalMoves: getLegalMoves(state, playerIndex),
     isMyTurn: state.currentPlayer === playerIndex,
-    playerIndex
+    playerIndex,
   };
 }
 
@@ -253,10 +266,10 @@ export function getPlayerGraveyard(state: GameState, playerIndex: number): numbe
  */
 export function getEffectiveTurnSeconds(config: GameConfig): number | null {
   if (config.turnSeconds === null) return null;
-  
+
   const minTurnMs = config.minTurnMs || 500;
   const minTurnSeconds = minTurnMs / 1000;
-  
+
   return Math.max(minTurnSeconds, config.turnSeconds);
 }
 
