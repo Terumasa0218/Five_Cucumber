@@ -99,6 +99,44 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
+.final-trick-notice {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #fff;
+  background: rgba(255, 120, 80, 0.3);
+  border: 1px solid rgba(255, 160, 120, 0.8);
+  width: fit-content;
+}
+
+.final-selected-badge {
+  margin-top: 6px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fef3c7;
+  border: 1px solid rgba(251, 191, 36, 0.8);
+  background: rgba(217, 119, 6, 0.25);
+}
+
+.card-back {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.card-flip {
+  animation: flip 0.5s ease-in-out;
+}
+
+@keyframes flip {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(90deg); }
+  100% { transform: rotateY(0deg); }
+}
+
 .ellipse-table__grave {
   opacity: 0.9;
 }

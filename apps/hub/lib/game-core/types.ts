@@ -41,6 +41,7 @@ export interface GameState {
   remainingCards: number[]; // デッキの残り
   cardCounts: number[]; // 各カードの残り枚数 [0,4,4,4,...,4] (0は未使用)
   phase: GamePhase; // フェーズ制御
+  isFinalTrick: boolean;
 }
 
 export interface GameConfig {
