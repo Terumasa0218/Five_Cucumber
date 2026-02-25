@@ -22,6 +22,8 @@ import {
 import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import PageBackground from '@/components/ui/PageBackground';
+import { BACKGROUNDS } from '@/lib/backgrounds';
 import './game.css';
 
 function CpuPlayContent() {
@@ -588,8 +590,10 @@ function CpuPlayContent() {
   const currentPlayerIndex = isAnimating ? null : gameState.currentPlayer;
 
   return (
-    <BattleLayout showOrientationHint>
-      <div className="relative flex-1 flex flex-col gap-6 p-4">
+    <>
+      <PageBackground image={BACKGROUNDS.battle} />
+      <BattleLayout showOrientationHint>
+        <div className="relative z-10 flex-1 flex flex-col gap-6 p-4">
         <div
           key={`${gameState.currentRound}-${gameState.currentTrick}`}
           className="trick-indicator-update"
@@ -701,8 +705,9 @@ function CpuPlayContent() {
             </div>
           </GameFooter>
         ) : null}
-      </div>
-    </BattleLayout>
+        </div>
+      </BattleLayout>
+    </>
   );
 }
 

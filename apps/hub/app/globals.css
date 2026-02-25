@@ -645,7 +645,7 @@ body::before {
   background-attachment: fixed;
 }
 
-body[data-page='home']::before {
+body[data-page='custom-bg']::before {
   display: none;
 }
 
