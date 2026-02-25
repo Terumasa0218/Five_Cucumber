@@ -90,6 +90,34 @@ export function applyMove(
     return { success: false, newState: state, message: 'Card not in hand' };
   }
 
+  const minCard = Math.min(...playerHand);
+  const hasLegalPlay =
+    state.fieldCard === null ? true : playerHand.some(handCard => handCard >= state.fieldCard!);
+
+  if (move.isDiscard) {
+    if (state.fieldCard === null) {
+      return { success: false, newState: state, message: 'Cannot discard on empty field' };
+    }
+
+    if (hasLegalPlay) {
+      return {
+        success: false,
+        newState: state,
+        message: 'Player has legal cards to play, cannot discard',
+      };
+    }
+
+    if (card !== minCard) {
+      return {
+        success: false,
+        newState: state,
+        message: 'Discard must be the minimum card in hand',
+      };
+    }
+  } else if (state.fieldCard !== null && card < state.fieldCard) {
+    return { success: false, newState: state, message: `Card ${card} is not legal` };
+  }
+
   // 新しい状態を作成
   const players = state.players.map((p, i) => {
     const base = {
@@ -108,13 +136,12 @@ export function applyMove(
   const sharedGraveyard = [...state.sharedGraveyard];
 
   let fieldCard = state.fieldCard;
-  let isDiscard = false;
+  const isDiscard = move.isDiscard === true;
 
   // カードを場に出すか墓地に送るか
-  if (fieldCard === null || card >= fieldCard) {
+  if (!isDiscard) {
     fieldCard = card;
   } else {
-    isDiscard = true;
     players[player].graveyard.push(card);
     sharedGraveyard.push(card);
   }
