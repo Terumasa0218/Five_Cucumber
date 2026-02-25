@@ -589,7 +589,26 @@ function CpuPlayContent() {
 
   return (
     <BattleLayout showOrientationHint>
-      <div className="flex-1 flex flex-col gap-6 p-4">
+      <div className="relative flex-1 flex flex-col gap-6 p-4">
+        <div
+          key={`${gameState.currentRound}-${gameState.currentTrick}`}
+          className="trick-indicator-update"
+          style={{
+            position: 'absolute',
+            top: '1rem',
+            left: '1.5rem',
+            zIndex: 10,
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            color: 'white',
+            padding: '0.5rem 1.2rem',
+            borderRadius: '8px',
+            fontSize: '1.1rem',
+            fontWeight: 'bold',
+            letterSpacing: '0.05em',
+          }}
+        >
+          第{gameState.currentRound}ラウンド / 第{gameState.currentTrick}トリック
+        </div>
         <BattleHud
           round={gameState.currentRound}
           trick={gameState.currentTrick}
