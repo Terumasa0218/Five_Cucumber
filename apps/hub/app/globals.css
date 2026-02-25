@@ -631,7 +631,6 @@ body {
   background: transparent;
 }
 
-
 /* ホーム背景 */
 body[data-bg='home']::before {
   background-image: url('/images/home1.png');
@@ -2216,7 +2215,7 @@ body[data-bg='battle']::before {
 
 /* === バトルレイアウト === */
 .battle-layout {
-  min-height: 100svh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   font-family: 'Noto Sans JP', sans-serif;
@@ -2264,7 +2263,7 @@ body[data-bg='battle']::before {
 
 @media (max-height: 720px) {
   .battle-layout__stage {
-    min-height: clamp(480px, 100svh, 760px);
+    min-height: clamp(480px, 100vh, 760px);
     margin: clamp(8px, 2vh, 20px) auto;
     padding: clamp(12px, 2.8vw, 24px);
     padding-bottom: calc(clamp(24px, 5vw, 48px) + env(safe-area-inset-bottom, 0));

@@ -616,122 +616,125 @@ function CpuPlayContent() {
       <PageBackground image={BACKGROUNDS.battle} />
       <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
         <BattleLayout showOrientationHint>
-          <div className="relative z-10 flex-1 flex flex-col gap-6 p-4">
-            <div
-            key={`${gameState.currentRound}-${gameState.currentTrick}`}
-            className="trick-indicator-update"
-            style={{
-              position: 'absolute',
-              top: '1rem',
-              left: '1.5rem',
-              zIndex: 10,
-              backgroundColor: 'rgba(0, 0, 0, 0.6)',
-              color: 'white',
-              padding: '0.5rem 1.2rem',
-              borderRadius: '8px',
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              letterSpacing: '0.05em',
-            }}
+          <div
+            className="relative z-10 flex-1 flex flex-col gap-6 p-4"
+            style={{ minHeight: '100vh' }}
           >
-            第{gameState.currentRound}ラウンド / 第{gameState.currentTrick}トリック
-          </div>
-          <BattleHud
-            round={gameState.currentRound}
-            trick={gameState.currentTrick}
-            timer={
-              <Timer
-                turnSeconds={
-                  gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null
-                }
-                isActive={gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove'}
-                onTimeout={handleTimeout}
-              />
-            }
-            onExit={handleBackToHome}
-          />
-
-          {isFinalTrickPhase ? (
-            <div className="final-trick-notice" role="status" aria-live="polite">
-              最終トリック
+            <div
+              key={`${gameState.currentRound}-${gameState.currentTrick}`}
+              className="trick-indicator-update"
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                left: '1.5rem',
+                zIndex: 10,
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                color: 'white',
+                padding: '0.5rem 1.2rem',
+                borderRadius: '8px',
+                fontSize: '1.1rem',
+                fontWeight: 'bold',
+                letterSpacing: '0.05em',
+              }}
+            >
+              第{gameState.currentRound}ラウンド / 第{gameState.currentTrick}トリック
             </div>
-          ) : null}
+            <BattleHud
+              round={gameState.currentRound}
+              trick={gameState.currentTrick}
+              timer={
+                <Timer
+                  turnSeconds={
+                    gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null
+                  }
+                  isActive={gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove'}
+                  onTimeout={handleTimeout}
+                />
+              }
+              onExit={handleBackToHome}
+            />
 
-          {shouldDiscardMinCard ? (
-            <div className="discard-notice" role="status" aria-live="polite">
-              出せるカードがありません。最小のカードを捨てます。
-            </div>
-          ) : null}
+            {isFinalTrickPhase ? (
+              <div className="final-trick-notice" role="status" aria-live="polite">
+                最終トリック
+              </div>
+            ) : null}
 
-          {turnNotice ? (
-            <div className="discard-result-notice" role="status" aria-live="polite">
-              {turnNotice}
-            </div>
-          ) : null}
-          <EllipseTable
-            state={gameState}
-            config={
-              gameRef.current?.config ||
-              ({
-                players: 4,
-                turnSeconds: 15,
-                maxCucumbers: 6,
-                initialCards: 7,
-                cpuLevel: 'normal',
-              } as GameConfig)
-            }
-            currentPlayerIndex={currentPlayerIndex}
-            onCardClick={(card: number) => handleCardClick(Number(card))}
-            className={['cpu-play-table', isCardLocked ? 'cards-locked' : '']
-              .filter(Boolean)
-              .join(' ')}
-            isSubmitting={isSubmitting}
-            lockedCardId={lockedCardId}
-            names={displayNames}
-            mySeatIndex={0}
-            trickCards={tableTrickCards}
-            latestPlayedCardKey={latestPlayedKey}
-            trickWinner={trickWinner}
-            trickWinnerText={trickWinnerText}
-            isFinalTrickMode={isFinalTrickPhase}
-            finalTrickSelectedPlayers={finalTrickSelectedPlayers}
-            finalTrickOpenedPlayers={finalTrickOpenedPlayers}
-            finalTrickStatusText={finalTrickStatusText}
-          />
+            {shouldDiscardMinCard ? (
+              <div className="discard-notice" role="status" aria-live="polite">
+                出せるカードがありません。最小のカードを捨てます。
+              </div>
+            ) : null}
 
-          {gameOver ? (
-            <GameFooter>
-              <div className="flex flex-wrap items-center gap-3">
-                <h2 className="font-heading text-[clamp(18px,2.2vw,24px)]">ゲーム終了</h2>
-                <div className="flex flex-wrap gap-2 text-white/80 text-sm">
-                  {gameOverData.map((data, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1"
-                    >
-                      プレイヤー{data.player}: {data.count}個
-                    </span>
-                  ))}
+            {turnNotice ? (
+              <div className="discard-result-notice" role="status" aria-live="polite">
+                {turnNotice}
+              </div>
+            ) : null}
+            <EllipseTable
+              state={gameState}
+              config={
+                gameRef.current?.config ||
+                ({
+                  players: 4,
+                  turnSeconds: 15,
+                  maxCucumbers: 6,
+                  initialCards: 7,
+                  cpuLevel: 'normal',
+                } as GameConfig)
+              }
+              currentPlayerIndex={currentPlayerIndex}
+              onCardClick={(card: number) => handleCardClick(Number(card))}
+              className={['cpu-play-table', isCardLocked ? 'cards-locked' : '']
+                .filter(Boolean)
+                .join(' ')}
+              isSubmitting={isSubmitting}
+              lockedCardId={lockedCardId}
+              names={displayNames}
+              mySeatIndex={0}
+              trickCards={tableTrickCards}
+              latestPlayedCardKey={latestPlayedKey}
+              trickWinner={trickWinner}
+              trickWinnerText={trickWinnerText}
+              isFinalTrickMode={isFinalTrickPhase}
+              finalTrickSelectedPlayers={finalTrickSelectedPlayers}
+              finalTrickOpenedPlayers={finalTrickOpenedPlayers}
+              finalTrickStatusText={finalTrickStatusText}
+            />
+
+            {gameOver ? (
+              <GameFooter>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="font-heading text-[clamp(18px,2.2vw,24px)]">ゲーム終了</h2>
+                  <div className="flex flex-wrap gap-2 text-white/80 text-sm">
+                    {gameOverData.map((data, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1"
+                      >
+                        プレイヤー{data.player}: {data.count}個
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 ml-auto">
-                <button
-                  type="button"
-                  onClick={handleRestart}
-                  className="fc-button fc-button--primary"
-                >
-                  再戦
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBackToHome}
-                  className="fc-button fc-button--secondary"
-                >
-                  ホーム
-                </button>
-              </div>
-            </GameFooter>
-          ) : null}
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={handleRestart}
+                    className="fc-button fc-button--primary"
+                  >
+                    再戦
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBackToHome}
+                    className="fc-button fc-button--secondary"
+                  >
+                    ホーム
+                  </button>
+                </div>
+              </GameFooter>
+            ) : null}
           </div>
         </BattleLayout>
       </div>
