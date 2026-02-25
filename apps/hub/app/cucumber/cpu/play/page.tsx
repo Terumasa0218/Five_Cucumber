@@ -48,6 +48,7 @@ function CpuPlayContent() {
   const [finalTrickSelectedPlayers, setFinalTrickSelectedPlayers] = useState<number[]>([]);
   const [finalTrickOpenedPlayers, setFinalTrickOpenedPlayers] = useState<number[]>([]);
   const [finalTrickStatusText, setFinalTrickStatusText] = useState<string | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
   const cpuTurnTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isProcessingRef = useRef<boolean>(false);
   const scheduleCpuTurnRef = useRef<(() => void) | null>(null);
@@ -74,7 +75,7 @@ function CpuPlayContent() {
   };
 
   const scheduleCpuTurn = useCallback(() => {
-    if (!gameRef.current || !gameState || isProcessingRef.current) return;
+    if (!gameRef.current || !gameState || isProcessingRef.current || isAnimating) return;
 
     const { state } = gameRef.current;
 
@@ -98,7 +99,7 @@ function CpuPlayContent() {
         void playCpuTurnRef.current();
       }
     }, thinkingTime);
-  }, [gameState, gameOver]);
+  }, [gameState, gameOver, isAnimating]);
 
   // refを更新
   useEffect(() => {
@@ -124,6 +125,7 @@ function CpuPlayContent() {
       setFinalTrickSelectedPlayers([]);
       setFinalTrickOpenedPlayers([]);
       setFinalTrickStatusText(null);
+      setIsAnimating(false);
 
       console.log('[Game] New game started with', config.players, 'players');
 
@@ -223,6 +225,7 @@ function CpuPlayContent() {
               setFinalTrickSelectedPlayers([]);
               setFinalTrickOpenedPlayers([]);
               setFinalTrickStatusText(null);
+              setIsAnimating(false);
 
               console.log('[Game] State restored successfully with rebuilt controllers');
               return;
@@ -246,7 +249,7 @@ function CpuPlayContent() {
   }, []);
 
   const playCpuTurn = async () => {
-    if (!gameRef.current || isProcessingRef.current) return;
+    if (!gameRef.current || isProcessingRef.current || isAnimating) return;
 
     isProcessingRef.current = true;
     cpuTurnTimerRef.current = null;
@@ -255,7 +258,7 @@ function CpuPlayContent() {
       const { state, config, controllers } = gameRef.current;
       const currentPlayer = state.currentPlayer;
 
-      if (currentPlayer === 0 || gameOver || state.phase !== 'AwaitMove') {
+      if (currentPlayer === 0 || gameOver || state.phase !== 'AwaitMove' || isAnimating) {
         console.log(
           `[CPU] Skipping turn - Player: ${currentPlayer}, Phase: ${state.phase}, GameOver: ${gameOver}`
         );
@@ -357,7 +360,7 @@ function CpuPlayContent() {
         const previewState: GameState = {
           ...state,
           players: playersAfterPlay,
-          currentPlayer: (state.currentPlayer + 1) % config.players,
+          currentPlayer: isTrickCompleteAfterPlay ? -1 : (state.currentPlayer + 1) % config.players,
           fieldCard: isDiscardMove ? state.fieldCard : card,
           sharedGraveyard: isDiscardMove ? [...state.sharedGraveyard, card] : state.sharedGraveyard,
           trickCards: trickCardsAfterPlay,
@@ -393,6 +396,7 @@ function CpuPlayContent() {
         await delay(config.minTurnMs || 500);
 
         if (isTrickCompleteAfterPlay) {
+          setIsAnimating(true);
           const winner = determineTrickWinner(trickCardsAfterPlay);
 
           if (isFinalTrickMode) {
@@ -440,6 +444,7 @@ function CpuPlayContent() {
           setFinalTrickSelectedPlayers([]);
           setFinalTrickOpenedPlayers([]);
           setFinalTrickStatusText(null);
+          setIsAnimating(false);
         } else {
           gameRef.current.state = newState;
           setGameState(newState);
@@ -470,7 +475,7 @@ function CpuPlayContent() {
 
   // CPU手番のスケジューリング
   useEffect(() => {
-    if (gameState && !gameOver && !isProcessingRef.current && gameRef.current) {
+    if (gameState && !gameOver && !isProcessingRef.current && !isAnimating && gameRef.current) {
       const { state } = gameRef.current;
       if (state.currentPlayer !== 0 && state.phase === 'AwaitMove') {
         console.log(`[useEffect] Scheduling CPU turn for player ${state.currentPlayer}`);
@@ -486,10 +491,11 @@ function CpuPlayContent() {
         cpuTurnTimerRef.current = null;
       }
     };
-  }, [gameState?.currentPlayer, gameState?.phase, gameOver]);
+  }, [gameState?.currentPlayer, gameState?.phase, gameOver, isAnimating]);
 
   const handleCardClick = async (card: number) => {
-    if (!gameRef.current || isCardLocked || isSubmitting || isProcessingRef.current) return;
+    if (!gameRef.current || isCardLocked || isSubmitting || isProcessingRef.current || isAnimating)
+      return;
 
     const { state } = gameRef.current;
 
@@ -522,7 +528,8 @@ function CpuPlayContent() {
   };
 
   const handleTimeout = async () => {
-    if (!gameRef.current || gameState?.currentPlayer !== 0 || isProcessingRef.current) return;
+    if (!gameRef.current || gameState?.currentPlayer !== 0 || isProcessingRef.current || isAnimating)
+      return;
 
     console.log('[Timeout] Handling timeout for player 0');
 
@@ -578,6 +585,8 @@ function CpuPlayContent() {
     humanLegalMoves.length === 1 &&
     humanLegalMoves[0] < gameState.fieldCard;
 
+  const currentPlayerIndex = isAnimating ? null : gameState.currentPlayer;
+
   return (
     <BattleLayout showOrientationHint>
       <div className="flex-1 flex flex-col gap-6 p-4">
@@ -623,7 +632,7 @@ function CpuPlayContent() {
               cpuLevel: 'normal',
             } as GameConfig)
           }
-          currentPlayerIndex={gameState.currentPlayer}
+          currentPlayerIndex={currentPlayerIndex}
           onCardClick={(card: number) => handleCardClick(Number(card))}
           className={isCardLocked ? 'cards-locked' : ''}
           isSubmitting={isSubmitting}

@@ -7,7 +7,7 @@ import { useEffect } from 'react';
 interface EllipseTableProps {
   state: GameState;
   config: GameConfig;
-  currentPlayerIndex: number;
+  currentPlayerIndex: number | null;
   onCardClick?: (card: number) => void;
   className?: string;
   showAllHands?: boolean; // デバッグ用：全員の手札を表示
@@ -176,7 +176,7 @@ export function EllipseTable({
       {/* 楕円座席（外枠と内枠の間の帯） */}
       <section id="seats" className={`players-${config.players}`}>
         {state.players.map((player, i) => {
-          const isTurn = i === currentPlayerIndex;
+          const isTurn = currentPlayerIndex !== null && i === currentPlayerIndex;
 
           return (
             <div
