@@ -107,7 +107,7 @@ export function EllipseTable({
                       <div className="trick-card-player">{getPlayerName(trickCard.player)}</div>
                       <div className="card current-card">
                         <div className="card-number">{trickCard.card}</div>
-                        <div className="cucumber-icons">
+                          <div className="cucumber-icons">
                           {trickCard.card >= 2 && trickCard.card <= 5 && '🥒'}
                           {trickCard.card >= 6 && trickCard.card <= 9 && '🥒🥒'}
                           {trickCard.card >= 10 && trickCard.card <= 11 && '🥒🥒🥒'}
@@ -192,55 +192,68 @@ export function EllipseTable({
       <section id="hand-dock" className="ellipse-table__hand" aria-label="自分の手札">
         <div className="me-name">{getPlayerName(mySeatIndex)}</div>
         <div className="hand">
-          {state.players[mySeatIndex]?.hand.map((card, index) => {
-            const isPlayable = state.fieldCard === null || card >= state.fieldCard;
-            const isMinCard = card === Math.min(...state.players[mySeatIndex].hand);
-            const isDiscard = !isPlayable && isMinCard;
-            const isMyTurn = currentPlayerIndex === mySeatIndex;
-
-            // カードが送信中またはロックされているかチェック
-            const isCardLocked = lockedCardId === card;
-            const isAllLocked = isSubmitting || className?.includes('cards-locked');
-            const isDisabled =
-              !isMyTurn || isAllLocked || isCardLocked || state.phase !== 'AwaitMove';
-
-            const handleCardClick = (e: React.MouseEvent) => {
-              e.preventDefault();
-              if (isDisabled || isSubmitting || !isMyTurn) return;
-              onCardClick?.(card);
-            };
-
-            return (
-              <div
-                key={`${card}-${index}`}
-                className={`card ${
-                  isCardLocked
-                    ? 'disabled locked'
-                    : isDisabled
-                      ? 'disabled'
-                      : isPlayable
-                        ? 'playable'
-                        : isDiscard
-                          ? 'discard'
-                          : 'disabled'
-                }`}
-                onClick={handleCardClick}
-                onPointerDown={handleCardClick}
-                style={{ pointerEvents: isDisabled ? 'none' : 'auto' }}
-                aria-disabled={isDisabled}
-              >
-                <div className="card-number">{card}</div>
-                <div className="cucumber-icons">
-                  {card >= 2 && card <= 5 && '🥒'}
-                  {card >= 6 && card <= 9 && '🥒🥒'}
-                  {card >= 10 && card <= 11 && '🥒🥒🥒'}
-                  {card >= 12 && card <= 14 && '🥒🥒🥒🥒'}
-                  {card === 15 && '🥒🥒🥒🥒🥒'}
-                </div>
-                {isDiscard ? <div className="discard-tag">捨てる</div> : null}
-              </div>
+          {(() => {
+            const myHand = state.players[mySeatIndex]?.hand ?? [];
+            const highestOnTable = state.fieldCard;
+            const hasLegalPlay = myHand.some(
+              handCard => highestOnTable === null || handCard >= highestOnTable
             );
-          })}
+            const minCard = myHand.length > 0 ? Math.min(...myHand) : null;
+
+            return myHand.map((card, index) => {
+              const isPlayable = highestOnTable === null || card >= highestOnTable;
+              const isDiscard = !hasLegalPlay && minCard !== null && card === minCard;
+              const isIllegalWhileLegalExists = hasLegalPlay && !isPlayable;
+              const isMyTurn = currentPlayerIndex === mySeatIndex;
+
+              // カードが送信中またはロックされているかチェック
+              const isCardLocked = lockedCardId === card;
+              const isAllLocked = isSubmitting || className?.includes('cards-locked');
+              const isDisabled =
+                !isMyTurn ||
+                isAllLocked ||
+                isCardLocked ||
+                state.phase !== 'AwaitMove' ||
+                isIllegalWhileLegalExists;
+
+              const handleCardClick = (e: React.MouseEvent) => {
+                e.preventDefault();
+                if (isDisabled || isSubmitting || !isMyTurn) return;
+                onCardClick?.(card);
+              };
+
+              return (
+                <div
+                  key={`${card}-${index}`}
+                  className={`card ${
+                    isCardLocked
+                      ? 'disabled locked'
+                      : isDisabled
+                        ? 'disabled'
+                        : isPlayable
+                          ? 'playable'
+                          : isDiscard
+                            ? 'discard'
+                            : 'disabled'
+                  }`}
+                  onClick={handleCardClick}
+                  onPointerDown={handleCardClick}
+                  style={{ pointerEvents: isDisabled ? 'none' : 'auto' }}
+                  aria-disabled={isDisabled}
+                >
+                  <div className="card-number">{card}</div>
+                  <div className="cucumber-icons">
+                    {card >= 2 && card <= 5 && '🥒'}
+                    {card >= 6 && card <= 9 && '🥒🥒'}
+                    {card >= 10 && card <= 11 && '🥒🥒🥒'}
+                    {card >= 12 && card <= 14 && '🥒🥒🥒🥒'}
+                    {card === 15 && '🥒🥒🥒🥒🥒'}
+                  </div>
+                  {isDiscard ? <div className="discard-tag">捨てる</div> : null}
+                </div>
+              );
+            });
+          })()}
         </div>
       </section>
     </div>
