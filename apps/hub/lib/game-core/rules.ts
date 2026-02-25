@@ -149,8 +149,8 @@ export function getPlayerName(playerIndex: number): string {
 }
 
 // トリックが完了しているかチェック
-export function isTrickComplete(trickCards: Move[], players: number, _firstPlayer: number): boolean {
-  return trickCards.length === players;
+export function isTrickComplete(actionCount: number, players: number): boolean {
+  return actionCount === players;
 }
 
 // 次のラウンドに進むかチェック

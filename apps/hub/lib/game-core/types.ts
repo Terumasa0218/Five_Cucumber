@@ -34,6 +34,7 @@ export interface GameState {
   fieldCard: number | null;
   sharedGraveyard: number[];
   trickCards: Move[];
+  actionCount: number; // このトリックで行動（出す/捨てる）した人数
   firstPlayer: number;
   isGameOver: boolean;
   gameOverPlayers: number[];

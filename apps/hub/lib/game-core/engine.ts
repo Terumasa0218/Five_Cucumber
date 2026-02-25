@@ -26,6 +26,7 @@ function cloneState(state: GameState): GameState {
     })),
     sharedGraveyard: [...state.sharedGraveyard],
     trickCards: state.trickCards.map(trickCard => ({ ...trickCard })),
+    actionCount: state.actionCount ?? 0,
     gameOverPlayers: [...state.gameOverPlayers],
     remainingCards: [...state.remainingCards],
     cardCounts: [...state.cardCounts],
@@ -52,6 +53,7 @@ export function createInitialState(config: GameConfig, rng: SeededRng): GameStat
     fieldCard: null,
     sharedGraveyard: [],
     trickCards: [],
+    actionCount: 0,
     firstPlayer,
     isGameOver: false,
     gameOverPlayers: [],
@@ -150,10 +152,13 @@ export function applyMove(
     ? [...state.trickCards]
     : [...state.trickCards, { ...move, isDiscard: false }];
 
+  const actionCount = (state.actionCount ?? 0) + 1;
+
   const newState: GameState = {
     ...state,
     players,
     trickCards,
+    actionCount,
     sharedGraveyard,
     cardCounts: updateCardCounts(state.cardCounts, [card]),
     fieldCard,
@@ -161,7 +166,7 @@ export function applyMove(
   };
 
   // トリックが完了したかチェック
-  if (isTrickComplete(newState.trickCards, config.players, newState.firstPlayer)) {
+  if (isTrickComplete(newState.actionCount, config.players)) {
     newState.phase = 'ResolvingTrick';
     return endTrick(newState, config, rng);
   }
@@ -187,6 +192,7 @@ export function endTrick(state: GameState, config: GameConfig, rng: SeededRng): 
   newState.currentTrick++;
   newState.fieldCard = null;
   newState.trickCards = [];
+  newState.actionCount = 0;
   newState.phase = 'AwaitMove';
 
   return { success: true, newState };
@@ -233,6 +239,7 @@ export function startNewRound(state: GameState, config: GameConfig, rng: SeededR
   newState.fieldCard = null;
   newState.sharedGraveyard = [];
   newState.trickCards = [];
+  newState.actionCount = 0;
   newState.firstPlayer = rng.nextInt(config.players);
   newState.currentPlayer = newState.firstPlayer;
   newState.remainingCards = deck.slice(config.players * config.initialCards);

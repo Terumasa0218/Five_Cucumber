@@ -351,7 +351,8 @@ function CpuPlayContent() {
         const trickCardsAfterPlay = isDiscardMove
           ? [...state.trickCards]
           : [...state.trickCards, move];
-        const isTrickCompleteAfterPlay = trickCardsAfterPlay.length === config.players;
+        const actionCountAfterPlay = (state.actionCount ?? 0) + 1;
+        const isTrickCompleteAfterPlay = actionCountAfterPlay === config.players;
         const playersAfterPlay = state.players.map((p, idx) => {
           if (idx !== player) {
             return p;
@@ -376,6 +377,7 @@ function CpuPlayContent() {
           fieldCard: isCardOnField ? card : state.fieldCard,
           sharedGraveyard: isCardOnField ? state.sharedGraveyard : [...state.sharedGraveyard, card],
           trickCards: trickCardsAfterPlay,
+          actionCount: actionCountAfterPlay,
           phase: isTrickCompleteAfterPlay ? 'ResolvingTrick' : 'AwaitMove',
         };
 
