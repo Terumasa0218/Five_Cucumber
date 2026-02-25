@@ -631,23 +631,6 @@ body {
   background: transparent;
 }
 
-/* 固定背景レイヤ（最背面） */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: -1;
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-
-body[data-page='custom-bg']::before {
-  display: none;
-}
 
 /* ホーム背景 */
 body[data-bg='home']::before {
@@ -701,7 +684,7 @@ body[data-bg='battle']::before {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
-/* ページ背景（背景はbody::beforeに集約） */
+/* ページ背景 */
 .page-game,
 .page-home,
 .page-arena {
