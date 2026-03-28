@@ -130,7 +130,7 @@ describe('applyMove - 捨てカード', () => {
       ],
     });
 
-    const result = applyMove(state, { player: 0, card: 3, timestamp: 1, isDiscard: true }, config, rng);
+    const result = applyMove(state, { player: 0, card: 7, timestamp: 1, isDiscard: true }, config, rng);
 
     expect(result.success).toBe(false);
     expect(result.message).toContain('cannot discard');
@@ -176,7 +176,8 @@ describe('トリック完了', () => {
       state = result.newState;
     }
 
-    expect(state.currentTrick).toBe(2);
+    expect(state.currentRound).toBe(2);
+    expect(state.currentTrick).toBe(1);
     expect(state.actionCount).toBe(0);
     expect(state.phase).toBe('AwaitMove');
   });
@@ -210,7 +211,8 @@ describe('トリック完了', () => {
       state = result.newState;
     }
 
-    expect(state.currentTrick).toBe(2);
+    expect(state.currentRound).toBe(2);
+    expect(state.currentTrick).toBe(1);
     expect(state.actionCount).toBe(0);
   });
 
@@ -287,7 +289,7 @@ describe('1ゲーム完走', () => {
     const rng = new SeededRng(99);
     let state = createInitialState(config, rng);
 
-    for (let trick = 1; trick <= config.initialCards; trick++) {
+    for (let trick = 1; trick < config.initialCards; trick++) {
       const before = state.players.map(player => player.hand.length);
 
       for (let turn = 0; turn < config.players; turn++) {
