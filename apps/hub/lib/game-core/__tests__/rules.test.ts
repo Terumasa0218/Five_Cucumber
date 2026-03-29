@@ -5,6 +5,7 @@ import {
   createDeck,
   dealCards,
   determineTrickWinner,
+  getLegalMoves,
 } from '../rules';
 import { GameConfig, Move } from '../types';
 
@@ -64,6 +65,35 @@ describe('determineTrickWinner', () => {
   });
 });
 
+describe('getLegalMoves', () => {
+  it('最終トリックでは手札をそのまま返す', () => {
+    const state = {
+      players: [
+        { hand: [2, 5], cucumbers: 0, graveyard: [] },
+        { hand: [3], cucumbers: 0, graveyard: [] },
+        { hand: [4], cucumbers: 0, graveyard: [] },
+        { hand: [6], cucumbers: 0, graveyard: [] },
+      ],
+      currentPlayer: 0,
+      currentRound: 1,
+      currentTrick: 7,
+      fieldCard: 14,
+      sharedGraveyard: [],
+      trickCards: [],
+      actionCount: 0,
+      firstPlayer: 0,
+      isGameOver: false,
+      gameOverPlayers: [],
+      remainingCards: [],
+      cardCounts: [],
+      phase: 'AwaitMove' as const,
+      isFinalTrick: true,
+    };
+
+    expect(getLegalMoves(state, 0)).toEqual([2, 5]);
+  });
+});
+
 describe('最終トリックペナルティ', () => {
   it('勝者のカード数字分のきゅうりを獲得', () => {
     const trick: Move[] = [
@@ -112,5 +142,17 @@ describe('最終トリックペナルティ', () => {
     const result = calculateFinalTrickPenalty(trick, baseConfig);
     expect(result.winner).toBe(3);
     expect(result.penalty).toBe(0);
+  });
+
+  it('捨てカードは最終トリックのペナルティ判定から除外される', () => {
+    const trick: Move[] = [
+      { player: 0, card: 12, timestamp: 1 },
+      { player: 1, card: 10, timestamp: 2 },
+      { player: 2, card: 1, timestamp: 3, isDiscard: true },
+      { player: 3, card: 9, timestamp: 4 },
+    ];
+
+    const result = calculateFinalTrickPenalty(trick, baseConfig);
+    expect(result).toEqual({ winner: 0, penalty: 12 });
   });
 });

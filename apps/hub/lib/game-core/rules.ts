@@ -25,6 +25,11 @@ export function getLegalMoves(state: GameState, player: number): number[] {
   const hand = state.players[player].hand;
   if (hand.length === 0) return [];
 
+  if (state.isFinalTrick) {
+    // 最終トリックでは手札の最後の1枚を必ず場に出す（捨て不可）
+    return [...hand];
+  }
+
   const minCard = Math.min(...hand);
 
   if (state.fieldCard === null) {
@@ -61,17 +66,18 @@ export function determineTrickWinner(trickCards: Move[]): number {
 
 // 最終トリックのペナルティ計算
 export function calculateFinalTrickPenalty(trickCards: Move[], _config: GameConfig): { winner: number; penalty: number } {
-  if (trickCards.length === 0) return { winner: -1, penalty: 0 };
+  const playedCards = trickCards.filter(tc => !tc.isDiscard);
+  if (playedCards.length === 0) return { winner: -1, penalty: 0 };
 
-  const winner = determineTrickWinner(trickCards);
-  const winnerCard = trickCards.find(tc => tc.player === winner)?.card ?? 0;
+  const winner = determineTrickWinner(playedCards);
+  const winnerCard = playedCards.find(tc => tc.player === winner)?.card ?? 0;
 
-  const allPlayedOne = trickCards.every(tc => tc.card === 1);
+  const allPlayedOne = playedCards.every(tc => tc.card === 1);
   if (allPlayedOne) {
     return { winner, penalty: 0 };
   }
 
-  const hasOneOnTable = trickCards.some(tc => tc.card === 1);
+  const hasOneOnTable = playedCards.some(tc => tc.card === 1);
   let penalty = winnerCard;
   if (hasOneOnTable) {
     penalty *= 2;

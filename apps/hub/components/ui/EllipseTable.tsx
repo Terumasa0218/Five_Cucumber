@@ -205,13 +205,15 @@ export function EllipseTable({
               <div className="trick-winner-banner">{trickWinnerText}</div>
             ) : null}
           </div>
-          <div id="grave" className="ellipse-table__grave" aria-label="墓地">
-            {state.sharedGraveyard.length > 0 && (
-              <div className="graveyard-card">
-                {state.sharedGraveyard[state.sharedGraveyard.length - 1]}
-              </div>
-            )}
-          </div>
+          {!showdownMode ? (
+            <div id="grave" className="ellipse-table__grave" aria-label="墓地">
+              {state.sharedGraveyard.length > 0 && (
+                <div className="graveyard-card">
+                  {state.sharedGraveyard[state.sharedGraveyard.length - 1]}
+                </div>
+              )}
+            </div>
+          ) : null}
         </div>
 
         {/* 楕円座席（外枠と内枠の間の帯） */}

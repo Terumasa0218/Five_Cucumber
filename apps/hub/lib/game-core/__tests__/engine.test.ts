@@ -175,6 +175,47 @@ describe('applyMove - 捨てカード', () => {
     expect(result.success).toBe(true);
     expect(result.newState.trickCards).toEqual([{ player: 1, card: 14, timestamp: 0 }]);
   });
+
+  it('最終トリックでは捨てられない', () => {
+    const rng = new SeededRng(16);
+    const state = createBaseState({
+      isFinalTrick: true,
+      fieldCard: 14,
+      players: [
+        { hand: [1], cucumbers: 0, graveyard: [] },
+        { hand: [2], cucumbers: 0, graveyard: [] },
+        { hand: [3], cucumbers: 0, graveyard: [] },
+        { hand: [4], cucumbers: 0, graveyard: [] },
+      ],
+    });
+
+    const result = applyMove(state, { player: 0, card: 1, timestamp: 1, isDiscard: true }, config, rng);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Final trick');
+  });
+});
+
+describe('applyMove - 最終トリック', () => {
+  it('最終トリックでは場の最高値未満でも出せる', () => {
+    const rng = new SeededRng(17);
+    const state = createBaseState({
+      isFinalTrick: true,
+      fieldCard: 14,
+      players: [
+        { hand: [5], cucumbers: 0, graveyard: [] },
+        { hand: [2], cucumbers: 0, graveyard: [] },
+        { hand: [3], cucumbers: 0, graveyard: [] },
+        { hand: [4], cucumbers: 0, graveyard: [] },
+      ],
+    });
+
+    const result = applyMove(state, { player: 0, card: 5, timestamp: 1, isDiscard: false }, config, rng);
+
+    expect(result.success).toBe(true);
+    expect(result.newState.trickCards).toContainEqual({ player: 0, card: 5, timestamp: 1, isDiscard: false });
+    expect(result.newState.players[0].hand).toEqual([]);
+  });
 });
 
 describe('トリック完了', () => {
@@ -295,7 +336,7 @@ describe('1ゲーム完走', () => {
       const player = state.currentPlayer;
       const legalMoves = getLegalMoves(state, player);
       const card = Math.min(...legalMoves);
-      const isDiscard = state.fieldCard !== null && card < state.fieldCard;
+      const isDiscard = !state.isFinalTrick && state.fieldCard !== null && card < state.fieldCard;
       const result = applyMove(state, { player, card, isDiscard, timestamp: i }, longConfig, rng);
       expect(result.success).toBe(true);
       state = result.newState;
@@ -315,7 +356,7 @@ describe('1ゲーム完走', () => {
         const player = state.currentPlayer;
         const legalMoves = getLegalMoves(state, player);
         const card = Math.min(...legalMoves);
-        const isDiscard = state.fieldCard !== null && card < state.fieldCard;
+        const isDiscard = !state.isFinalTrick && state.fieldCard !== null && card < state.fieldCard;
         const result = applyMove(
           state,
           { player, card, isDiscard, timestamp: trick * 10 + turn },
@@ -343,7 +384,7 @@ describe('1ゲーム完走', () => {
       const player = state.currentPlayer;
       const legalMoves = getLegalMoves(state, player);
       const card = Math.min(...legalMoves);
-      const isDiscard = state.fieldCard !== null && card < state.fieldCard;
+      const isDiscard = !state.isFinalTrick && state.fieldCard !== null && card < state.fieldCard;
       const result = applyMove(state, { player, card, isDiscard, timestamp: i }, longConfig, rng);
       expect(result.success).toBe(true);
       state = result.newState;
