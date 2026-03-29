@@ -193,7 +193,7 @@ export function EllipseTable({
         {/* 楕円座席（外枠と内枠の間の帯） */}
         <section id="seats" className={`players-${config.players}`}>
           {state.players.map((player, i) => {
-            const isTurn = currentPlayerIndex !== null && i === currentPlayerIndex;
+            const isTurn = !isFinalTrickMode && currentPlayerIndex !== null && i === currentPlayerIndex;
 
             return (
               <div
@@ -257,6 +257,7 @@ export function EllipseTable({
                 const isCardLocked = lockedCardId === card;
                 const isAllLocked = isSubmitting || className?.includes('cards-locked');
                 const isDisabled =
+                  isFinalTrickMode ||
                   !isMyTurn ||
                   isAllLocked ||
                   isCardLocked ||
