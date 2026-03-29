@@ -20,6 +20,7 @@ interface EllipseTableProps {
   trickWinner?: number | null;
   trickWinnerText?: string | null;
   isFinalTrickMode?: boolean;
+  showdownMode?: boolean;
   finalTrickSelectedPlayers?: number[];
   finalTrickOpenedPlayers?: number[];
   finalTrickStatusText?: string | null;
@@ -41,6 +42,7 @@ export function EllipseTable({
   trickWinner = null,
   trickWinnerText = null,
   isFinalTrickMode = false,
+  showdownMode = false,
   finalTrickSelectedPlayers = [],
   finalTrickOpenedPlayers = [],
   finalTrickStatusText = null,
@@ -88,6 +90,10 @@ export function EllipseTable({
   const rootClassName = ['ellipse-table', 'layer-field', className].filter(Boolean).join(' ');
   const visibleTrickCards = trickCards.filter(move => !move.isDiscard);
   const lastPlayedTrickCard = visibleTrickCards[visibleTrickCards.length - 1] ?? null;
+  const showdownCards = visibleTrickCards.map(trickCard => ({
+    ...trickCard,
+    playerName: getPlayerName(trickCard.player),
+  }));
 
   return (
     <div className={rootClassName}>
@@ -95,7 +101,25 @@ export function EllipseTable({
         {/* 中央の場と墓地 */}
         <div className="ellipse-table__center">
           <div id="field" className="ellipse-table__field" aria-label="場のカード">
-            {visibleTrickCards.length > 0 ? (
+            {showdownMode && showdownCards.length > 0 ? (
+              <div className="showdown-cards-row" aria-live="polite">
+                {showdownCards.map((showdownCard, index) => (
+                  <div key={`${showdownCard.player}-${showdownCard.timestamp}-${index}`} className="showdown-card-item">
+                    <div className="card game-card current-card showdown-card">
+                      <div className="card-number">{showdownCard.card}</div>
+                      <div className="cucumber-icons">
+                        {showdownCard.card >= 2 && showdownCard.card <= 5 && '🥒'}
+                        {showdownCard.card >= 6 && showdownCard.card <= 9 && '🥒🥒'}
+                        {showdownCard.card >= 10 && showdownCard.card <= 11 && '🥒🥒🥒'}
+                        {showdownCard.card >= 12 && showdownCard.card <= 14 && '🥒🥒🥒🥒'}
+                        {showdownCard.card === 15 && '🥒🥒🥒🥒🥒'}
+                      </div>
+                    </div>
+                    <div className="showdown-player-name">{showdownCard.playerName}</div>
+                  </div>
+                ))}
+              </div>
+            ) : visibleTrickCards.length > 0 ? (
               <div className="trick-cards-queue" aria-live="polite">
                 {visibleTrickCards.map((trickCard, index) => {
                   const cardKey = `${trickCard.player}-${trickCard.timestamp}`;
@@ -242,15 +266,13 @@ export function EllipseTable({
             {(() => {
               const myHand = state.players[mySeatIndex]?.hand ?? [];
               const highestOnTable = state.fieldCard;
-              const hasLegalPlay = myHand.some(
-                handCard => highestOnTable === null || handCard >= highestOnTable
-              );
               const minCard = myHand.length > 0 ? Math.min(...myHand) : null;
 
               return myHand.map((card, index) => {
                 const isPlayable = highestOnTable === null || card >= highestOnTable;
-                const isDiscard = !hasLegalPlay && minCard !== null && card === minCard;
-                const isIllegalWhileLegalExists = hasLegalPlay && !isPlayable;
+                const isMinCard = minCard !== null && card === minCard;
+                const isDiscard = highestOnTable !== null && isMinCard && !isPlayable;
+                const isIllegalWhileLegalExists = !isPlayable && !isMinCard;
                 const isMyTurn = currentPlayerIndex === mySeatIndex;
 
                 // カードが送信中またはロックされているかチェック

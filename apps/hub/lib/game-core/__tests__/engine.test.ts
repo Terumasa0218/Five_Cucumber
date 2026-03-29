@@ -75,7 +75,7 @@ describe('applyMove - 通常プレイ', () => {
     const result = applyMove(state, { player: 0, card: 5, timestamp: 1 }, config, rng);
 
     expect(result.success).toBe(false);
-    expect(result.message).toBe('Illegal move');
+    expect(result.message).toContain('not legal');
   });
 
   it('リードプレイヤーは任意のカードを出せる', () => {
@@ -118,8 +118,27 @@ describe('applyMove - 捨てカード', () => {
     expect(result.newState.trickCards).toHaveLength(0);
   });
 
-  it('出せるカードがある場合に捨ては不可', () => {
+  it('出せるカードがある場合でも最小カードは捨てられる', () => {
     const rng = new SeededRng(5);
+    const state = createBaseState({
+      fieldCard: 5,
+      players: [
+        { hand: [3, 7, 10], cucumbers: 0, graveyard: [] },
+        { hand: [2], cucumbers: 0, graveyard: [] },
+        { hand: [3], cucumbers: 0, graveyard: [] },
+        { hand: [4], cucumbers: 0, graveyard: [] },
+      ],
+    });
+
+    const result = applyMove(state, { player: 0, card: 3, timestamp: 1, isDiscard: true }, config, rng);
+
+    expect(result.success).toBe(true);
+    expect(result.newState.players[0].graveyard).toEqual([3]);
+    expect(result.newState.players[0].hand).toEqual([7, 10]);
+  });
+
+  it('最小カード以外は捨てられない', () => {
+    const rng = new SeededRng(15);
     const state = createBaseState({
       fieldCard: 5,
       players: [
@@ -133,7 +152,7 @@ describe('applyMove - 捨てカード', () => {
     const result = applyMove(state, { player: 0, card: 7, timestamp: 1, isDiscard: true }, config, rng);
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain('cannot discard');
+    expect(result.message).toContain('minimum card');
   });
 
   it('捨てカードはtrickCardsに追加されない', () => {

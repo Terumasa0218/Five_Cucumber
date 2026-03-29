@@ -26,19 +26,19 @@ export function getLegalMoves(state: GameState, player: number): number[] {
   if (hand.length === 0) return [];
 
   const minCard = Math.min(...hand);
-  
+
   if (state.fieldCard === null) {
     // 最初のカードは何でも出せる
     return [...hand];
   }
-  
-  // 場のカード以上か、最小カードのみ
+
+  // 場のカード以上 + 任意で最小カード（ハウスルール）
   const playableCards = hand.filter(card => card >= state.fieldCard!);
-  if (playableCards.length > 0) {
+  if (playableCards.includes(minCard)) {
     return playableCards;
   }
-  
-  return [minCard];
+
+  return [...playableCards, minCard];
 }
 
 // トリックの勝者を決定

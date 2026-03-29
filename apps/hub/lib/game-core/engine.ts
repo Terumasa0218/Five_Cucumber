@@ -95,20 +95,10 @@ export function applyMove(
   }
 
   const minCard = Math.min(...playerHand);
-  const hasLegalPlay =
-    state.fieldCard === null ? true : playerHand.some(handCard => handCard >= state.fieldCard!);
 
   if (move.isDiscard) {
     if (state.fieldCard === null) {
       return { success: false, newState: state, message: 'Cannot discard on empty field' };
-    }
-
-    if (hasLegalPlay) {
-      return {
-        success: false,
-        newState: state,
-        message: 'Player has legal cards to play, cannot discard',
-      };
     }
 
     if (card !== minCard) {
