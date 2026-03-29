@@ -82,7 +82,8 @@ function CpuPlayContent() {
   };
 
   const scheduleCpuTurn = useCallback(() => {
-    if (!gameRef.current || !gameState || isProcessingRef.current || isAnimating) return;
+    if (!gameRef.current || !gameState || isProcessingRef.current || isAnimating || finalTrickStarted)
+      return;
 
     const { state } = gameRef.current;
 
@@ -111,7 +112,7 @@ function CpuPlayContent() {
         void playCpuTurnRef.current();
       }
     }, thinkingTime);
-  }, [gameState, gameOver, isAnimating]);
+  }, [finalTrickStarted, gameState, gameOver, isAnimating]);
 
   // refを更新
   useEffect(() => {
@@ -489,6 +490,7 @@ function CpuPlayContent() {
 
   // CPU手番のスケジューリング
   useEffect(() => {
+    if (finalTrickStarted) return;
     if (gameState && !gameOver && !isProcessingRef.current && !isAnimating && gameRef.current) {
       const { state } = gameRef.current;
       if (state.currentPlayer !== 0 && state.phase === 'AwaitMove' && !state.isFinalTrick) {
@@ -505,7 +507,7 @@ function CpuPlayContent() {
         cpuTurnTimerRef.current = null;
       }
     };
-  }, [gameState?.currentPlayer, gameState?.phase, gameOver, isAnimating]);
+  }, [finalTrickStarted, gameState?.currentPlayer, gameState?.phase, gameOver, isAnimating]);
 
   const handleCardClick = async (card: number) => {
     if (!gameRef.current || isCardLocked || isSubmitting || isProcessingRef.current || isAnimating)
@@ -574,6 +576,12 @@ function CpuPlayContent() {
   };
 
   useEffect(() => {
+    console.log(
+      '[Showdown] useEffect fired, isFinalTrick:',
+      gameState?.isFinalTrick,
+      'finalTrickStarted:',
+      finalTrickStarted
+    );
     if (!gameState || !gameRef.current) return;
     if (!gameState.isFinalTrick || gameState.phase !== 'AwaitMove') return;
     if (finalTrickStarted || isAnimating || isProcessingRef.current) return;
@@ -583,6 +591,7 @@ function CpuPlayContent() {
       const { state, config, rng } = gameRef.current;
       if (!state.isFinalTrick || state.phase !== 'AwaitMove') return;
 
+      console.log('[Showdown] Starting showdown');
       let currentState = state;
       let trickCardsAfterShowdown: Move[] = [...state.trickCards];
       const selectedPlayers: number[] = [];
@@ -594,26 +603,39 @@ function CpuPlayContent() {
       for (const playerIndex of playerOrder) {
         const hand = currentState.players[playerIndex]?.hand ?? [];
         if (hand.length === 0) continue;
-        const selectedCard = hand[0];
+        const legalMoves = getLegalMoves(currentState, playerIndex);
+        if (legalMoves.length === 0) {
+          console.warn('[Showdown] No legal moves for player', playerIndex, 'hand:', hand);
+          continue;
+        }
+        const selectedCard = legalMoves[0];
         const isDiscardMove =
-          currentState.fieldCard !== null && selectedCard < (currentState.fieldCard ?? 0);
+          currentState.fieldCard !== null &&
+          selectedCard < (currentState.fieldCard ?? 0) &&
+          selectedCard === Math.min(...hand);
         const move: Move = {
           player: playerIndex,
           card: selectedCard,
           timestamp: Date.now() + playerIndex,
           isDiscard: isDiscardMove,
         };
+        console.log('[Showdown] Player', playerIndex, 'card:', selectedCard, 'isDiscard:', isDiscardMove);
         const result = applyMove(currentState, move, config, rng);
+        console.log('[Showdown] applyMove result:', result.success, result.message);
         if (!result.success) {
-          console.warn('[FinalTrick] Auto move failed:', result.message);
+          console.error('[Showdown] applyMove failed for player', playerIndex, result.message);
+          setFinalTrickStatusText('ショーダウン処理に失敗しました。');
+          setFinalTrickStarted(false);
+          setIsAnimating(false);
+          setOverlayText(null);
           return;
         }
         currentState = result.newState;
         selectedPlayers.push(playerIndex);
-        if (!isDiscardMove) {
-          trickCardsAfterShowdown = [...trickCardsAfterShowdown, move];
-        }
       }
+
+      trickCardsAfterShowdown = [...currentState.trickCards];
+      console.log('[Showdown] Final trickCards:', trickCardsAfterShowdown);
 
       const openedPlayers = trickCardsAfterShowdown.map(move => move.player);
       const winner = determineTrickWinner(trickCardsAfterShowdown);
@@ -622,6 +644,7 @@ function CpuPlayContent() {
       setFinalTrickOpenedPlayers(openedPlayers);
       setTableTrickCards(trickCardsAfterShowdown);
       setLatestPlayedKey(null);
+      console.log('[Showdown] Setting state with', trickCardsAfterShowdown.length, 'cards');
       setGameState({
         ...currentState,
         trickCards: trickCardsAfterShowdown,
