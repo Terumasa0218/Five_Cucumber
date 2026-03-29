@@ -577,10 +577,12 @@ function CpuPlayContent() {
 
   useEffect(() => {
     console.log(
-      '[Showdown] useEffect fired, isFinalTrick:',
+      '[Showdown-Check] isFinalTrick:',
       gameState?.isFinalTrick,
       'finalTrickStarted:',
-      finalTrickStarted
+      finalTrickStarted,
+      'hand length:',
+      gameState?.players?.[0]?.hand?.length
     );
     if (!gameState || !gameRef.current) return;
     if (!gameState.isFinalTrick || gameState.phase !== 'AwaitMove') return;
@@ -591,7 +593,7 @@ function CpuPlayContent() {
       const { state, config, rng } = gameRef.current;
       if (!state.isFinalTrick || state.phase !== 'AwaitMove') return;
 
-      console.log('[Showdown] Starting showdown');
+      console.log('[Showdown] === SHOWDOWN STARTING ===');
       let currentState = state;
       let trickCardsAfterShowdown: Move[] = [...state.trickCards];
       const selectedPlayers: number[] = [];
@@ -650,11 +652,13 @@ function CpuPlayContent() {
       setFinalTrickStatusText(null);
 
       const showResultTimer = setTimeout(() => {
+        console.log('[Showdown] Calculating penalty...');
         const winnerName = winner === 0 ? 'あなた' : `CPU ${winner}`;
         const playedCards = trickCardsAfterShowdown.filter(trickCard => !trickCard.isDiscard);
         const allOnes = playedCards.length > 0 && playedCards.every(trickCard => trickCard.card === 1);
         if (allOnes) {
           setTrickWinnerText('全員が1を出したためペナルティなし！');
+          setOverlayText('全員が1を出したためペナルティなし！');
         } else {
           const penaltyResult = calculateFinalTrickPenalty(trickCardsAfterShowdown, config);
           const hasOne = playedCards.some(trickCard => trickCard.card === 1);
@@ -665,8 +669,9 @@ function CpuPlayContent() {
               ? `${penaltyText}（場に1があるため2倍: ${basePenalty}×2=${penaltyResult.penalty}）`
               : penaltyText
           );
+          setOverlayText(`${winnerName}が${penaltyResult.penalty}本のきゅうりを獲得！`);
         }
-      }, 2000);
+      }, 5000);
 
       const nextRoundTimer = setTimeout(() => {
         const afterFinalRoundResult = finalRound(currentState, config, rng);
@@ -694,7 +699,7 @@ function CpuPlayContent() {
         } else if (scheduleCpuTurnRef.current && afterFinalRoundState.currentPlayer !== 0) {
           scheduleCpuTurnRef.current();
         }
-      }, 3600);
+      }, 10000);
 
       finalTrickTimeoutsRef.current.push(showResultTimer, nextRoundTimer);
     };
@@ -717,7 +722,7 @@ function CpuPlayContent() {
     }, 2000);
 
     finalTrickTimeoutsRef.current.push(showdownTimer);
-  }, [gameState, finalTrickStarted, isAnimating]);
+  }, [gameState?.isFinalTrick, gameState?.currentTrick, gameState, finalTrickStarted, isAnimating]);
 
   useEffect(() => {
     return () => {

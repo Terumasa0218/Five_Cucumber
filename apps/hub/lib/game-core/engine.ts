@@ -203,6 +203,14 @@ export function finalRound(state: GameState, config: GameConfig, rng: SeededRng)
   const { winner, penalty } = calculateFinalTrickPenalty(newState.trickCards, config);
 
   if (winner >= 0) {
+    console.log(
+      '[Engine-Cucumber] player:',
+      winner,
+      'adding:',
+      penalty,
+      'total:',
+      newState.players[winner].cucumbers + penalty
+    );
     newState.players[winner].cucumbers += penalty;
   }
 
