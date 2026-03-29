@@ -95,8 +95,13 @@ export function applyMove(
   }
 
   const minCard = Math.min(...playerHand);
+  const isFinalTrick = state.isFinalTrick;
 
-  if (move.isDiscard) {
+  if (isFinalTrick && move.isDiscard) {
+    return { success: false, newState: state, message: 'Final trick: discard not allowed' };
+  }
+
+  if (!isFinalTrick && move.isDiscard) {
     if (state.fieldCard === null) {
       return { success: false, newState: state, message: 'Cannot discard on empty field' };
     }
@@ -108,7 +113,7 @@ export function applyMove(
         message: 'Discard must be the minimum card in hand',
       };
     }
-  } else if (state.fieldCard !== null && card < state.fieldCard) {
+  } else if (!isFinalTrick && state.fieldCard !== null && card < state.fieldCard) {
     return { success: false, newState: state, message: `Card ${card} is not legal` };
   }
 

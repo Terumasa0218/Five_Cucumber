@@ -603,23 +603,14 @@ function CpuPlayContent() {
       for (const playerIndex of playerOrder) {
         const hand = currentState.players[playerIndex]?.hand ?? [];
         if (hand.length === 0) continue;
-        const legalMoves = getLegalMoves(currentState, playerIndex);
-        if (legalMoves.length === 0) {
-          console.warn('[Showdown] No legal moves for player', playerIndex, 'hand:', hand);
-          continue;
-        }
-        const selectedCard = legalMoves[0];
-        const isDiscardMove =
-          currentState.fieldCard !== null &&
-          selectedCard < (currentState.fieldCard ?? 0) &&
-          selectedCard === Math.min(...hand);
+        const selectedCard = hand[0];
         const move: Move = {
           player: playerIndex,
           card: selectedCard,
           timestamp: Date.now() + playerIndex,
-          isDiscard: isDiscardMove,
+          isDiscard: false,
         };
-        console.log('[Showdown] Player', playerIndex, 'card:', selectedCard, 'isDiscard:', isDiscardMove);
+        console.log('[Showdown] Player', playerIndex, 'card:', selectedCard, 'isDiscard:', false);
         const result = applyMove(currentState, move, config, rng);
         console.log('[Showdown] applyMove result:', result.success, result.message);
         if (!result.success) {
@@ -660,12 +651,13 @@ function CpuPlayContent() {
 
       const showResultTimer = setTimeout(() => {
         const winnerName = winner === 0 ? 'あなた' : `CPU ${winner}`;
-        const allOnes = trickCardsAfterShowdown.every(trickCard => trickCard.card === 1);
+        const playedCards = trickCardsAfterShowdown.filter(trickCard => !trickCard.isDiscard);
+        const allOnes = playedCards.length > 0 && playedCards.every(trickCard => trickCard.card === 1);
         if (allOnes) {
           setTrickWinnerText('全員が1を出したためペナルティなし！');
         } else {
           const penaltyResult = calculateFinalTrickPenalty(trickCardsAfterShowdown, config);
-          const hasOne = trickCardsAfterShowdown.some(trickCard => trickCard.card === 1);
+          const hasOne = playedCards.some(trickCard => trickCard.card === 1);
           const basePenalty = hasOne ? Math.floor(penaltyResult.penalty / 2) : penaltyResult.penalty;
           const penaltyText = `${winnerName}が${penaltyResult.penalty}本のきゅうりを獲得しました`;
           setTrickWinnerText(
