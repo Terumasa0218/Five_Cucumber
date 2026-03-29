@@ -50,8 +50,11 @@ function CpuPlayContent() {
   const [finalTrickSelectedPlayers, setFinalTrickSelectedPlayers] = useState<number[]>([]);
   const [finalTrickOpenedPlayers, setFinalTrickOpenedPlayers] = useState<number[]>([]);
   const [finalTrickStatusText, setFinalTrickStatusText] = useState<string | null>(null);
+  const [overlayText, setOverlayText] = useState<string | null>(null);
+  const [finalTrickStarted, setFinalTrickStarted] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const cpuTurnTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const finalTrickTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const isProcessingRef = useRef<boolean>(false);
   const scheduleCpuTurnRef = useRef<(() => void) | null>(null);
   const playCpuTurnRef = useRef<(() => Promise<void>) | null>(null);
@@ -82,7 +85,12 @@ function CpuPlayContent() {
     const { state } = gameRef.current;
 
     // 条件チェック
-    if (state.currentPlayer === 0 || gameOver || state.phase !== 'AwaitMove') {
+    if (
+      state.currentPlayer === 0 ||
+      gameOver ||
+      state.phase !== 'AwaitMove' ||
+      state.isFinalTrick
+    ) {
       return;
     }
 
@@ -127,6 +135,8 @@ function CpuPlayContent() {
       setFinalTrickSelectedPlayers([]);
       setFinalTrickOpenedPlayers([]);
       setFinalTrickStatusText(null);
+      setOverlayText(null);
+      setFinalTrickStarted(false);
       setIsAnimating(false);
 
       console.log('[Game] New game started with', config.players, 'players');
@@ -227,6 +237,8 @@ function CpuPlayContent() {
               setFinalTrickSelectedPlayers([]);
               setFinalTrickOpenedPlayers([]);
               setFinalTrickStatusText(null);
+              setOverlayText(null);
+              setFinalTrickStarted(false);
               setIsAnimating(false);
 
               console.log('[Game] State restored successfully with rebuilt controllers');
@@ -389,7 +401,6 @@ function CpuPlayContent() {
 
         if (isFinalTrickMode) {
           setFinalTrickSelectedPlayers(prev => (prev.includes(player) ? prev : [...prev, player]));
-          setFinalTrickStatusText('最終トリック: 全員の選択を待っています…');
         } else if (isDiscardMove) {
           const actorName = player === 0 ? 'あなた' : `CPU ${player}`;
           setTurnNotice(`${actorName} は出せるカードがないため ${card} を捨てました`);
@@ -403,25 +414,7 @@ function CpuPlayContent() {
           setIsAnimating(true);
           const winner = determineTrickWinner(trickCardsAfterPlay);
 
-          if (isFinalTrickMode) {
-            setFinalTrickStatusText('オープン！');
-            await delay(700);
-
-            const revealOrder = Array.from(
-              { length: config.players },
-              (_, idx) => (state.firstPlayer + idx) % config.players
-            );
-            for (const revealPlayer of revealOrder) {
-              setFinalTrickOpenedPlayers(prev =>
-                prev.includes(revealPlayer) ? prev : [...prev, revealPlayer]
-              );
-              const opened = trickCardsAfterPlay.find(tc => tc.player === revealPlayer);
-              if (opened) {
-                setLatestPlayedKey(`${opened.player}-${opened.timestamp}`);
-              }
-              await delay(650);
-            }
-          } else {
+          if (!isFinalTrickMode) {
             await delay(1500);
           }
 
@@ -488,7 +481,7 @@ function CpuPlayContent() {
   useEffect(() => {
     if (gameState && !gameOver && !isProcessingRef.current && !isAnimating && gameRef.current) {
       const { state } = gameRef.current;
-      if (state.currentPlayer !== 0 && state.phase === 'AwaitMove') {
+      if (state.currentPlayer !== 0 && state.phase === 'AwaitMove' && !state.isFinalTrick) {
         console.log(`[useEffect] Scheduling CPU turn for player ${state.currentPlayer}`);
         if (scheduleCpuTurnRef.current) {
           scheduleCpuTurnRef.current();
@@ -509,6 +502,7 @@ function CpuPlayContent() {
       return;
 
     const { state } = gameRef.current;
+    if (state.isFinalTrick) return;
 
     if (state.currentPlayer === 0 && state.phase === 'AwaitMove') {
       setIsSubmitting(true);
@@ -569,6 +563,134 @@ function CpuPlayContent() {
     }
   };
 
+  useEffect(() => {
+    if (!gameState || !gameRef.current) return;
+    if (!gameState.isFinalTrick || gameState.phase !== 'AwaitMove') return;
+    if (finalTrickStarted || isAnimating || isProcessingRef.current) return;
+
+    const runFinalTrickShowdown = () => {
+      if (!gameRef.current) return;
+      const { state, config, rng } = gameRef.current;
+      if (!state.isFinalTrick || state.phase !== 'AwaitMove') return;
+
+      let currentState = state;
+      let trickCardsAfterShowdown: Move[] = [...state.trickCards];
+      const selectedPlayers: number[] = [];
+      const playerOrder = Array.from(
+        { length: config.players },
+        (_, idx) => (state.firstPlayer + idx) % config.players
+      );
+
+      for (const playerIndex of playerOrder) {
+        const hand = currentState.players[playerIndex]?.hand ?? [];
+        if (hand.length === 0) continue;
+        const selectedCard = hand[0];
+        const isDiscardMove =
+          currentState.fieldCard !== null && selectedCard < (currentState.fieldCard ?? 0);
+        const move: Move = {
+          player: playerIndex,
+          card: selectedCard,
+          timestamp: Date.now() + playerIndex,
+          isDiscard: isDiscardMove,
+        };
+        const result = applyMove(currentState, move, config, rng);
+        if (!result.success) {
+          console.warn('[FinalTrick] Auto move failed:', result.message);
+          return;
+        }
+        currentState = result.newState;
+        selectedPlayers.push(playerIndex);
+        if (!isDiscardMove) {
+          trickCardsAfterShowdown = [...trickCardsAfterShowdown, move];
+        }
+      }
+
+      const openedPlayers = trickCardsAfterShowdown.map(move => move.player);
+      const winner = determineTrickWinner(trickCardsAfterShowdown);
+
+      setFinalTrickSelectedPlayers(selectedPlayers);
+      setFinalTrickOpenedPlayers(openedPlayers);
+      setTableTrickCards(trickCardsAfterShowdown);
+      setLatestPlayedKey(null);
+      setGameState({
+        ...currentState,
+        trickCards: trickCardsAfterShowdown,
+      });
+      gameRef.current.state = {
+        ...currentState,
+        trickCards: trickCardsAfterShowdown,
+      };
+      setIsAnimating(true);
+      setTrickWinner(winner);
+      setFinalTrickStatusText(null);
+
+      const showResultTimer = setTimeout(() => {
+        const winnerName = winner === 0 ? 'あなた' : `CPU ${winner}`;
+        const allOnes = trickCardsAfterShowdown.every(trickCard => trickCard.card === 1);
+        if (allOnes) {
+          setTrickWinnerText('全員が1を出したためペナルティなし！');
+        } else {
+          const penaltyResult = calculateFinalTrickPenalty(trickCardsAfterShowdown, config);
+          const hasOne = trickCardsAfterShowdown.some(trickCard => trickCard.card === 1);
+          const penaltyText = `${winnerName}が${penaltyResult.penalty}本のきゅうりを獲得しました`;
+          setTrickWinnerText(hasOne ? `${penaltyText}（1が場にあるため2倍！）` : penaltyText);
+        }
+      }, 2000);
+
+      const nextRoundTimer = setTimeout(() => {
+        setGameState(currentState);
+        gameRef.current!.state = currentState;
+        setTableTrickCards([]);
+        setLatestPlayedKey(null);
+        setTrickWinner(null);
+        setTrickWinnerText(null);
+        setTurnNotice(null);
+        setFinalTrickSelectedPlayers([]);
+        setFinalTrickOpenedPlayers([]);
+        setFinalTrickStatusText(null);
+        setFinalTrickStarted(false);
+        setIsAnimating(false);
+
+        if (currentState.phase === 'GameEnd') {
+          setGameOver(true);
+          setGameOverData(
+            currentState.players.map((p, index) => ({ player: index, count: p.cucumbers }))
+          );
+        }
+      }, 3600);
+
+      finalTrickTimeoutsRef.current.push(showResultTimer, nextRoundTimer);
+    };
+
+    setFinalTrickStarted(true);
+    setTurnNotice(null);
+    setTrickWinnerText(null);
+    setFinalTrickStatusText(null);
+    setFinalTrickSelectedPlayers([]);
+    setFinalTrickOpenedPlayers([]);
+    setOverlayText('最終トリック');
+
+    const showdownTimer = setTimeout(() => {
+      setOverlayText('Showdown!');
+      const openTimer = setTimeout(() => {
+        setOverlayText(null);
+        runFinalTrickShowdown();
+      }, 1500);
+      finalTrickTimeoutsRef.current.push(openTimer);
+    }, 2000);
+
+    finalTrickTimeoutsRef.current.push(showdownTimer);
+  }, [gameState, finalTrickStarted, isAnimating]);
+
+  useEffect(() => {
+    return () => {
+      for (const timer of finalTrickTimeoutsRef.current) {
+        clearTimeout(timer);
+      }
+      finalTrickTimeoutsRef.current = [];
+    };
+  }, []);
+
   const handleRestart = () => {
     const gameStateKey = getGameStateKey(searchParams);
     localStorage.removeItem(gameStateKey);
@@ -606,10 +728,10 @@ function CpuPlayContent() {
     humanLegalMoves.length === 1 &&
     humanLegalMoves[0] < gameState.fieldCard;
 
-  const currentPlayerIndex = isAnimating ? null : gameState.currentPlayer;
   const isFinalTrickPhase =
     gameState.isFinalTrick ||
     gameState.currentTrick === (gameRef.current?.config?.initialCards || 7);
+  const currentPlayerIndex = isAnimating || isFinalTrickPhase ? null : gameState.currentPlayer;
 
   return (
     <>
@@ -657,6 +779,12 @@ function CpuPlayContent() {
             {isFinalTrickPhase ? (
               <div className="final-trick-notice" role="status" aria-live="polite">
                 最終トリック
+              </div>
+            ) : null}
+
+            {overlayText ? (
+              <div className="final-trick-overlay" role="status" aria-live="assertive">
+                <div className="final-trick-overlay__text">{overlayText}</div>
               </div>
             ) : null}
 
