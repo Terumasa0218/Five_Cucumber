@@ -742,11 +742,12 @@ function CpuPlayContent() {
   }
 
   const displayNames = gameState.players.map((_, idx) => (idx === 0 ? 'あなた' : `CPU ${idx}`));
+  const fieldCard = gameState.fieldCard;
   const shouldDiscardMinCard =
     gameState.currentPlayer === 0 &&
     gameState.phase === 'AwaitMove' &&
-    gameState.fieldCard !== null &&
-    !gameState.players[0].hand.some(card => card >= gameState.fieldCard);
+    fieldCard !== null &&
+    !gameState.players[0].hand.some(card => card >= fieldCard);
 
   const isFinalTrickPhase =
     gameState.isFinalTrick ||
