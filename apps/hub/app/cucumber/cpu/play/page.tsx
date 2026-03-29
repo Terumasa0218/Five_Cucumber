@@ -9,7 +9,6 @@ import {
   calculateFinalTrickPenalty,
   createGameView,
   createInitialState,
-  finalRound,
   GameConfig,
   GameState,
   getEffectiveTurnSeconds,
@@ -674,10 +673,8 @@ function CpuPlayContent() {
       }, 5000);
 
       const nextRoundTimer = setTimeout(() => {
-        const afterFinalRoundResult = finalRound(currentState, config, rng);
-        const afterFinalRoundState = afterFinalRoundResult.newState;
-        setGameState(afterFinalRoundState);
-        gameRef.current!.state = afterFinalRoundState;
+        setGameState(currentState);
+        gameRef.current!.state = currentState;
         setTableTrickCards([]);
         setLatestPlayedKey(null);
         setTrickWinner(null);
@@ -691,12 +688,12 @@ function CpuPlayContent() {
         setIsShowdownMode(false);
         setIsAnimating(false);
 
-        if (afterFinalRoundState.phase === 'GameEnd') {
+        if (currentState.phase === 'GameEnd') {
           setGameOver(true);
           setGameOverData(
-            afterFinalRoundState.players.map((p, index) => ({ player: index, count: p.cucumbers }))
+            currentState.players.map((p, index) => ({ player: index, count: p.cucumbers }))
           );
-        } else if (scheduleCpuTurnRef.current && afterFinalRoundState.currentPlayer !== 0) {
+        } else if (scheduleCpuTurnRef.current && currentState.currentPlayer !== 0) {
           scheduleCpuTurnRef.current();
         }
       }, 10000);
