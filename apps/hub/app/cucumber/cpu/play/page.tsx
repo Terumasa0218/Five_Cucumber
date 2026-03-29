@@ -6,13 +6,14 @@ import { HumanController } from '@/lib/controllers/human';
 import { delay, runAnimation } from '@/lib/animQueue';
 import {
   applyMove,
+  calculateFinalTrickPenalty,
   createGameView,
   createInitialState,
+  finalRound,
   GameConfig,
   GameState,
   getEffectiveTurnSeconds,
   getLegalMoves,
-  calculateFinalTrickPenalty,
   determineTrickWinner,
   Move,
   PlayerController,
@@ -52,6 +53,7 @@ function CpuPlayContent() {
   const [finalTrickStatusText, setFinalTrickStatusText] = useState<string | null>(null);
   const [overlayText, setOverlayText] = useState<string | null>(null);
   const [finalTrickStarted, setFinalTrickStarted] = useState(false);
+  const [isShowdownMode, setIsShowdownMode] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const cpuTurnTimerRef = useRef<NodeJS.Timeout | null>(null);
   const finalTrickTimeoutsRef = useRef<NodeJS.Timeout[]>([]);
@@ -137,6 +139,7 @@ function CpuPlayContent() {
       setFinalTrickStatusText(null);
       setOverlayText(null);
       setFinalTrickStarted(false);
+      setIsShowdownMode(false);
       setIsAnimating(false);
 
       console.log('[Game] New game started with', config.players, 'players');
@@ -239,6 +242,7 @@ function CpuPlayContent() {
               setFinalTrickStatusText(null);
               setOverlayText(null);
               setFinalTrickStarted(false);
+              setIsShowdownMode(false);
               setIsAnimating(false);
 
               console.log('[Game] State restored successfully with rebuilt controllers');
@@ -428,8 +432,13 @@ function CpuPlayContent() {
             } else {
               const penaltyResult = calculateFinalTrickPenalty(trickCardsAfterPlay, config);
               const hasOne = trickCardsAfterPlay.some(trickCard => trickCard.card === 1);
+              const basePenalty = hasOne ? Math.floor(penaltyResult.penalty / 2) : penaltyResult.penalty;
               const penaltyText = `${winnerName}が${penaltyResult.penalty}本のきゅうりを獲得しました`;
-              setTrickWinnerText(hasOne ? `${penaltyText}（1が場にあるため2倍！）` : penaltyText);
+              setTrickWinnerText(
+                hasOne
+                  ? `${penaltyText}（場に1があるため2倍: ${basePenalty}×2=${penaltyResult.penalty}）`
+                  : penaltyText
+              );
             }
             setFinalTrickStatusText('最終トリック結果');
           }
@@ -446,6 +455,7 @@ function CpuPlayContent() {
           setFinalTrickSelectedPlayers([]);
           setFinalTrickOpenedPlayers([]);
           setFinalTrickStatusText(null);
+          setIsShowdownMode(false);
           setIsAnimating(false);
         } else {
           gameRef.current.state = newState;
@@ -621,6 +631,7 @@ function CpuPlayContent() {
         trickCards: trickCardsAfterShowdown,
       };
       setIsAnimating(true);
+      setIsShowdownMode(true);
       setTrickWinner(winner);
       setFinalTrickStatusText(null);
 
@@ -632,14 +643,21 @@ function CpuPlayContent() {
         } else {
           const penaltyResult = calculateFinalTrickPenalty(trickCardsAfterShowdown, config);
           const hasOne = trickCardsAfterShowdown.some(trickCard => trickCard.card === 1);
+          const basePenalty = hasOne ? Math.floor(penaltyResult.penalty / 2) : penaltyResult.penalty;
           const penaltyText = `${winnerName}が${penaltyResult.penalty}本のきゅうりを獲得しました`;
-          setTrickWinnerText(hasOne ? `${penaltyText}（1が場にあるため2倍！）` : penaltyText);
+          setTrickWinnerText(
+            hasOne
+              ? `${penaltyText}（場に1があるため2倍: ${basePenalty}×2=${penaltyResult.penalty}）`
+              : penaltyText
+          );
         }
       }, 2000);
 
       const nextRoundTimer = setTimeout(() => {
-        setGameState(currentState);
-        gameRef.current!.state = currentState;
+        const afterFinalRoundResult = finalRound(currentState, config, rng);
+        const afterFinalRoundState = afterFinalRoundResult.newState;
+        setGameState(afterFinalRoundState);
+        gameRef.current!.state = afterFinalRoundState;
         setTableTrickCards([]);
         setLatestPlayedKey(null);
         setTrickWinner(null);
@@ -649,13 +667,17 @@ function CpuPlayContent() {
         setFinalTrickOpenedPlayers([]);
         setFinalTrickStatusText(null);
         setFinalTrickStarted(false);
+        setOverlayText(null);
+        setIsShowdownMode(false);
         setIsAnimating(false);
 
-        if (currentState.phase === 'GameEnd') {
+        if (afterFinalRoundState.phase === 'GameEnd') {
           setGameOver(true);
           setGameOverData(
-            currentState.players.map((p, index) => ({ player: index, count: p.cucumbers }))
+            afterFinalRoundState.players.map((p, index) => ({ player: index, count: p.cucumbers }))
           );
+        } else if (scheduleCpuTurnRef.current && afterFinalRoundState.currentPlayer !== 0) {
+          scheduleCpuTurnRef.current();
         }
       }, 3600);
 
@@ -720,13 +742,11 @@ function CpuPlayContent() {
   }
 
   const displayNames = gameState.players.map((_, idx) => (idx === 0 ? 'あなた' : `CPU ${idx}`));
-  const humanLegalMoves = getLegalMoves(gameState, 0);
   const shouldDiscardMinCard =
     gameState.currentPlayer === 0 &&
     gameState.phase === 'AwaitMove' &&
     gameState.fieldCard !== null &&
-    humanLegalMoves.length === 1 &&
-    humanLegalMoves[0] < gameState.fieldCard;
+    !gameState.players[0].hand.some(card => card >= gameState.fieldCard);
 
   const isFinalTrickPhase =
     gameState.isFinalTrick ||
@@ -828,6 +848,7 @@ function CpuPlayContent() {
               finalTrickSelectedPlayers={finalTrickSelectedPlayers}
               finalTrickOpenedPlayers={finalTrickOpenedPlayers}
               finalTrickStatusText={finalTrickStatusText}
+              showdownMode={isShowdownMode}
             />
 
             {gameOver ? (
