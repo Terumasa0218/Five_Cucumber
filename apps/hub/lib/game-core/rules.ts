@@ -7,10 +7,15 @@ const MAX_CARD_NUMBER = 15;
 const CARDS_PER_NUMBER = 7;
 
 export function getCucumberCount(cardNumber: number): number {
+  return cardToCucumbers(cardNumber);
+}
+
+export function cardToCucumbers(cardNumber: number): number {
+  if (cardNumber === 1) return 0;
   if (cardNumber >= 2 && cardNumber <= 5) return 1;
   if (cardNumber >= 6 && cardNumber <= 9) return 2;
-  if (cardNumber >= 10 && cardNumber <= 11) return 3;
-  if (cardNumber >= 12 && cardNumber <= 14) return 4;
+  if (cardNumber >= 10 && cardNumber <= 13) return 3;
+  if (cardNumber === 14) return 4;
   if (cardNumber === 15) return 5;
   return 0;
 }
@@ -84,7 +89,7 @@ export function calculateFinalTrickPenalty(trickCards: Move[], _config: GameConf
   }
 
   const hasOneOnTable = playedCards.some(tc => tc.card === 1);
-  let penalty = winnerCard;
+  let penalty = cardToCucumbers(winnerCard);
   if (hasOneOnTable) {
     penalty *= 2;
   }

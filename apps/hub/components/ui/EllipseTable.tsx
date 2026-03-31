@@ -1,6 +1,7 @@
 // 楕円卓レイアウト用テーブルコンポーネント
 
 import { GameConfig, GameState, Move } from '@/lib/game-core/types';
+import { getCucumberIcons } from '@/lib/game-core/rules';
 import { layoutSeatsEllipse } from '@/lib/layoutEllipse';
 import { CSSProperties, useEffect } from 'react';
 
@@ -107,13 +108,7 @@ export function EllipseTable({
                   <div key={`${showdownCard.player}-${showdownCard.timestamp}-${index}`} className="showdown-card-item">
                     <div className="card game-card current-card showdown-card">
                       <div className="card-number">{showdownCard.card}</div>
-                      <div className="cucumber-icons">
-                        {showdownCard.card >= 2 && showdownCard.card <= 5 && '🥒'}
-                        {showdownCard.card >= 6 && showdownCard.card <= 9 && '🥒🥒'}
-                        {showdownCard.card >= 10 && showdownCard.card <= 11 && '🥒🥒🥒'}
-                        {showdownCard.card >= 12 && showdownCard.card <= 14 && '🥒🥒🥒🥒'}
-                        {showdownCard.card === 15 && '🥒🥒🥒🥒🥒'}
-                      </div>
+                      <div className="cucumber-icons">{getCucumberIcons(showdownCard.card)}</div>
                     </div>
                     <div className="showdown-player-name">{showdownCard.playerName}</div>
                   </div>
@@ -164,13 +159,7 @@ export function EllipseTable({
                         ) : (
                           <>
                             <div className="card-number">{trickCard.card}</div>
-                            <div className="cucumber-icons">
-                              {trickCard.card >= 2 && trickCard.card <= 5 && '🥒'}
-                              {trickCard.card >= 6 && trickCard.card <= 9 && '🥒🥒'}
-                              {trickCard.card >= 10 && trickCard.card <= 11 && '🥒🥒🥒'}
-                              {trickCard.card >= 12 && trickCard.card <= 14 && '🥒🥒🥒🥒'}
-                              {trickCard.card === 15 && '🥒🥒🥒🥒🥒'}
-                            </div>
+                            <div className="cucumber-icons">{getCucumberIcons(trickCard.card)}</div>
                           </>
                         )}
                       </div>
@@ -186,13 +175,7 @@ export function EllipseTable({
             ) : state.fieldCard !== null ? (
               <div className="card game-card current-card">
                 <div className="card-number">{state.fieldCard}</div>
-                <div className="cucumber-icons">
-                  {state.fieldCard >= 2 && state.fieldCard <= 5 && '🥒'}
-                  {state.fieldCard >= 6 && state.fieldCard <= 9 && '🥒🥒'}
-                  {state.fieldCard >= 10 && state.fieldCard <= 11 && '🥒🥒🥒'}
-                  {state.fieldCard >= 12 && state.fieldCard <= 14 && '🥒🥒🥒🥒'}
-                  {state.fieldCard === 15 && '🥒🥒🥒🥒🥒'}
-                </div>
+                <div className="cucumber-icons">{getCucumberIcons(state.fieldCard)}</div>
               </div>
             ) : (
               <div className="card game-card disabled">
@@ -315,13 +298,7 @@ export function EllipseTable({
                     aria-disabled={isDisabled}
                   >
                     <div className="card-number">{card}</div>
-                    <div className="cucumber-icons">
-                      {card >= 2 && card <= 5 && '🥒'}
-                      {card >= 6 && card <= 9 && '🥒🥒'}
-                      {card >= 10 && card <= 11 && '🥒🥒🥒'}
-                      {card >= 12 && card <= 14 && '🥒🥒🥒🥒'}
-                      {card === 15 && '🥒🥒🥒🥒🥒'}
-                    </div>
+                    <div className="cucumber-icons">{getCucumberIcons(card)}</div>
                     {isDiscard ? <div className="discard-tag">捨てる</div> : null}
                   </div>
                 );
