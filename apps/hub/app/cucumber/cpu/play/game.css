@@ -253,6 +253,66 @@
   pointer-events: auto;
 }
 
+.game-over-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.game-over-overlay__title {
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 800;
+  color: #ff6b6b;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
+  animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.game-over-overlay__result {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-top: 2rem;
+  min-width: 300px;
+}
+
+.game-over-overlay__result h2 {
+  color: white;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.game-over-overlay__rank {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  color: white;
+  font-size: 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.game-over-overlay__rank.is-eliminated {
+  color: #ff6b6b;
+}
+
+.game-over-overlay__home {
+  margin-top: 2rem;
+  padding: 1rem 3rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(to bottom, #4ade80, #16a34a);
+  border-radius: 12px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 /* HUD（上部の情報帯） */
 .hud {
   position: relative;

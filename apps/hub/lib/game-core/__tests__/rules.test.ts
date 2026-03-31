@@ -159,30 +159,15 @@ describe('最終トリックペナルティ', () => {
 });
 
 describe('cardToCucumbers', () => {
-  it('カード1はきゅうり0', () => {
-    expect(cardToCucumbers(1)).toBe(0);
+  it('全カード番号で正しいきゅうり数を返す', () => {
+    const expected = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 5];
+    for (let card = 1; card <= 15; card++) {
+      expect(cardToCucumbers(card)).toBe(expected[card]);
+    }
   });
 
-  it('カード2-5はきゅうり1', () => {
-    expect(cardToCucumbers(2)).toBe(1);
-    expect(cardToCucumbers(5)).toBe(1);
-  });
-
-  it('カード6-9はきゅうり2', () => {
-    expect(cardToCucumbers(6)).toBe(2);
-    expect(cardToCucumbers(9)).toBe(2);
-  });
-
-  it('カード10-13はきゅうり3', () => {
-    expect(cardToCucumbers(10)).toBe(3);
-    expect(cardToCucumbers(13)).toBe(3);
-  });
-
-  it('カード14はきゅうり4', () => {
-    expect(cardToCucumbers(14)).toBe(4);
-  });
-
-  it('カード15はきゅうり5', () => {
-    expect(cardToCucumbers(15)).toBe(5);
+  it('範囲外のカード番号は0を返す', () => {
+    expect(cardToCucumbers(0)).toBe(0);
+    expect(cardToCucumbers(16)).toBe(0);
   });
 });
