@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  cardToCucumbers,
   calculateFinalTrickPenalty,
   createDeck,
   dealCards,
@@ -95,7 +96,7 @@ describe('getLegalMoves', () => {
 });
 
 describe('最終トリックペナルティ', () => {
-  it('勝者のカード数字分のきゅうりを獲得', () => {
+  it('勝者のきゅうり数分のきゅうりを獲得', () => {
     const trick: Move[] = [
       { player: 0, card: 7, timestamp: 1 },
       { player: 1, card: 12, timestamp: 2 },
@@ -104,7 +105,7 @@ describe('最終トリックペナルティ', () => {
     ];
 
     const result = calculateFinalTrickPenalty(trick, baseConfig);
-    expect(result).toEqual({ winner: 1, penalty: 12 });
+    expect(result).toEqual({ winner: 1, penalty: 3 });
   });
 
   it('場に1がある場合はペナルティ2倍', () => {
@@ -116,7 +117,7 @@ describe('最終トリックペナルティ', () => {
     ];
 
     const result = calculateFinalTrickPenalty(trick, baseConfig);
-    expect(result).toEqual({ winner: 2, penalty: 20 });
+    expect(result).toEqual({ winner: 2, penalty: 6 });
   });
 
   it('全員が1を出した場合はペナルティ0', () => {
@@ -153,6 +154,35 @@ describe('最終トリックペナルティ', () => {
     ];
 
     const result = calculateFinalTrickPenalty(trick, baseConfig);
-    expect(result).toEqual({ winner: 0, penalty: 12 });
+    expect(result).toEqual({ winner: 0, penalty: 3 });
+  });
+});
+
+describe('cardToCucumbers', () => {
+  it('カード1はきゅうり0', () => {
+    expect(cardToCucumbers(1)).toBe(0);
+  });
+
+  it('カード2-5はきゅうり1', () => {
+    expect(cardToCucumbers(2)).toBe(1);
+    expect(cardToCucumbers(5)).toBe(1);
+  });
+
+  it('カード6-9はきゅうり2', () => {
+    expect(cardToCucumbers(6)).toBe(2);
+    expect(cardToCucumbers(9)).toBe(2);
+  });
+
+  it('カード10-13はきゅうり3', () => {
+    expect(cardToCucumbers(10)).toBe(3);
+    expect(cardToCucumbers(13)).toBe(3);
+  });
+
+  it('カード14はきゅうり4', () => {
+    expect(cardToCucumbers(14)).toBe(4);
+  });
+
+  it('カード15はきゅうり5', () => {
+    expect(cardToCucumbers(15)).toBe(5);
   });
 });
