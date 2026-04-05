@@ -375,13 +375,14 @@ function CpuPlayContent() {
 
   const checkGameOver = useCallback(
     (state: GameState) => {
-      const hasEliminated = state.players.some(player => player.cucumbers >= 6);
+      const maxCucumbers = gameRef.current?.config.maxCucumbers ?? 6;
+      const hasEliminated = state.players.some(player => player.cucumbers >= maxCucumbers);
       if (hasEliminated) {
         const results = state.players
           .map((player, index) => ({
             name: index === 0 ? 'あなた' : `CPU ${index}`,
             cucumbers: player.cucumbers,
-            eliminated: player.cucumbers >= 6,
+            eliminated: player.cucumbers >= maxCucumbers,
           }))
           .sort((a, b) => a.cucumbers - b.cucumbers);
         setGameResults(results);
@@ -794,13 +795,9 @@ function CpuPlayContent() {
     return (
       <>
         <PageBackground image={BACKGROUNDS.battle} />
-        <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
-          <BattleLayout showOrientationHint>
-            <div className="flex-1 flex flex-col p-4">
-              <div className="grid place-items-center h-full text-white/80">Loading...</div>
-            </div>
-          </BattleLayout>
-        </div>
+        <BattleLayout showOrientationHint>
+          <div className="grid place-items-center flex-1 text-white/80">Loading...</div>
+        </BattleLayout>
       </>
     );
   }
@@ -822,135 +819,111 @@ function CpuPlayContent() {
   return (
     <>
       <PageBackground image={BACKGROUNDS.battle} />
-      <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', width: '100%' }}>
-        <BattleLayout showOrientationHint className="cpu-play-layout">
-          <div className="cpu-play-root relative z-10" style={{ minHeight: 0 }}>
-            <div
-              key={`${displayRound}-${displayTrick}`}
-              className="trick-indicator-update"
-              style={{
-                position: 'absolute',
-                top: '1rem',
-                left: '1.5rem',
-                zIndex: 10,
-                backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                color: 'white',
-                padding: '0.5rem 1.2rem',
-                borderRadius: '8px',
-                fontSize: '1.1rem',
-                fontWeight: 'bold',
-                letterSpacing: '0.05em',
-              }}
-            >
-              第{displayRound}ラウンド / 第{displayTrick}トリック
-            </div>
-            <BattleHud
-              round={displayRound}
-              trick={displayTrick}
-              timer={
-                <Timer
-                  turnSeconds={
-                    gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null
-                  }
-                  isActive={gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove'}
-                  onTimeout={handleTimeout}
-                />
+      <BattleLayout showOrientationHint className="cpu-play-layout">
+        <BattleHud
+          round={displayRound}
+          trick={displayTrick}
+          timer={
+            <Timer
+              turnSeconds={
+                gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null
               }
-              onExit={handleBackToHome}
+              isActive={gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove'}
+              onTimeout={handleTimeout}
             />
+          }
+          onExit={handleBackToHome}
+        />
 
-            {isFinalTrickPhase ? (
-              <div className="final-trick-notice" role="status" aria-live="polite">
-                最終トリック
-              </div>
-            ) : null}
+        {isFinalTrickPhase ? (
+          <div className="final-trick-notice" role="status" aria-live="polite">
+            最終トリック
+          </div>
+        ) : null}
 
-            {overlayText ? (
-              <div className="final-trick-overlay" role="status" aria-live="assertive">
-                <div className="final-trick-overlay__text">{overlayText}</div>
-              </div>
-            ) : null}
+        {shouldDiscardMinCard ? (
+          <div className="discard-notice" role="status" aria-live="polite">
+            出せるカードがありません。最小のカードを捨てます。
+          </div>
+        ) : null}
 
-            {shouldDiscardMinCard ? (
-              <div className="discard-notice" role="status" aria-live="polite">
-                出せるカードがありません。最小のカードを捨てます。
-              </div>
-            ) : null}
+        {turnNotice ? (
+          <div className="discard-result-notice" role="status" aria-live="polite">
+            {turnNotice}
+          </div>
+        ) : null}
 
-            {turnNotice ? (
-              <div className="discard-result-notice" role="status" aria-live="polite">
-                {turnNotice}
-              </div>
-            ) : null}
-            <div className="cpu-play-table-wrap">
-              <EllipseTable
-                state={gameState}
-                config={
-                  gameRef.current?.config ||
-                  ({
-                    players: 4,
-                    turnSeconds: 15,
-                    maxCucumbers: 6,
-                    initialCards: 7,
-                    cpuLevel: 'normal',
-                  } as GameConfig)
-                }
-                currentPlayerIndex={currentPlayerIndex}
-                onCardClick={(card: number) => handleCardClick(Number(card))}
-                className={['cpu-play-table', isCardLocked ? 'cards-locked' : '']
-                  .filter(Boolean)
-                  .join(' ')}
-                isSubmitting={isSubmitting}
-                lockedCardId={lockedCardId}
-                names={displayNames}
-                mySeatIndex={0}
-                trickCards={tableTrickCards}
-                latestPlayedCardKey={latestPlayedKey}
-                trickWinner={trickWinner}
-                trickWinnerText={trickWinnerText}
-                isFinalTrickMode={isFinalTrickPhase}
-                finalTrickSelectedPlayers={finalTrickSelectedPlayers}
-                finalTrickOpenedPlayers={finalTrickOpenedPlayers}
-                finalTrickStatusText={finalTrickStatusText}
-                showdownMode={isShowdownMode}
-              />
+        <EllipseTable
+          state={gameState}
+          config={
+            gameRef.current?.config ||
+            ({
+              players: 4,
+              turnSeconds: 15,
+              maxCucumbers: 6,
+              initialCards: 7,
+              cpuLevel: 'normal',
+            } as GameConfig)
+          }
+          currentPlayerIndex={currentPlayerIndex}
+          onCardClick={(card: number) => handleCardClick(Number(card))}
+          className={['cpu-play-table', isCardLocked ? 'cards-locked' : '']
+            .filter(Boolean)
+            .join(' ')}
+          isSubmitting={isSubmitting}
+          lockedCardId={lockedCardId}
+          names={displayNames}
+          mySeatIndex={0}
+          trickCards={tableTrickCards}
+          latestPlayedCardKey={latestPlayedKey}
+          trickWinner={trickWinner}
+          trickWinnerText={trickWinnerText}
+          isFinalTrickMode={isFinalTrickPhase}
+          finalTrickSelectedPlayers={finalTrickSelectedPlayers}
+          finalTrickOpenedPlayers={finalTrickOpenedPlayers}
+          finalTrickStatusText={finalTrickStatusText}
+          showdownMode={isShowdownMode}
+        />
+
+        {overlayText ? (
+          <div className="final-trick-overlay" role="status" aria-live="assertive">
+            <div className="final-trick-overlay__text">{overlayText}</div>
+          </div>
+        ) : null}
+
+        {gameOver ? (
+          <div className="game-over-overlay">
+            <div className="game-over-overlay__title">
+              {gameResults
+                .filter(result => result.eliminated)
+                .map(result => result.name)
+                .join('、')}{' '}
+              お漬物！！！
             </div>
 
-            {gameOver ? (
-              <div className="game-over-overlay">
-                <div className="game-over-overlay__title">
-                  {gameResults
-                    .filter(result => result.eliminated)
-                    .map(result => result.name)
-                    .join('、')}{' '}
-                  お漬物！！！
+            <div className="game-over-overlay__result">
+              <h2>結果</h2>
+              {gameResults.map((result, index) => (
+                <div
+                  key={`${result.name}-${index}`}
+                  className={`game-over-overlay__rank ${result.eliminated ? 'is-eliminated' : ''}`}
+                >
+                  <span>
+                    {index + 1}位 {result.name}
+                  </span>
+                  <span>
+                    🥒 {result.cucumbers}本 {result.eliminated ? '💀' : ''}
+                  </span>
                 </div>
+              ))}
+            </div>
 
-                <div className="game-over-overlay__result">
-                  <h2>結果</h2>
-                  {gameResults.map((result, index) => (
-                    <div
-                      key={`${result.name}-${index}`}
-                      className={`game-over-overlay__rank ${result.eliminated ? 'is-eliminated' : ''}`}
-                    >
-                      <span>
-                        {index + 1}位 {result.name}
-                      </span>
-                      <span>
-                        🥒 {result.cucumbers}本 {result.eliminated ? '💀' : ''}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <a className="game-over-overlay__home" href="/home" onClick={handleBackToHome}>
-                  ホームへ戻る
-                </a>
-              </div>
-            ) : null}
+            <a className="game-over-overlay__home" href="/home" onClick={handleBackToHome}>
+              ホームへ戻る
+            </a>
           </div>
-        </BattleLayout>
-      </div>
+        ) : null}
+      </BattleLayout>
     </>
   );
 }
