@@ -83,7 +83,13 @@ function CpuPlayContent() {
   };
 
   const scheduleCpuTurn = useCallback(() => {
-    if (!gameRef.current || !gameState || isProcessingRef.current || isAnimating || finalTrickStarted)
+    if (
+      !gameRef.current ||
+      !gameState ||
+      isProcessingRef.current ||
+      isAnimating ||
+      finalTrickStarted
+    )
       return;
 
     const { state } = gameRef.current;
@@ -367,25 +373,28 @@ function CpuPlayContent() {
     finalTrickTimeoutsRef.current.push(startTimer);
   }, []);
 
-  const checkGameOver = useCallback((state: GameState) => {
-    const hasEliminated = state.players.some(player => player.cucumbers >= 6);
-    if (hasEliminated) {
-      const results = state.players
-        .map((player, index) => ({
-          name: index === 0 ? 'あなた' : `CPU ${index}`,
-          cucumbers: player.cucumbers,
-          eliminated: player.cucumbers >= 6,
-        }))
-        .sort((a, b) => a.cucumbers - b.cucumbers);
-      setGameResults(results);
-      setGameOver(true);
-      setFinalTrickStarted(false);
-      setIsAnimating(false);
-      return;
-    }
+  const checkGameOver = useCallback(
+    (state: GameState) => {
+      const hasEliminated = state.players.some(player => player.cucumbers >= 6);
+      if (hasEliminated) {
+        const results = state.players
+          .map((player, index) => ({
+            name: index === 0 ? 'あなた' : `CPU ${index}`,
+            cucumbers: player.cucumbers,
+            eliminated: player.cucumbers >= 6,
+          }))
+          .sort((a, b) => a.cucumbers - b.cucumbers);
+        setGameResults(results);
+        setGameOver(true);
+        setFinalTrickStarted(false);
+        setIsAnimating(false);
+        return;
+      }
 
-    startNextRound(state);
-  }, [startNextRound]);
+      startNextRound(state);
+    },
+    [startNextRound]
+  );
 
   const playMove = async (player: number, card: number) => {
     if (!gameRef.current) return;
@@ -483,7 +492,9 @@ function CpuPlayContent() {
             } else {
               const penaltyResult = calculateFinalTrickPenalty(trickCardsAfterPlay, config);
               const hasOne = trickCardsAfterPlay.some(trickCard => trickCard.card === 1);
-              const basePenalty = hasOne ? Math.floor(penaltyResult.penalty / 2) : penaltyResult.penalty;
+              const basePenalty = hasOne
+                ? Math.floor(penaltyResult.penalty / 2)
+                : penaltyResult.penalty;
               const penaltyText = `${winnerName}が${penaltyResult.penalty}本のきゅうりを獲得しました`;
               setTrickWinnerText(
                 hasOne
@@ -698,14 +709,17 @@ function CpuPlayContent() {
         console.log('[Showdown] Calculating penalty...');
         const winnerName = winner === 0 ? 'あなた' : `CPU ${winner}`;
         const playedCards = showdownTrickCards.filter(trickCard => !trickCard.isDiscard);
-        const allOnes = playedCards.length > 0 && playedCards.every(trickCard => trickCard.card === 1);
+        const allOnes =
+          playedCards.length > 0 && playedCards.every(trickCard => trickCard.card === 1);
         if (allOnes) {
           setTrickWinnerText('全員が1を出したためペナルティなし！');
           setOverlayText('全員が1を出したためペナルティなし！');
         } else {
           const penaltyResult = calculateFinalTrickPenalty(showdownTrickCards, config);
           const hasOne = playedCards.some(trickCard => trickCard.card === 1);
-          const basePenalty = hasOne ? Math.floor(penaltyResult.penalty / 2) : penaltyResult.penalty;
+          const basePenalty = hasOne
+            ? Math.floor(penaltyResult.penalty / 2)
+            : penaltyResult.penalty;
           const penaltyText = `${winnerName}が${penaltyResult.penalty}本のきゅうりを獲得しました`;
           setTrickWinnerText(
             hasOne
@@ -751,7 +765,14 @@ function CpuPlayContent() {
     }, 2000);
 
     finalTrickTimeoutsRef.current.push(showdownTimer);
-  }, [checkGameOver, gameState?.isFinalTrick, gameState?.currentTrick, gameState, finalTrickStarted, isAnimating]);
+  }, [
+    checkGameOver,
+    gameState?.isFinalTrick,
+    gameState?.currentTrick,
+    gameState,
+    finalTrickStarted,
+    isAnimating,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -801,12 +822,9 @@ function CpuPlayContent() {
   return (
     <>
       <PageBackground image={BACKGROUNDS.battle} />
-      <div style={{ position: 'relative', zIndex: 1, height: '100vh', overflow: 'hidden' }}>
-        <BattleLayout showOrientationHint>
-          <div
-            className="relative z-10 flex-1 flex flex-col gap-3 p-3"
-            style={{ height: '100%', minHeight: 0, overflow: 'hidden' }}
-          >
+      <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', width: '100%' }}>
+        <BattleLayout showOrientationHint className="cpu-play-layout">
+          <div className="cpu-play-root relative z-10" style={{ minHeight: 0 }}>
             <div
               key={`${displayRound}-${displayTrick}`}
               className="trick-indicator-update"
@@ -864,37 +882,39 @@ function CpuPlayContent() {
                 {turnNotice}
               </div>
             ) : null}
-            <EllipseTable
-              state={gameState}
-              config={
-                gameRef.current?.config ||
-                ({
-                  players: 4,
-                  turnSeconds: 15,
-                  maxCucumbers: 6,
-                  initialCards: 7,
-                  cpuLevel: 'normal',
-                } as GameConfig)
-              }
-              currentPlayerIndex={currentPlayerIndex}
-              onCardClick={(card: number) => handleCardClick(Number(card))}
-              className={['cpu-play-table', isCardLocked ? 'cards-locked' : '']
-                .filter(Boolean)
-                .join(' ')}
-              isSubmitting={isSubmitting}
-              lockedCardId={lockedCardId}
-              names={displayNames}
-              mySeatIndex={0}
-              trickCards={tableTrickCards}
-              latestPlayedCardKey={latestPlayedKey}
-              trickWinner={trickWinner}
-              trickWinnerText={trickWinnerText}
-              isFinalTrickMode={isFinalTrickPhase}
-              finalTrickSelectedPlayers={finalTrickSelectedPlayers}
-              finalTrickOpenedPlayers={finalTrickOpenedPlayers}
-              finalTrickStatusText={finalTrickStatusText}
-              showdownMode={isShowdownMode}
-            />
+            <div className="cpu-play-table-wrap">
+              <EllipseTable
+                state={gameState}
+                config={
+                  gameRef.current?.config ||
+                  ({
+                    players: 4,
+                    turnSeconds: 15,
+                    maxCucumbers: 6,
+                    initialCards: 7,
+                    cpuLevel: 'normal',
+                  } as GameConfig)
+                }
+                currentPlayerIndex={currentPlayerIndex}
+                onCardClick={(card: number) => handleCardClick(Number(card))}
+                className={['cpu-play-table', isCardLocked ? 'cards-locked' : '']
+                  .filter(Boolean)
+                  .join(' ')}
+                isSubmitting={isSubmitting}
+                lockedCardId={lockedCardId}
+                names={displayNames}
+                mySeatIndex={0}
+                trickCards={tableTrickCards}
+                latestPlayedCardKey={latestPlayedKey}
+                trickWinner={trickWinner}
+                trickWinnerText={trickWinnerText}
+                isFinalTrickMode={isFinalTrickPhase}
+                finalTrickSelectedPlayers={finalTrickSelectedPlayers}
+                finalTrickOpenedPlayers={finalTrickOpenedPlayers}
+                finalTrickStatusText={finalTrickStatusText}
+                showdownMode={isShowdownMode}
+              />
+            </div>
 
             {gameOver ? (
               <div className="game-over-overlay">
@@ -913,7 +933,9 @@ function CpuPlayContent() {
                       key={`${result.name}-${index}`}
                       className={`game-over-overlay__rank ${result.eliminated ? 'is-eliminated' : ''}`}
                     >
-                      <span>{index + 1}位 {result.name}</span>
+                      <span>
+                        {index + 1}位 {result.name}
+                      </span>
                       <span>
                         🥒 {result.cucumbers}本 {result.eliminated ? '💀' : ''}
                       </span>
