@@ -38,9 +38,9 @@ export default function CpuSettings() {
     // アクセシビリティ用の音声通知
     const labels: Record<SettingKey, Record<OptionValue, string>> = {
       players: { 2: '2人', 3: '3人', 4: '4人', 5: '5人', 6: '6人' },
-      turnSeconds: { 5: '5秒', 10: '10秒', 15: '15秒', 20: '20秒', 30: '30秒', 0: '無制限' },
-      maxCucumbers: { 4: '4本', 5: '5本', 6: '6本', 7: '7本' },
-      cpuLevel: { easy: '簡単', normal: '普通', hard: '難しい' },
+      turnSeconds: { 10: '10秒', 15: '15秒', 20: '20秒', 30: '30秒', 0: '無制限' },
+      maxCucumbers: { 5: '5本', 6: '6本', 7: '7本', 10: '10本' },
+      cpuLevel: { easy: 'やさしい', normal: 'ふつう', hard: 'つよい' },
       showAllHands: {}
     };
     
@@ -114,11 +114,17 @@ export default function CpuSettings() {
 
         <section className="flex flex-col gap-3">
           <h2 className="font-heading text-[clamp(18px,2.6vw,24px)]">制限時間</h2>
-          <p className="text-white/80 text-[clamp(13px,1.6vw,16px)]">5, 10, 15, 20, 30秒から選択</p>
+          <p className="text-white/80 text-[clamp(13px,1.6vw,16px)]">10〜30秒、または無制限</p>
           <OptionToggleGroup
             id="turnSeconds"
             label="制限時間"
-            options={[5,10,15,20,30].map(n=>({ value: n, label: `${n}秒` }))}
+            options={[
+              { value: 10, label: '10秒' },
+              { value: 15, label: '15秒' },
+              { value: 20, label: '20秒' },
+              { value: 30, label: '30秒' },
+              { value: 0, label: 'なし' },
+            ]}
             value={settings.turnSeconds}
             onChange={(v)=>handleSettingChange('turnSeconds', Number(v))}
           />
@@ -126,11 +132,11 @@ export default function CpuSettings() {
 
         <section className="flex flex-col gap-3">
           <h2 className="font-heading text-[clamp(18px,2.6vw,24px)]">きゅうり数</h2>
-          <p className="text-white/80 text-[clamp(13px,1.6vw,16px)]">4〜7本から選択</p>
+          <p className="text-white/80 text-[clamp(13px,1.6vw,16px)]">5〜10本から選択</p>
           <OptionToggleGroup
             id="maxCucumbers"
             label="きゅうり数"
-            options={[4,5,6,7].map(n=>({ value: n, label: `${n}本` }))}
+            options={[5,6,7,10].map(n=>({ value: n, label: `${n}本` }))}
             value={settings.maxCucumbers}
             onChange={(v)=>handleSettingChange('maxCucumbers', Number(v))}
           />
@@ -138,14 +144,14 @@ export default function CpuSettings() {
 
         <section className="flex flex-col gap-3">
           <h2 className="font-heading text-[clamp(18px,2.6vw,24px)]">CPU難易度</h2>
-          <p className="text-white/80 text-[clamp(13px,1.6vw,16px)]">簡単 / 普通 / 難しい</p>
+          <p className="text-white/80 text-[clamp(13px,1.6vw,16px)]">やさしい / ふつう / つよい</p>
           <OptionToggleGroup
             id="cpuLevel"
             label="CPU難易度"
             options={[
-              { value: 'easy', label: '簡単' },
-              { value: 'normal', label: '普通' },
-              { value: 'hard', label: '難しい' }
+              { value: 'easy', label: 'やさしい' },
+              { value: 'normal', label: 'ふつう' },
+              { value: 'hard', label: 'つよい' }
             ]}
             value={settings.cpuLevel}
             onChange={(v)=>handleSettingChange('cpuLevel', v)}
