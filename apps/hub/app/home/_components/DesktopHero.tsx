@@ -126,7 +126,7 @@ export default function DesktopHero({ username = 'GUEST' }: Props) {
               </button>
             </Link>
             <Link
-              href="/online"
+              href="/friend/create"
               aria-label="フレンド対戦を始める"
               style={{ textDecoration: 'none' }}
             >
