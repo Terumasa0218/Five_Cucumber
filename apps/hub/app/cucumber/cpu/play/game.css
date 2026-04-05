@@ -3,9 +3,10 @@
   position: relative;
   flex: 1;
   width: 100%;
-  min-height: clamp(560px, 82svh, 900px);
-  padding: clamp(16px, 3vw, 32px);
-  padding-bottom: clamp(120px, 26svh, 180px);
+  height: 100%;
+  min-height: 0;
+  padding: clamp(12px, 2.6vw, 24px);
+  padding-bottom: clamp(96px, 22svh, 150px);
   border-radius: clamp(18px, 4vw, 30px);
   display: grid;
   align-items: stretch;
@@ -925,22 +926,24 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: var(--ellipse-card-gap);
-  padding: var(--ellipse-hand-padding);
+  gap: clamp(3px, 0.8vw, 10px);
+  padding: clamp(8px, 2vw, 14px);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
   border-radius: clamp(16px, 4vw, 24px);
   backdrop-filter: blur(15px);
   box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.4);
   overflow-x: auto;
   border: 3px solid rgba(255, 255, 255, 0.4);
-  min-height: clamp(96px, 24svh, 180px);
-  max-height: clamp(128px, 28svh, 220px);
+  min-height: clamp(82px, 18svh, 128px);
+  max-height: clamp(104px, 22svh, 158px);
   margin-bottom: 0;
   z-index: 24;
 }
 
 .player-hand .card {
   flex-shrink: 0;
+  width: clamp(34px, 4.9vw, 62px);
+  height: clamp(48px, 7.2vw, 88px);
 }
 
 .player-hand .card:hover:not(.disabled) {
@@ -1105,8 +1108,8 @@
   }
 
   .player-hand {
-    min-height: clamp(84px, 24svh, 150px);
-    max-height: clamp(112px, 26svh, 180px);
+    min-height: clamp(72px, 18svh, 120px);
+    max-height: clamp(96px, 20svh, 144px);
   }
 }
 
@@ -1130,8 +1133,8 @@
   }
 
   .player-hand {
-    min-height: clamp(74px, 26svh, 140px);
-    max-height: clamp(96px, 28svh, 160px);
+    min-height: clamp(68px, 18svh, 108px);
+    max-height: clamp(88px, 20svh, 132px);
   }
 
   .card-number {
@@ -1157,7 +1160,7 @@
   }
 
   .player-hand {
-    min-height: clamp(68px, 30svh, 128px);
+    min-height: clamp(60px, 17svh, 98px);
   }
 }
 
