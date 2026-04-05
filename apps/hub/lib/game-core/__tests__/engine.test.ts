@@ -394,3 +394,35 @@ describe('1ゲーム完走', () => {
     expect(afterCucumbers.some((value, index) => value > beforeCucumbers[index])).toBe(true);
   });
 });
+
+describe('最終トリックペナルティ適用', () => {
+  it('勝者カードのカード番号ではなくきゅうり数を加算する', () => {
+    const rng = new SeededRng(200);
+    const shortConfig: GameConfig = { ...config, initialCards: 1, maxCucumbers: 999 };
+    let state = createBaseState({
+      players: [
+        { hand: [2], cucumbers: 0, graveyard: [] },
+        { hand: [10], cucumbers: 0, graveyard: [] },
+        { hand: [7], cucumbers: 0, graveyard: [] },
+        { hand: [5], cucumbers: 0, graveyard: [] },
+      ],
+      currentTrick: 1,
+      isFinalTrick: true,
+      phase: 'AwaitMove',
+      fieldCard: null,
+      currentPlayer: 0,
+      firstPlayer: 0,
+    });
+
+    for (let i = 0; i < shortConfig.players; i++) {
+      const player = state.currentPlayer;
+      const card = state.players[player].hand[0];
+      const result = applyMove(state, { player, card, isDiscard: false, timestamp: i }, shortConfig, rng);
+      expect(result.success).toBe(true);
+      state = result.newState;
+    }
+
+    // 勝者はカード10を出したplayer 1。カード番号10ではなく、きゅうり3本のみ加算される。
+    expect(state.players[1].cucumbers).toBe(3);
+  });
+});

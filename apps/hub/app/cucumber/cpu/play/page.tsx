@@ -1,7 +1,7 @@
 'use client';
 
 import BattleLayout from '@/components/BattleLayout';
-import { BattleHud, EllipseTable, GameFooter, Timer } from '@/components/ui';
+import { BattleHud, EllipseTable, Timer } from '@/components/ui';
 import { HumanController } from '@/lib/controllers/human';
 import { delay, runAnimation } from '@/lib/animQueue';
 import {
@@ -38,7 +38,9 @@ function CpuPlayContent() {
   } | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [gameOver, setGameOver] = useState(false);
-  const [gameOverData, setGameOverData] = useState<{ player: number; count: number }[]>([]);
+  const [gameResults, setGameResults] = useState<
+    { name: string; cucumbers: number; eliminated: boolean }[]
+  >([]);
   const [isCardLocked, setIsCardLocked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
@@ -128,7 +130,7 @@ function CpuPlayContent() {
       gameRef.current = { state, config, controllers, rng, humanController };
       setGameState(state);
       setGameOver(false);
-      setGameOverData([]);
+      setGameResults([]);
       setTableTrickCards([]);
       setLatestPlayedKey(null);
       setTrickWinner(null);
@@ -198,7 +200,7 @@ function CpuPlayContent() {
               rngState?: RngState;
               gameState: GameState;
               gameOver: boolean;
-              gameOverData: { player: number; count: number }[];
+              gameResults?: { name: string; cucumbers: number; eliminated: boolean }[];
               timestamp: number;
             };
             const now = Date.now();
@@ -231,7 +233,7 @@ function CpuPlayContent() {
               gameRef.current = { state, config, controllers, rng: restoredRng, humanController };
               setGameState(state);
               setGameOver(parsed.gameOver || false);
-              setGameOverData(parsed.gameOverData || []);
+              setGameResults(parsed.gameResults || []);
               setTableTrickCards(state.trickCards || []);
               setLatestPlayedKey(null);
               setTrickWinner(null);
@@ -335,6 +337,55 @@ function CpuPlayContent() {
   useEffect(() => {
     playCpuTurnRef.current = playCpuTurn;
   });
+
+  const startNextRound = useCallback((state: GameState) => {
+    const nextRound = state.currentRound;
+    const startTimer = setTimeout(() => {
+      setOverlayText(`第${nextRound}ラウンド 開始！`);
+      const openTimer = setTimeout(() => {
+        setOverlayText(null);
+        setGameState(state);
+        gameRef.current!.state = state;
+        setTableTrickCards([]);
+        setLatestPlayedKey(null);
+        setTrickWinner(null);
+        setTrickWinnerText(null);
+        setTurnNotice(null);
+        setFinalTrickSelectedPlayers([]);
+        setFinalTrickOpenedPlayers([]);
+        setFinalTrickStatusText(null);
+        setFinalTrickStarted(false);
+        setIsShowdownMode(false);
+        setIsAnimating(false);
+
+        if (scheduleCpuTurnRef.current && state.currentPlayer !== 0) {
+          scheduleCpuTurnRef.current();
+        }
+      }, 2000);
+      finalTrickTimeoutsRef.current.push(openTimer);
+    }, 3000);
+    finalTrickTimeoutsRef.current.push(startTimer);
+  }, []);
+
+  const checkGameOver = useCallback((state: GameState) => {
+    const hasEliminated = state.players.some(player => player.cucumbers >= 6);
+    if (hasEliminated) {
+      const results = state.players
+        .map((player, index) => ({
+          name: index === 0 ? 'あなた' : `CPU ${index}`,
+          cucumbers: player.cucumbers,
+          eliminated: player.cucumbers >= 6,
+        }))
+        .sort((a, b) => a.cucumbers - b.cucumbers);
+      setGameResults(results);
+      setGameOver(true);
+      setFinalTrickStarted(false);
+      setIsAnimating(false);
+      return;
+    }
+
+    startNextRound(state);
+  }, [startNextRound]);
 
   const playMove = async (player: number, card: number) => {
     if (!gameRef.current) return;
@@ -460,13 +511,6 @@ function CpuPlayContent() {
         } else {
           gameRef.current.state = newState;
           setGameState(newState);
-        }
-
-        if (newState.phase === 'GameEnd') {
-          setGameOver(true);
-          setGameOverData(
-            newState.players.map((p, index) => ({ player: index, count: p.cucumbers }))
-          );
         }
 
         if (player === 0) {
@@ -673,8 +717,6 @@ function CpuPlayContent() {
       }, 5000);
 
       const nextRoundTimer = setTimeout(() => {
-        setGameState(currentState);
-        gameRef.current!.state = currentState;
         setTableTrickCards([]);
         setLatestPlayedKey(null);
         setTrickWinner(null);
@@ -683,19 +725,9 @@ function CpuPlayContent() {
         setFinalTrickSelectedPlayers([]);
         setFinalTrickOpenedPlayers([]);
         setFinalTrickStatusText(null);
-        setFinalTrickStarted(false);
         setOverlayText(null);
         setIsShowdownMode(false);
-        setIsAnimating(false);
-
-        if (currentState.phase === 'GameEnd') {
-          setGameOver(true);
-          setGameOverData(
-            currentState.players.map((p, index) => ({ player: index, count: p.cucumbers }))
-          );
-        } else if (scheduleCpuTurnRef.current && currentState.currentPlayer !== 0) {
-          scheduleCpuTurnRef.current();
-        }
+        checkGameOver(currentState);
       }, 10000);
 
       finalTrickTimeoutsRef.current.push(showResultTimer, nextRoundTimer);
@@ -719,7 +751,7 @@ function CpuPlayContent() {
     }, 2000);
 
     finalTrickTimeoutsRef.current.push(showdownTimer);
-  }, [gameState?.isFinalTrick, gameState?.currentTrick, gameState, finalTrickStarted, isAnimating]);
+  }, [checkGameOver, gameState?.isFinalTrick, gameState?.currentTrick, gameState, finalTrickStarted, isAnimating]);
 
   useEffect(() => {
     return () => {
@@ -729,12 +761,6 @@ function CpuPlayContent() {
       finalTrickTimeoutsRef.current = [];
     };
   }, []);
-
-  const handleRestart = () => {
-    const gameStateKey = getGameStateKey(searchParams);
-    localStorage.removeItem(gameStateKey);
-    router.push('/cucumber/cpu/settings');
-  };
 
   const handleBackToHome = () => {
     // ゲーム状態をクリア
@@ -870,37 +896,34 @@ function CpuPlayContent() {
             />
 
             {gameOver ? (
-              <GameFooter>
-                <div className="flex flex-wrap items-center gap-3">
-                  <h2 className="font-heading text-[clamp(18px,2.2vw,24px)]">ゲーム終了</h2>
-                  <div className="flex flex-wrap gap-2 text-white/80 text-sm">
-                    {gameOverData.map((data, index) => (
-                      <span
-                        key={index}
-                        className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1"
-                      >
-                        プレイヤー{data.player}: {data.count}個
+              <div className="game-over-overlay">
+                <div className="game-over-overlay__title">
+                  {gameResults
+                    .filter(result => result.eliminated)
+                    .map(result => result.name)
+                    .join('、')}{' '}
+                  お漬物！！！
+                </div>
+
+                <div className="game-over-overlay__result">
+                  <h2>結果</h2>
+                  {gameResults.map((result, index) => (
+                    <div
+                      key={`${result.name}-${index}`}
+                      className={`game-over-overlay__rank ${result.eliminated ? 'is-eliminated' : ''}`}
+                    >
+                      <span>{index + 1}位 {result.name}</span>
+                      <span>
+                        🥒 {result.cucumbers}本 {result.eliminated ? '💀' : ''}
                       </span>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center gap-2 ml-auto">
-                  <button
-                    type="button"
-                    onClick={handleRestart}
-                    className="fc-button fc-button--primary"
-                  >
-                    再戦
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleBackToHome}
-                    className="fc-button fc-button--secondary"
-                  >
-                    ホーム
-                  </button>
-                </div>
-              </GameFooter>
+
+                <a className="game-over-overlay__home" href="/home" onClick={handleBackToHome}>
+                  ホームへ戻る
+                </a>
+              </div>
             ) : null}
           </div>
         </BattleLayout>
