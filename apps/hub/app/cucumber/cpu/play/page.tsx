@@ -638,7 +638,7 @@ function CpuPlayContent() {
 
       console.log('[Showdown] === SHOWDOWN STARTING ===');
       let currentState = state;
-      let trickCardsAfterShowdown: Move[] = [...state.trickCards];
+      const showdownTrickCards: Move[] = [...state.trickCards];
       const selectedPlayers: number[] = [];
       const playerOrder = Array.from(
         { length: config.players },
@@ -655,6 +655,7 @@ function CpuPlayContent() {
           timestamp: Date.now() + playerIndex,
           isDiscard: false,
         };
+        showdownTrickCards.push(move);
         console.log('[Showdown] Player', playerIndex, 'card:', selectedCard, 'isDiscard:', false);
         const result = applyMove(currentState, move, config, rng);
         console.log('[Showdown] applyMove result:', result.success, result.message);
@@ -670,24 +671,23 @@ function CpuPlayContent() {
         selectedPlayers.push(playerIndex);
       }
 
-      trickCardsAfterShowdown = [...currentState.trickCards];
-      console.log('[Showdown] Final trickCards:', trickCardsAfterShowdown);
+      console.log('[Showdown] Final trickCards:', showdownTrickCards);
 
-      const openedPlayers = trickCardsAfterShowdown.map(move => move.player);
-      const winner = determineTrickWinner(trickCardsAfterShowdown);
+      const openedPlayers = showdownTrickCards.map(move => move.player);
+      const winner = determineTrickWinner(showdownTrickCards);
 
       setFinalTrickSelectedPlayers(selectedPlayers);
       setFinalTrickOpenedPlayers(openedPlayers);
-      setTableTrickCards(trickCardsAfterShowdown);
+      setTableTrickCards(showdownTrickCards);
       setLatestPlayedKey(null);
-      console.log('[Showdown] Setting state with', trickCardsAfterShowdown.length, 'cards');
+      console.log('[Showdown] Setting state with', showdownTrickCards.length, 'cards');
       setGameState({
         ...currentState,
-        trickCards: trickCardsAfterShowdown,
+        trickCards: showdownTrickCards,
       });
       gameRef.current.state = {
         ...currentState,
-        trickCards: trickCardsAfterShowdown,
+        trickCards: showdownTrickCards,
       };
       setIsAnimating(true);
       setIsShowdownMode(true);
@@ -697,13 +697,13 @@ function CpuPlayContent() {
       const showResultTimer = setTimeout(() => {
         console.log('[Showdown] Calculating penalty...');
         const winnerName = winner === 0 ? 'あなた' : `CPU ${winner}`;
-        const playedCards = trickCardsAfterShowdown.filter(trickCard => !trickCard.isDiscard);
+        const playedCards = showdownTrickCards.filter(trickCard => !trickCard.isDiscard);
         const allOnes = playedCards.length > 0 && playedCards.every(trickCard => trickCard.card === 1);
         if (allOnes) {
           setTrickWinnerText('全員が1を出したためペナルティなし！');
           setOverlayText('全員が1を出したためペナルティなし！');
         } else {
-          const penaltyResult = calculateFinalTrickPenalty(trickCardsAfterShowdown, config);
+          const penaltyResult = calculateFinalTrickPenalty(showdownTrickCards, config);
           const hasOne = playedCards.some(trickCard => trickCard.card === 1);
           const basePenalty = hasOne ? Math.floor(penaltyResult.penalty / 2) : penaltyResult.penalty;
           const penaltyText = `${winnerName}が${penaltyResult.penalty}本のきゅうりを獲得しました`;
@@ -792,22 +792,23 @@ function CpuPlayContent() {
     fieldCard !== null &&
     !gameState.players[0].hand.some(card => card >= fieldCard);
 
+  const displayRound = gameRef.current?.state.currentRound ?? gameState.currentRound;
+  const displayTrick = gameRef.current?.state.currentTrick ?? gameState.currentTrick;
   const isFinalTrickPhase =
-    gameState.isFinalTrick ||
-    gameState.currentTrick === (gameRef.current?.config?.initialCards || 7);
+    gameState.isFinalTrick || displayTrick === (gameRef.current?.config?.initialCards || 7);
   const currentPlayerIndex = isAnimating || isFinalTrickPhase ? null : gameState.currentPlayer;
 
   return (
     <>
       <PageBackground image={BACKGROUNDS.battle} />
-      <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
+      <div style={{ position: 'relative', zIndex: 1, height: '100vh', overflow: 'hidden' }}>
         <BattleLayout showOrientationHint>
           <div
-            className="relative z-10 flex-1 flex flex-col gap-6 p-4"
-            style={{ minHeight: '100vh' }}
+            className="relative z-10 flex-1 flex flex-col gap-3 p-3"
+            style={{ height: '100%', minHeight: 0, overflow: 'hidden' }}
           >
             <div
-              key={`${gameState.currentRound}-${gameState.currentTrick}`}
+              key={`${displayRound}-${displayTrick}`}
               className="trick-indicator-update"
               style={{
                 position: 'absolute',
@@ -823,11 +824,11 @@ function CpuPlayContent() {
                 letterSpacing: '0.05em',
               }}
             >
-              第{gameState.currentRound}ラウンド / 第{gameState.currentTrick}トリック
+              第{displayRound}ラウンド / 第{displayTrick}トリック
             </div>
             <BattleHud
-              round={gameState.currentRound}
-              trick={gameState.currentTrick}
+              round={displayRound}
+              trick={displayTrick}
               timer={
                 <Timer
                   turnSeconds={
