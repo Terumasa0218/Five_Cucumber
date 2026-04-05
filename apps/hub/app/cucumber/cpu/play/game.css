@@ -1,4 +1,19 @@
-/* テーブルの基礎レイアウト */
+/* =========================================
+   CPU対戦画面 — game.css
+   ========================================= */
+
+/* CPU対戦: ステージ内をflex columnで並べる */
+.cpu-play-layout .battle-layout__stage {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.5vh, 14px);
+  padding: clamp(8px, 2vw, 16px);
+  padding-bottom: calc(clamp(8px, 2vw, 16px) + env(safe-area-inset-bottom, 0));
+  overflow: visible;
+}
+
+/* --- テーブル基礎 --- */
+
 .ellipse-table {
   position: relative;
   flex: 1 1 0%;
@@ -31,15 +46,7 @@
   background: linear-gradient(135deg, #1a5c2a 0%, #1b6b31 50%, #186128 100%);
 }
 
-/* CPU対戦: ステージ内をflex columnで並べる */
-.cpu-play-layout .battle-layout__stage {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(8px, 1.5vh, 14px);
-  padding: clamp(8px, 2vw, 16px);
-  padding-bottom: calc(clamp(8px, 2vw, 16px) + env(safe-area-inset-bottom, 0));
-  overflow: visible;
-}
+/* --- 場の中央エリア --- */
 
 .ellipse-table__center {
   position: absolute;
@@ -60,11 +67,66 @@
   pointer-events: none;
 }
 
+.ellipse-table__grave {
+  opacity: 0.9;
+}
+
+.ellipse-table__hand {
+  pointer-events: none;
+}
+
+.ellipse-table__hand .hand {
+  pointer-events: auto;
+}
+
+/* --- トリックカード表示 --- */
+
 .trick-cards-queue {
   position: relative;
   width: clamp(120px, 18vw, 200px);
   height: calc(var(--ellipse-card-height) + 40px);
 }
+
+.trick-card-entry {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) translate(var(--offset-x), var(--offset-y)) rotate(var(--rotate));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.trick-card-entry.winner .card.current-card {
+  border-color: #ffd15c;
+  box-shadow:
+    0 0 0 2px rgba(255, 209, 92, 0.75),
+    0 0 22px rgba(255, 209, 92, 0.8);
+}
+
+.trick-last-player-label {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.trick-winner-banner {
+  margin-top: 10px;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(255, 209, 92, 0.28);
+  border: 1px solid rgba(255, 209, 92, 0.7);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* --- Showdown表示 --- */
 
 .showdown-cards-row {
   display: flex;
@@ -94,44 +156,7 @@
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
-.trick-card-entry {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%) translate(var(--offset-x), var(--offset-y)) rotate(var(--rotate));
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.trick-last-player-label {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 8px);
-  transform: translateX(-50%);
-  color: rgba(255, 255, 255, 0.95);
-  font-size: 0.75rem;
-  font-weight: 700;
-  white-space: nowrap;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
-}
-
-.trick-card-entry.winner .card.current-card {
-  border-color: #ffd15c;
-  box-shadow:
-    0 0 0 2px rgba(255, 209, 92, 0.75),
-    0 0 22px rgba(255, 209, 92, 0.8);
-}
-
-.trick-winner-banner {
-  margin-top: 10px;
-  border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #fff;
-  background: rgba(255, 209, 92, 0.28);
-  border: 1px solid rgba(255, 209, 92, 0.7);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-}
+/* --- 最終トリック関連 --- */
 
 .final-trick-notice {
   border-radius: 999px;
@@ -142,6 +167,7 @@
   background: rgba(255, 120, 80, 0.3);
   border: 1px solid rgba(255, 160, 120, 0.8);
   width: fit-content;
+  align-self: center;
 }
 
 .final-trick-overlay {
@@ -175,136 +201,8 @@
   background: rgba(217, 119, 6, 0.25);
 }
 
-.trick-indicator-update {
-  animation: trick-pulse 0.5s ease-out;
-}
+/* --- HUD（上部の情報帯） --- */
 
-@keyframes trick-pulse {
-  0% {
-    transform: scale(1.2);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    transform: scale(0.5);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.card-back {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.card-flip {
-  animation: flip 0.5s ease-in-out;
-}
-
-@keyframes flip {
-  0% {
-    transform: rotateY(0deg);
-  }
-  50% {
-    transform: rotateY(90deg);
-  }
-  100% {
-    transform: rotateY(0deg);
-  }
-}
-
-.ellipse-table__grave {
-  opacity: 0.9;
-}
-
-.ellipse-table__hand {
-  pointer-events: none;
-}
-
-.ellipse-table__hand .hand {
-  pointer-events: auto;
-}
-
-.game-over-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.8);
-}
-
-.game-over-overlay__title {
-  font-size: clamp(2rem, 6vw, 3rem);
-  font-weight: 800;
-  color: #ff6b6b;
-  margin-bottom: 1rem;
-  text-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
-  animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.game-over-overlay__result {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 2rem;
-  margin-top: 2rem;
-  min-width: 300px;
-}
-
-.game-over-overlay__result h2 {
-  color: white;
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-.game-over-overlay__rank {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  color: white;
-  font-size: 1.2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.game-over-overlay__rank.is-eliminated {
-  color: #ff6b6b;
-}
-
-.game-over-overlay__home {
-  margin-top: 2rem;
-  padding: 1rem 3rem;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: white;
-  background: linear-gradient(to bottom, #4ade80, #16a34a);
-  border-radius: 12px;
-  text-decoration: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-/* HUD（上部の情報帯） */
 .hud {
   position: relative;
   top: auto;
@@ -326,195 +224,7 @@
   isolation: isolate;
 }
 
-.hud-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.hud-center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.hud-right {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 15px;
-}
-
-/* カードアニメーション */
-.card-slide-to-field {
-  animation: slideToField 0.3s ease-out forwards;
-}
-
-.card-play-to-center {
-  animation: play-card 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes play-card {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) translate(0px, 60px) rotate(0deg) scale(0.6);
-  }
-  60% {
-    opacity: 1;
-    transform: translate(-50%, -50%) translate(var(--offset-x), var(--offset-y))
-      rotate(var(--rotate)) scale(1.05);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(-50%, -50%) translate(var(--offset-x), var(--offset-y))
-      rotate(var(--rotate)) scale(1);
-  }
-}
-
-.card-slide-to-graveyard {
-  animation: slideToGraveyard 0.3s ease-out forwards;
-}
-
-@keyframes slideToField {
-  0% {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: translateY(-100px) scale(1.1);
-    opacity: 0.8;
-  }
-  100% {
-    transform: translateY(-200px) scale(0.9);
-    opacity: 0;
-  }
-}
-
-@keyframes slideToGraveyard {
-  0% {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: translateX(200px) translateY(-50px) scale(1.1);
-    opacity: 0.8;
-  }
-  100% {
-    transform: translateX(400px) translateY(-100px) scale(0.8);
-    opacity: 0;
-  }
-}
-
-/* トリック完了時の表示 */
-.trick-completion-overlay {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 2rem;
-  border-radius: 12px;
-  font-size: 1.5rem;
-  font-weight: bold;
-  z-index: 1001;
-  animation: fadeInOut 2s ease-in-out;
-}
-
-@keyframes fadeInOut {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-  20% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  80% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-}
-
-/* ゲーム終了時のキュウリ表示 */
-.cucumber-award-display {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.95);
-  padding: 3rem;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  z-index: 1002;
-  animation: slideUp 5s ease-in-out;
-}
-
-@keyframes slideUp {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) translateY(50px);
-  }
-  10% {
-    opacity: 1;
-    transform: translate(-50%, -50%) translateY(0);
-  }
-  90% {
-    opacity: 1;
-    transform: translate(-50%, -50%) translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) translateY(-50px);
-  }
-}
-
-/* プレイヤー手札の横並び表示 */
-.player-hand-horizontal {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  backdrop-filter: blur(8px);
-}
-
-.player-name {
-  min-width: 100px;
-  font-weight: bold;
-  color: white;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.player-cards {
-  display: flex;
-  gap: 0.25rem;
-  flex-wrap: wrap;
-}
-
-.round-indicator {
-  background: linear-gradient(135deg, #0b7f71, #0a6b5d);
-  color: white;
-  padding: 10px 18px;
-  border-radius: 25px;
-  font-weight: bold;
-  font-size: 0.9em;
-  border: 3px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
-  min-width: 120px;
-  text-align: center;
-  line-height: 1.2;
-  white-space: nowrap;
-  z-index: 30; /* レイヤーバナー */
-}
+/* --- タイマー --- */
 
 .timer-display {
   background: #e85d5d;
@@ -535,8 +245,7 @@
 }
 
 @keyframes pulse-warning {
-  0%,
-  100% {
+  0%, 100% {
     transform: scale(1);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
   }
@@ -546,107 +255,7 @@
   }
 }
 
-.game-title {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
-  color: white;
-  padding: 15px 30px;
-  border-radius: 30px;
-  font-size: 1.8em;
-  font-weight: bold;
-  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
-  border: 3px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(10px);
-}
-
-.player-zone {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  transform: translate(-50%, -50%);
-}
-
-.player-panel {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
-  border: 3px solid rgba(255, 255, 255, 0.4);
-  border-radius: 20px;
-  padding: 15px 20px;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
-  transition: all 0.4s ease;
-  min-width: 200px;
-}
-
-.player-panel.current-turn {
-  border: 4px solid #ffbe3b;
-  box-shadow:
-    0 0 30px rgba(255, 190, 59, 0.8),
-    0 6px 25px rgba(0, 0, 0, 0.4);
-  background: linear-gradient(135deg, rgba(255, 190, 59, 0.25), rgba(255, 190, 59, 0.12));
-  animation: glow-pulse 2s infinite alternate;
-}
-
-/* 手番ハイライト（光る枠） */
-.player-zone[data-active='true']::after {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 16px;
-  box-shadow:
-    0 0 0 2px #ffe7a1,
-    0 0 16px #ffd15c,
-    0 0 36px rgba(255, 178, 0, 0.55);
-  animation: pulse 1.2s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow:
-      0 0 0 2px #ffe7a1,
-      0 0 10px #ffd15c;
-  }
-  50% {
-    box-shadow:
-      0 0 0 4px #ffd15c,
-      0 0 24px #ffb400;
-  }
-  100% {
-    box-shadow:
-      0 0 0 2px #ffe7a1,
-      0 0 10px #ffd15c;
-  }
-}
-
-.turn-badge {
-  position: absolute;
-  top: -22px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.55);
-  color: #fff;
-  padding: 0.1rem 0.4rem;
-  border-radius: 8px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-@keyframes glow-pulse {
-  0% {
-    box-shadow:
-      0 0 30px rgba(255, 190, 59, 0.8),
-      0 6px 25px rgba(0, 0, 0, 0.4);
-  }
-  100% {
-    box-shadow:
-      0 0 40px rgba(255, 190, 59, 1),
-      0 8px 30px rgba(0, 0, 0, 0.4);
-  }
-}
+/* --- 座席 --- */
 
 .player-seat {
   transition: all 0.4s ease;
@@ -709,106 +318,7 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
 }
 
-.player-graveyard {
-  display: flex;
-  gap: 2px;
-  flex-wrap: wrap;
-  max-width: 70px;
-}
-
-.graveyard-mini-card {
-  width: 12px;
-  height: 18px;
-  background: linear-gradient(135deg, #666, #555);
-  color: white;
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.5em;
-  font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.center-area {
-  grid-area: center-area;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 60px;
-  position: relative;
-}
-
-.field-area {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.2));
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  border-radius: 25px;
-  padding: 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  backdrop-filter: blur(15px);
-  box-shadow: 0 8px 35px rgba(0, 0, 0, 0.4);
-  position: relative;
-  z-index: 20; /* レイヤー場の1枚 */
-}
-
-.field-title {
-  color: white;
-  font-weight: bold;
-  font-size: 1.3em;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
-  margin-bottom: 5px;
-}
-
-.graveyard-area {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 20px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
-  z-index: 15; /* レイヤー墓地（場より下） */
-}
-
-.graveyard-title {
-  color: white;
-  font-weight: bold;
-  font-size: 1.1em;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
-}
-
-.graveyard-cards {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  max-width: 180px;
-  max-height: 120px;
-  overflow-y: auto;
-  justify-content: center;
-}
-
-.graveyard-card {
-  width: 28px;
-  height: 40px;
-  background: linear-gradient(135deg, #666, #555);
-  color: white;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8em;
-  font-weight: bold;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
-}
+/* --- カード --- */
 
 .card {
   width: var(--ellipse-card-width, 65px);
@@ -828,23 +338,10 @@
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.2),
     0 4px 8px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(5px);
   background:
-    linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.15) 0%,
-      transparent 50%,
-      rgba(0, 0, 0, 0.05) 100%
-    ),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(0, 0, 0, 0.05) 100%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(240, 240, 240, 0.8));
   color: #333;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-.player-hand .card {
-  width: var(--ellipse-card-width);
-  height: var(--ellipse-card-height);
 }
 
 .card-number {
@@ -901,14 +398,8 @@
 }
 
 @keyframes card-glow {
-  0% {
-    box-shadow: 0 0 30px rgba(49, 153, 255, 0.8);
-  }
-  100% {
-    box-shadow:
-      0 0 40px rgba(49, 153, 255, 1),
-      0 0 60px rgba(255, 190, 59, 0.6);
-  }
+  0% { box-shadow: 0 0 30px rgba(49, 153, 255, 0.8); }
+  100% { box-shadow: 0 0 40px rgba(49, 153, 255, 1), 0 0 60px rgba(255, 190, 59, 0.6); }
 }
 
 .card:hover:not(.disabled) {
@@ -919,199 +410,39 @@
   z-index: 10;
 }
 
-/* Hand dock is styled via #hand-dock in globals.css */
-.player-hand.is-locked {
-  pointer-events: none;
-  opacity: 0.6;
-}
-
-/* カードの可視化 */
-.card.is-disabled {
-  opacity: 0.4;
-  pointer-events: none;
-  filter: grayscale(0.3);
-}
-
-.card.is-legal {
-  outline: 2px solid #ffd27a;
-  box-shadow: 0 0 10px rgba(255, 210, 122, 0.5);
-}
-
-.game-over {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000; /* レイヤーモーダル */
-  backdrop-filter: blur(8px);
-}
-
-/* 簡易トースト */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: rgba(0, 0, 0, 0.8);
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 8px;
-  z-index: 1200;
-  font-size: 14px;
-  max-width: 60vw;
-}
-
-/* 開始カウントダウン */
-.countdown-overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.35);
-  z-index: 1100;
-}
-.countdown-number {
-  color: #fff;
-  font-size: 96px;
-  font-weight: 800;
-  text-shadow:
-    0 0 12px rgba(255, 255, 255, 0.7),
-    0 0 30px rgba(0, 0, 0, 0.6);
-}
-
-.game-over-content {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
-  padding: 50px;
-  border-radius: 25px;
-  text-align: center;
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
-  border: 4px solid rgba(255, 255, 255, 0.4);
-  max-width: 600px;
-  max-height: 85vh;
-  overflow-y: auto;
-}
-
-.game-over-title {
-  font-size: 2.5em;
-  color: #f7465f;
-  margin-bottom: 30px;
-  font-weight: bold;
-  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
-}
-
-.restart-btn {
-  background: linear-gradient(135deg, #50c878, #45b36b);
-  color: white;
-  border: none;
-  padding: 18px 40px;
-  border-radius: 30px;
-  font-size: 1.2em;
-  font-weight: bold;
+.game-card.playable {
   cursor: pointer;
-  margin-top: 25px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
-  border: 3px solid rgba(255, 255, 255, 0.3);
 }
 
-.restart-btn:hover {
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+.card-back {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
 }
 
-.trick-result {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
-  border-radius: 30px;
-  padding: 40px;
-  text-align: center;
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
-  border: 4px solid #50c878;
-  z-index: 500;
-  min-width: 350px;
-  backdrop-filter: blur(15px);
+.card-flip {
+  animation: flip 0.5s ease-in-out;
 }
 
-.trick-result-title {
-  font-size: 1.8em;
-  color: #0b7f71;
-  margin-bottom: 25px;
+/* --- 墓地カード --- */
+
+.graveyard-card {
+  width: 28px;
+  height: 40px;
+  background: linear-gradient(135deg, #666, #555);
+  color: white;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8em;
   font-weight: bold;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-.card-animation {
-  /* 統一されたアニメーション用クラス */
-}
-
-@keyframes cardDeal {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.card-deal-animation {
-  animation: cardDeal 0.3s ease-out;
-}
-
-@media (max-width: 1200px) {
-  .ellipse-table {
-    --ellipse-card-width: clamp(40px, 6vw, 60px);
-    --ellipse-card-height: clamp(54px, 9vw, 84px);
-    --ellipse-card-gap: clamp(4px, 1.6vw, 10px);
-    --ellipse-hand-padding: clamp(10px, 3vw, 16px);
-    --ellipse-seat-width: clamp(150px, 22vw, 210px);
-  }
-}
-
-@media (max-width: 768px) {
-  .ellipse-table {
-    --ellipse-card-width: clamp(36px, 9vw, 52px);
-    --ellipse-card-height: clamp(48px, 12vw, 72px);
-    --ellipse-card-gap: clamp(3px, 1.2vw, 8px);
-    --ellipse-hand-padding: clamp(8px, 4vw, 14px);
-    --ellipse-center-offset: clamp(18px, 7vh, 56px);
-    --ellipse-center-gap: clamp(18px, 8vw, 64px);
-    --ellipse-seat-width: clamp(120px, 36vw, 188px);
-    padding: clamp(12px, 4vw, 20px);
-    padding-bottom: clamp(96px, 32svh, 160px);
-  }
-
-  .card-number {
-    font-size: 1.2em;
-  }
-
-  .cucumber-icons {
-    font-size: 0.5em;
-  }
-}
-
-@media (max-width: 480px) {
-  .ellipse-table {
-    --ellipse-card-width: clamp(30px, 11vw, 42px);
-    --ellipse-card-height: clamp(42px, 15vw, 60px);
-    --ellipse-card-gap: clamp(2px, 1vw, 6px);
-    --ellipse-hand-padding: clamp(6px, 4.8vw, 12px);
-    --ellipse-center-offset: clamp(12px, 8vh, 44px);
-    --ellipse-center-gap: clamp(16px, 10vw, 54px);
-    --ellipse-seat-width: clamp(100px, 48vw, 160px);
-    padding: clamp(10px, 5vw, 16px);
-    padding-bottom: clamp(90px, 36svh, 150px);
-  }
-}
+/* --- 通知バナー --- */
 
 .discard-notice,
 .discard-result-notice {
@@ -1147,6 +478,166 @@
   padding: 1px 6px;
 }
 
-.game-card.playable {
-  cursor: pointer;
+/* --- ゲーム終了オーバーレイ --- */
+
+.game-over-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.game-over-overlay__title {
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 800;
+  color: #ff6b6b;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
+  animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.game-over-overlay__result {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-top: 2rem;
+  min-width: 300px;
+}
+
+.game-over-overlay__result h2 {
+  color: white;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.game-over-overlay__rank {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  color: white;
+  font-size: 1.2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.game-over-overlay__rank.is-eliminated {
+  color: #ff6b6b;
+}
+
+.game-over-overlay__home {
+  margin-top: 2rem;
+  padding: 1rem 3rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(to bottom, #4ade80, #16a34a);
+  border-radius: 12px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* --- カードアニメーション --- */
+
+.card-slide-to-field {
+  animation: slideToField 0.3s ease-out forwards;
+}
+
+.card-play-to-center {
+  animation: play-card 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes play-card {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translate(0px, 60px) rotate(0deg) scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translate(var(--offset-x), var(--offset-y))
+      rotate(var(--rotate)) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translate(var(--offset-x), var(--offset-y))
+      rotate(var(--rotate)) scale(1);
+  }
+}
+
+.card-slide-to-graveyard {
+  animation: slideToGraveyard 0.3s ease-out forwards;
+}
+
+@keyframes slideToField {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  50% { transform: translateY(-100px) scale(1.1); opacity: 0.8; }
+  100% { transform: translateY(-200px) scale(0.9); opacity: 0; }
+}
+
+@keyframes slideToGraveyard {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  50% { transform: translateX(200px) translateY(-50px) scale(1.1); opacity: 0.8; }
+  100% { transform: translateX(400px) translateY(-100px) scale(0.8); opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes flip {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(90deg); }
+  100% { transform: rotateY(0deg); }
+}
+
+/* --- レスポンシブ --- */
+
+@media (max-width: 1200px) {
+  .ellipse-table {
+    --ellipse-card-width: clamp(40px, 6vw, 60px);
+    --ellipse-card-height: clamp(54px, 9vw, 84px);
+    --ellipse-card-gap: clamp(4px, 1.6vw, 10px);
+    --ellipse-hand-padding: clamp(10px, 3vw, 16px);
+    --ellipse-seat-width: clamp(150px, 22vw, 210px);
+  }
+}
+
+@media (max-width: 768px) {
+  .ellipse-table {
+    --ellipse-card-width: clamp(36px, 9vw, 52px);
+    --ellipse-card-height: clamp(48px, 12vw, 72px);
+    --ellipse-card-gap: clamp(3px, 1.2vw, 8px);
+    --ellipse-hand-padding: clamp(8px, 4vw, 14px);
+    --ellipse-center-offset: clamp(18px, 7vh, 56px);
+    --ellipse-center-gap: clamp(18px, 8vw, 64px);
+    --ellipse-seat-width: clamp(120px, 36vw, 188px);
+    padding: clamp(12px, 4vw, 20px);
+    padding-bottom: clamp(96px, 32svh, 160px);
+  }
+
+  .card-number { font-size: 1.2em; }
+  .cucumber-icons { font-size: 0.5em; }
+}
+
+@media (max-width: 480px) {
+  .ellipse-table {
+    --ellipse-card-width: clamp(30px, 11vw, 42px);
+    --ellipse-card-height: clamp(42px, 15vw, 60px);
+    --ellipse-card-gap: clamp(2px, 1vw, 6px);
+    --ellipse-hand-padding: clamp(6px, 4.8vw, 12px);
+    --ellipse-center-offset: clamp(12px, 8vh, 44px);
+    --ellipse-center-gap: clamp(16px, 10vw, 54px);
+    --ellipse-seat-width: clamp(100px, 48vw, 160px);
+    padding: clamp(10px, 5vw, 16px);
+    padding-bottom: clamp(90px, 36svh, 150px);
+  }
 }

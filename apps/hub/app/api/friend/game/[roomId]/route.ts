@@ -3,6 +3,7 @@ import { GameConfig, GameState, Move } from '@/lib/game-core';
 import { NextRequest, NextResponse } from 'next/server';
 import { json } from '@/lib/http';
 import { verifyAuth } from '@/lib/auth';
+import { withLock } from '@/lib/lock';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -78,9 +79,18 @@ export async function POST(
       if (!move || typeof move !== 'object') {
         return json({ ok: false, reason: 'bad-request' }, 400);
       }
-      const snap = await applyServerMove(roomId, move as Move);
-      if (!snap) return json({ ok: false, reason: 'not-found' }, 404);
-      return json({ ok: true, snapshot: snap }, 200);
+      try {
+        const snap = await withLock(
+          `game:${roomId}`,
+          () => applyServerMove(roomId, move as Move),
+          { ttlMs: 5000, retry: 2, retryDelayMs: 100 },
+        );
+        if (!snap) return json({ ok: false, reason: 'not-found' }, 404);
+        return json({ ok: true, snapshot: snap }, 200);
+      } catch (lockError) {
+        console.error('[friend/game POST] lock error:', lockError);
+        return json({ ok: false, reason: 'busy' }, 409);
+      }
     }
     
     return json({ ok: false, reason: 'bad-request' }, 400);
