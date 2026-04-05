@@ -39,9 +39,8 @@
 }
 
 .ellipse-table-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 0;
   border-radius: inherit;
   background: linear-gradient(135deg, #1a5c2a 0%, #1b6b31 50%, #186128 100%);
 }
@@ -320,9 +319,11 @@
 
 /* --- カード --- */
 
-.card {
+.card.game-card {
   width: var(--ellipse-card-width, 65px);
   height: var(--ellipse-card-height, 90px);
+  padding: 0;
+  backdrop-filter: none;
   border-radius: 8px;
   display: flex !important;
   flex-direction: column;
