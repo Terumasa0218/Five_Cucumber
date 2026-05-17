@@ -6,38 +6,61 @@ This file records the active project direction for AI-assisted work.
 
 Five_Cucumber is Web-first.
 
-Until the Web version is complete or the user explicitly changes direction, implementation should focus on the existing Web stack:
+Until the Web version is complete or the user explicitly changes direction, implementation should focus on:
 
 - Next.js
 - TypeScript / TSX
 - pnpm
 - Turborepo
-- Firebase-related configuration already present in the repository
-- Ably / shared-store diagnostics already present in the repository
+- Firebase client authentication where already present
+- KV / Redis / Ably integrations where already present
 
-## Deferred Direction: Unity and Blender
+Unity and Blender remain deferred. Do not add Unity or Blender files during ordinary Web implementation.
 
-Unity and Blender are deferred until after the Web version is complete.
+## Current Canonical Documents
 
-They may become useful later if the project needs:
+- `README.md`
+- `docs/product-spec.md`
+- `docs/work-plan.md`
+- `docs/rules/cucumber5.md`
+- `docs/deprecated-docs.md`
+- `AGENTS.md`
+- `AI_RULES.md`
+- `WORKFLOW.md`
+- `docs/ai-assisted-development-setup.md`
 
-- higher-fidelity 3D cucumber, card, table, or scene assets,
-- generated animation or visual material that improves the Web version,
-- promotional or cinematic visuals,
-- a separate Unity prototype or edition.
+## Rule Baseline
 
-Do not add Unity or Blender files during ordinary Web implementation. If the idea becomes relevant, discuss it first and record the decision before implementation.
+The game rule baseline is now:
 
-## Near-Term Priorities
+- 15 card numbers
+- 7 copies of each number
+- 105 total cards
+- 7 initial cards per player
 
-1. Keep AI collaboration rules explicit and easy to follow.
-2. Stabilize the Web MVP and core Five Cucumbers gameplay.
-3. Improve room flow, realtime state, diagnostics, and deployment confidence.
-4. Polish UI and accessibility after core behavior is reliable.
-5. Reassess Unity / Blender only after the Web version reaches a clear completion point.
+If any older document says 60 cards, 4 copies, 5-digit room codes, or old generic routes, treat it as historical unless it has been updated in a later phase.
+
+## Phase Order
+
+1. Documentation reset.
+2. Local playability baseline.
+3. CPU match MVP.
+4. Friend match MVP.
+5. Route and test cleanup.
+6. UI and accessibility polish.
+7. Production readiness.
+
+See `docs/work-plan.md` for details.
+
+## Near-Term Priority
+
+Finish Phase 0, then stop for user review before starting Phase 1.
 
 ## Open Decisions
 
-- Define the exact acceptance criteria for "Web version complete."
+- Define the exact review checklist for "Web version complete."
+- Decide local behavior when Firebase Admin or KV is missing.
+- Decide whether legacy generic `/play/[gameId]` and `/lobby/[gameId]` routes should be redirected, removed, or revived later.
+- Decide whether UI should formally adopt Tailwind or move away from Tailwind-style utility classes.
 - Decide whether future Blender use is asset-generation only or part of a larger 3D workflow.
 - Decide whether Unity is ever a separate edition, a prototype, or unnecessary.

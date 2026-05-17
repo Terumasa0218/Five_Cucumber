@@ -11,7 +11,10 @@ Before changing files, read these documents when they exist:
 3. `WORKFLOW.md`
 4. `PLAN.md`
 5. `README.md`
-6. Relevant documents under `docs/`
+6. `docs/product-spec.md`
+7. `docs/work-plan.md`
+8. `docs/rules/cucumber5.md`
+9. Relevant documents under `docs/`
 
 If the work affects gameplay, room flow, deployment, realtime state, or UI behavior, read the matching local docs and nearby source files before editing.
 
