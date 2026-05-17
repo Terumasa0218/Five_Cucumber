@@ -19,12 +19,21 @@ export interface CpuTable {
   humanController: HumanController;
 }
 
+function clampNumber(value: number, min: number, max: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+}
+
+function parseCpuLevel(value: string | null): 'easy' | 'normal' | 'hard' {
+  return value === 'easy' || value === 'normal' || value === 'hard' ? value : 'normal';
+}
+
 export function createCpuTable(tableConfig: CpuTableConfig): CpuTable {
   const config: GameConfig = {
-    players: tableConfig.players,
+    players: clampNumber(tableConfig.players, 2, 6, 4),
     turnSeconds: tableConfig.turnSeconds,
-    maxCucumbers: tableConfig.maxCucumbers,
-    initialCards: tableConfig.initialCards,
+    maxCucumbers: clampNumber(tableConfig.maxCucumbers, 4, 10, 5),
+    initialCards: clampNumber(tableConfig.initialCards, 1, 7, 7),
     cpuLevel: tableConfig.cpuLevel,
     seed: tableConfig.seed
   };
@@ -34,7 +43,7 @@ export function createCpuTable(tableConfig: CpuTableConfig): CpuTable {
   controllers[0] = humanController;
 
   // CPUコントローラーを作成
-  for (let i = 1; i < tableConfig.players; i++) {
+  for (let i = 1; i < config.players; i++) {
     const cpuController = new CpuController(i, tableConfig.cpuLevel, tableConfig.seed);
     controllers[i] = cpuController;
   }
@@ -52,7 +61,7 @@ export function createCpuTableFromUrlParams(params: URLSearchParams): CpuTable {
     turnSeconds: parseInt(params.get('turnSeconds') || '15') || null,
     maxCucumbers: parseInt(params.get('maxCucumbers') || '6'),
     initialCards: 7,
-    cpuLevel: (params.get('cpuLevel') as 'easy' | 'normal' | 'hard') || 'normal',
+    cpuLevel: parseCpuLevel(params.get('cpuLevel')),
     seed: parseInt(params.get('seed') || '0') || undefined
   };
 

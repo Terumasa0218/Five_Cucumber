@@ -54,12 +54,11 @@ See `docs/work-plan.md` for details.
 
 ## Near-Term Priority
 
-Finish Phase 0, then stop for user review before starting Phase 1.
+Complete the Phase 2 review gate, then start Phase 3 Friend Match MVP only after user confirmation.
 
 ## Open Decisions
 
 - Define the exact review checklist for "Web version complete."
-- Decide local behavior when Firebase Admin or KV is missing.
 - Decide whether legacy generic `/play/[gameId]` and `/lobby/[gameId]` routes should be redirected, removed, or revived later.
 - Decide whether UI should formally adopt Tailwind or move away from Tailwind-style utility classes.
 - Decide whether future Blender use is asset-generation only or part of a larger 3D workflow.

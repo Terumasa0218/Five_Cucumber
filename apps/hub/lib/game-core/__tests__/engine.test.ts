@@ -327,6 +327,43 @@ describe('トリック完了', () => {
 });
 
 describe('1ゲーム完走', () => {
+  it.each([2, 3, 4, 5, 6])('%i人対戦の初期状態を作成できる', players => {
+    const rng = new SeededRng(players * 100);
+    const playerConfig: GameConfig = { ...config, players };
+    const state = createInitialState(playerConfig, rng);
+
+    expect(state.players).toHaveLength(players);
+    expect(state.players.every(player => player.hand.length === 7)).toBe(true);
+    expect(state.remainingCards).toHaveLength(105 - players * 7);
+    expect(state.currentPlayer).toBeGreaterThanOrEqual(0);
+    expect(state.currentPlayer).toBeLessThan(players);
+  });
+
+  it.each([2, 3, 4, 5, 6])('%i人対戦で7トリックの1ラウンドを完走できる', players => {
+    const rng = new SeededRng(players * 1000);
+    const playerConfig: GameConfig = {
+      ...config,
+      players,
+      initialCards: 7,
+      maxCucumbers: 999,
+    };
+    let state = createInitialState(playerConfig, rng);
+
+    for (let i = 0; i < playerConfig.initialCards * playerConfig.players; i++) {
+      const player = state.currentPlayer;
+      const legalMoves = getLegalMoves(state, player);
+      const card = Math.min(...legalMoves);
+      const isDiscard = !state.isFinalTrick && state.fieldCard !== null && card < state.fieldCard;
+      const result = applyMove(state, { player, card, isDiscard, timestamp: i }, playerConfig, rng);
+      expect(result.success).toBe(true);
+      state = result.newState;
+    }
+
+    expect(state.currentRound).toBe(2);
+    expect(state.players).toHaveLength(players);
+    expect(state.players.every(player => player.hand.length === 7)).toBe(true);
+  });
+
   it('7トリック完了後にラウンドが終了する', () => {
     const rng = new SeededRng(42);
     const longConfig: GameConfig = { ...config, initialCards: 7, maxCucumbers: 999 };

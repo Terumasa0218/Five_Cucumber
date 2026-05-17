@@ -70,6 +70,13 @@ function CpuPlayContent() {
   const scheduleCpuTurnRef = useRef<(() => void) | null>(null);
   const playCpuTurnRef = useRef<(() => Promise<void>) | null>(null);
 
+  const clearFinalTrickTimers = useCallback(() => {
+    for (const timer of finalTrickTimeoutsRef.current) {
+      clearTimeout(timer);
+    }
+    finalTrickTimeoutsRef.current = [];
+  }, []);
+
   // ゲーム状態の保存キー
   const getGameStateKey = useCallback((params: URLSearchParams) => {
     const players = params.get('players') || '4';
@@ -386,6 +393,10 @@ function CpuPlayContent() {
       const maxCucumbers = gameRef.current?.config.maxCucumbers ?? 6;
       const hasEliminated = state.players.some(player => player.cucumbers >= maxCucumbers);
       if (hasEliminated) {
+        const gameStateKey = getGameStateKey(searchParams);
+        localStorage.removeItem(gameStateKey);
+        clearFinalTrickTimers();
+
         const results = state.players
           .map((player, index) => ({
             name: index === 0 ? 'あなた' : `CPU ${index}`,
@@ -397,12 +408,16 @@ function CpuPlayContent() {
         setGameOver(true);
         setFinalTrickStarted(false);
         setIsAnimating(false);
+        setIsSubmitting(false);
+        setIsCardLocked(false);
+        setLockedCardId(null);
+        setOverlayText(null);
         return;
       }
 
       startNextRound(state);
     },
-    [startNextRound]
+    [clearFinalTrickTimers, getGameStateKey, searchParams, startNextRound]
   );
 
   const playMove = async (player: number, card: number) => {
@@ -785,18 +800,22 @@ function CpuPlayContent() {
 
   useEffect(() => {
     return () => {
-      for (const timer of finalTrickTimeoutsRef.current) {
-        clearTimeout(timer);
-      }
-      finalTrickTimeoutsRef.current = [];
+      clearFinalTrickTimers();
     };
-  }, []);
+  }, [clearFinalTrickTimers]);
 
   const handleBackToHome = () => {
     // ゲーム状態をクリア
+    clearFinalTrickTimers();
     const gameStateKey = getGameStateKey(searchParams);
     localStorage.removeItem(gameStateKey);
     router.push('/home');
+  };
+
+  const handleRestartGame = () => {
+    clearFinalTrickTimers();
+    clearCpuGameState();
+    void startGame();
   };
 
   if (!gameState) {
@@ -926,9 +945,22 @@ function CpuPlayContent() {
               ))}
             </div>
 
-            <a className="game-over-overlay__home" href="/home" onClick={handleBackToHome}>
-              ホームへ戻る
-            </a>
+            <div className="game-over-overlay__actions">
+              <button
+                type="button"
+                className="game-over-overlay__home"
+                onClick={handleRestartGame}
+              >
+                もう一度遊ぶ
+              </button>
+              <button
+                type="button"
+                className="game-over-overlay__home game-over-overlay__home--secondary"
+                onClick={handleBackToHome}
+              >
+                ホームへ戻る
+              </button>
+            </div>
           </div>
         ) : null}
       </BattleLayout>

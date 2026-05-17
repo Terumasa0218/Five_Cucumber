@@ -529,16 +529,30 @@
   color: #ff6b6b;
 }
 
-.game-over-overlay__home {
+.game-over-overlay__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
   margin-top: 2rem;
+}
+
+.game-over-overlay__home {
   padding: 1rem 3rem;
   font-size: 1.2rem;
   font-weight: 700;
   color: white;
   background: linear-gradient(to bottom, #4ade80, #16a34a);
   border-radius: 12px;
+  border: 0;
   text-decoration: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.game-over-overlay__home--secondary {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.38);
 }
 
 /* --- カードアニメーション --- */

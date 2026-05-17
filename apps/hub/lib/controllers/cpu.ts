@@ -1,7 +1,13 @@
 // CPUプレイヤーのコントローラー（難易度別実装）
 
 import { SeededRng } from '../game-core/rng';
-import { estimateRemainingCards, getCucumberCount, getLegalMoves } from '../game-core/rules';
+import {
+  calculateFinalTrickPenalty,
+  determineTrickWinner,
+  estimateRemainingCards,
+  getCucumberCount,
+  getLegalMoves,
+} from '../game-core/rules';
 import { GameState, GameView, SimulationResult } from '../game-core/types';
 import { BaseController } from './base';
 
@@ -152,6 +158,7 @@ export class CpuController extends BaseController {
     const state = JSON.parse(JSON.stringify(view.state)) as GameState;
     const hand = state.players[this.playerIndex].hand;
     const moveIndex = hand.indexOf(initialMove);
+    let actionCount = state.actionCount ?? 0;
     
     if (moveIndex === -1) {
       return { finalCucumbers: [], winner: -1, penalty: 0 };
@@ -159,13 +166,15 @@ export class CpuController extends BaseController {
     
     // 初期手を適用
     hand.splice(moveIndex, 1);
-    state.trickCards.push({ player: this.playerIndex, card: initialMove, timestamp: Date.now() });
-    
-    if (state.fieldCard === null || initialMove >= state.fieldCard) {
-      state.fieldCard = initialMove;
-    } else {
+    const isInitialDiscard = state.fieldCard !== null && initialMove < state.fieldCard;
+    actionCount++;
+
+    if (isInitialDiscard) {
       state.players[this.playerIndex].graveyard.push(initialMove);
       state.sharedGraveyard.push(initialMove);
+    } else {
+      state.trickCards.push({ player: this.playerIndex, card: initialMove, timestamp: Date.now() });
+      state.fieldCard = initialMove;
     }
     
     // 残りのゲームをシミュレーション
@@ -200,28 +209,30 @@ export class CpuController extends BaseController {
       // 手を適用
       const cardIndex = cpuHand.indexOf(selectedMove);
       cpuHand.splice(cardIndex, 1);
-      state.trickCards.push({ player: currentPlayer, card: selectedMove, timestamp: Date.now() });
-      
-      if (state.fieldCard === null || selectedMove >= state.fieldCard) {
-        state.fieldCard = selectedMove;
-      } else {
+      const isDiscard = state.fieldCard !== null && selectedMove < state.fieldCard;
+      actionCount++;
+
+      if (isDiscard) {
         state.players[currentPlayer].graveyard.push(selectedMove);
         state.sharedGraveyard.push(selectedMove);
+      } else {
+        state.trickCards.push({ player: currentPlayer, card: selectedMove, timestamp: Date.now() });
+        state.fieldCard = selectedMove;
       }
       
       currentPlayer = (currentPlayer + 1) % state.players.length;
       
       // トリック完了チェック
-      if (state.trickCards.length === state.players.length) {
-        const maxCard = Math.max(...state.trickCards.map(tc => tc.card));
-        const winners = state.trickCards.filter(tc => tc.card === maxCard);
-        const winner = winners[winners.length - 1].player;
+      if (actionCount >= state.players.length) {
+        const winner = determineTrickWinner(state.trickCards);
+        if (winner < 0) break;
         
         state.currentPlayer = winner;
         state.firstPlayer = winner;
         state.currentTrick++;
         state.fieldCard = null;
         state.trickCards = [];
+        actionCount = 0;
         currentPlayer = winner;
         trickCount++;
       }
@@ -229,13 +240,7 @@ export class CpuController extends BaseController {
     
     // 最終トリックのペナルティ計算
     if (state.trickCards.length > 0) {
-      const maxCard = Math.max(...state.trickCards.map(tc => tc.card));
-      const hasOne = state.trickCards.some(tc => tc.card === 1);
-      const winners = state.trickCards.filter(tc => tc.card === maxCard);
-      const winner = winners[winners.length - 1].player;
-      
-      let penalty = getCucumberCount(maxCard);
-      if (hasOne) penalty *= 2;
+      const { winner, penalty } = calculateFinalTrickPenalty(state.trickCards, view.config);
       
       if (winner === this.playerIndex) {
         return { 
