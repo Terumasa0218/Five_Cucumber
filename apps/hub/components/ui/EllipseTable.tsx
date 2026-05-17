@@ -5,6 +5,8 @@ import { getCucumberIcons } from '@/lib/game-core/rules';
 import { layoutSeatsEllipse } from '@/lib/layoutEllipse';
 import { CSSProperties, useEffect } from 'react';
 
+const DEBUG_TABLE_LAYOUT = process.env.NEXT_PUBLIC_DEBUG_GAME === '1';
+
 interface EllipseTableProps {
   state: GameState;
   config: GameConfig;
@@ -52,7 +54,7 @@ export function EllipseTable({
 
   // デバッグログ（開発時のみ）
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (DEBUG_TABLE_LAYOUT) {
       console.log('[EllipseTable Debug]', {
         currentPlayerIndex,
         stateCurrentPlayer: state.currentPlayer,

@@ -73,7 +73,6 @@ export async function POST(req: NextRequest) {
     await kv.set(keyOwner, nickname, { ex: MAX_AGE });
 
 
-    console.log('[username/register] registered', { id, nickname });
     return NextResponse.json({ ok: true, id, nickname });
   } catch (err) {
     console.error('[username/register] error', err);

@@ -18,6 +18,16 @@ interface DiagnosticInfo {
   };
 }
 
+interface RegisterResponse {
+  ok: boolean;
+  reason?: 'duplicate' | 'conflict' | 'length' | 'charset' | 'bad-request' | 'bad-nickname' | 'server-error';
+  error?: string;
+}
+
+function shouldUseLocalProfileFallback(status: number, reason?: string): boolean {
+  return status === 0 || status === 401 || status === 503 || status >= 500 || reason === 'server-error';
+}
+
 function SetupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -64,20 +74,18 @@ function SetupForm() {
       return;
     }
 
-    // apiJsonを使用してサーバ側で重複チェック
+    const saveProfileAndContinue = () => {
+      setProfile({ nickname: r.value });
+      const returnTo = searchParams.get('returnTo');
+      router.replace(returnTo || '/home');
+    };
+
+    // サーバ側で重複チェックできる場合は行い、ローカル環境ではプロフィール保存を優先する
     try {
-      console.log('[setup] About to call API with:', r.value);
-      interface RegisterResponse {
-        ok: boolean;
-        reason?: 'duplicate' | 'length' | 'charset' | 'bad-request' | 'server-error';
-        error?: string;
-      }
-      
       const response = await apiJson<RegisterResponse>('/api/username/register', {
         method: 'POST',
         json: { name: r.value },
       });
-      console.log('[setup] API response:', response);
 
       // 診断情報を保存（成功時）
       setDiagnostic({
@@ -86,12 +94,7 @@ function SetupForm() {
         error: null
       });
 
-      // プロフィール保存
-      setProfile({ nickname: r.value });
-      
-      // 遷移
-      const returnTo = searchParams.get('returnTo');
-      router.replace(returnTo || '/home');
+      saveProfileAndContinue();
     } catch (err) {
       let status = 0;
       let body: unknown = null;
@@ -109,9 +112,15 @@ function SetupForm() {
         
         const response = body as { reason?: string; error?: string };
         const reason = response?.reason ?? (status >= 500 ? "server" : "network");
+
+        if (shouldUseLocalProfileFallback(status, reason)) {
+          saveProfileAndContinue();
+          return;
+        }
+
         const errorMsg = 
-          reason === "duplicate" ? "このユーザー名はすでにつかわれています" :
-          reason === "length"    ? "1〜8文字で入力してください" :
+          reason === "duplicate" || reason === "conflict" ? "このユーザー名はすでにつかわれています" :
+          reason === "length" || reason === "bad-nickname" ? "1〜8文字で入力してください" :
           reason === "charset"   ? "利用できない文字が含まれています" :
           reason === "server" || reason === "server-error"
             ? `登録に失敗しました（サーバエラー: ${response?.error || 'Unknown'}）` :
@@ -124,7 +133,8 @@ function SetupForm() {
           body: null,
           error: err instanceof Error ? err.message : 'Unknown error'
         });
-        setError("通信に失敗しました。電波状況を確認して再試行してください");
+        saveProfileAndContinue();
+        return;
       }
       setIsSubmitting(false);
     }
@@ -173,7 +183,7 @@ function SetupForm() {
       body: diagnostic?.body,
       error: diagnostic?.error,
       cookies: document.cookie.substring(0, 200),
-      profile: localStorage.getItem('profile'),
+      profile: localStorage.getItem('five-cucumber-profile'),
       networkTest: diagnostic?.networkTest,
       timestamp: Date.now(),
       nickname: nickname,
@@ -255,7 +265,7 @@ function SetupForm() {
               <div><strong>User Agent:</strong> {navigator.userAgent}</div>
               <div><strong>Online:</strong> {navigator.onLine ? 'Yes' : 'No'}</div>
               <div><strong>Cookies:</strong> {document.cookie.substring(0, 100)}...</div>
-              <div><strong>Profile:</strong> {localStorage.getItem('profile') || 'None'}</div>
+              <div><strong>Profile:</strong> {localStorage.getItem('five-cucumber-profile') || 'None'}</div>
               <div><strong>Current Input:</strong> "{nickname}" (length: {nickname.length})</div>
               <div><strong>Trimmed:</strong> "{nickname.trim()}" (length: {nickname.trim().length})</div>
             </div>

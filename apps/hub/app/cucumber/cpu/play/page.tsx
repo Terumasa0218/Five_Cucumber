@@ -26,6 +26,14 @@ import PageBackground from '@/components/ui/PageBackground';
 import { BACKGROUNDS } from '@/lib/backgrounds';
 import './game.css';
 
+const DEBUG_CPU_GAME = process.env.NEXT_PUBLIC_DEBUG_GAME === '1';
+
+function debugGameLog(...args: unknown[]): void {
+  if (DEBUG_CPU_GAME) {
+    console.log(...args);
+  }
+}
+
 function CpuPlayContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -76,7 +84,7 @@ function CpuPlayContent() {
     try {
       const gameStateKey = getGameStateKey(searchParams);
       localStorage.removeItem(gameStateKey);
-      console.log('[Game] CPU game state cleared for fresh start');
+      debugGameLog('[Game] CPU game state cleared for fresh start');
     } catch (error) {
       console.warn('[Game] Failed to clear CPU game state:', error);
     }
@@ -110,7 +118,7 @@ function CpuPlayContent() {
       cpuTurnTimerRef.current = null;
     }
 
-    console.log(`[CPU] Scheduling turn for player ${state.currentPlayer}`);
+    debugGameLog(`[CPU] Scheduling turn for player ${state.currentPlayer}`);
 
     // CPUの思考時間
     const thinkingTime = 600 + Math.random() * 400;
@@ -150,7 +158,7 @@ function CpuPlayContent() {
       setIsShowdownMode(false);
       setIsAnimating(false);
 
-      console.log('[Game] New game started with', config.players, 'players');
+      debugGameLog('[Game] New game started with', config.players, 'players');
 
       // 最初のプレイヤーがCPUの場合は自動プレイ
       if (state.currentPlayer !== 0) {
@@ -191,7 +199,7 @@ function CpuPlayContent() {
 
     // ホームから来た場合は常に新規ゲーム開始
     if (isFromHome) {
-      console.log('[Game] Starting fresh game (from home/settings)');
+      debugGameLog('[Game] Starting fresh game (from home/settings)');
       clearCpuGameState();
       // 新規ゲーム開始
       startGame();
@@ -214,7 +222,7 @@ function CpuPlayContent() {
 
             // 5分以内のセーブデータのみ復元
             if (age < 5 * 60 * 1000) {
-              console.log(
+              debugGameLog(
                 '[Game] Restoring from saved state (age:',
                 Math.round(age / 1000),
                 'seconds)'
@@ -253,10 +261,10 @@ function CpuPlayContent() {
               setIsShowdownMode(false);
               setIsAnimating(false);
 
-              console.log('[Game] State restored successfully with rebuilt controllers');
+              debugGameLog('[Game] State restored successfully with rebuilt controllers');
               return;
             } else {
-              console.log('[Game] Saved state too old, starting fresh');
+              debugGameLog('[Game] Saved state too old, starting fresh');
               clearCpuGameState();
               startGame();
             }
@@ -285,13 +293,13 @@ function CpuPlayContent() {
       const currentPlayer = state.currentPlayer;
 
       if (currentPlayer === 0 || gameOver || state.phase !== 'AwaitMove' || isAnimating) {
-        console.log(
+        debugGameLog(
           `[CPU] Skipping turn - Player: ${currentPlayer}, Phase: ${state.phase}, GameOver: ${gameOver}`
         );
         return;
       }
 
-      console.log(`[CPU] Executing turn for player ${currentPlayer}`);
+      debugGameLog(`[CPU] Executing turn for player ${currentPlayer}`);
 
       const controller = controllers[currentPlayer];
       if (!controller) {
@@ -309,23 +317,23 @@ function CpuPlayContent() {
       const move = await controller.onYourTurn(view);
 
       if (move !== null && typeof move === 'number' && legalMoves.includes(move)) {
-        console.log(`[CPU] Playing move: ${move}`);
+        debugGameLog(`[CPU] Playing move: ${move}`);
         await playMove(currentPlayer, move);
       } else {
         // フォールバック: 最初の合法手
         const fallbackMove = legalMoves[0];
-        console.log(`[CPU] Using fallback move: ${fallbackMove}`);
+        debugGameLog(`[CPU] Using fallback move: ${fallbackMove}`);
         await playMove(currentPlayer, fallbackMove);
       }
 
-      console.log(`[CPU] Turn completed for player ${currentPlayer}`);
+      debugGameLog(`[CPU] Turn completed for player ${currentPlayer}`);
 
       // ターン完了後、次のCPUターンをスケジューリング
       setTimeout(() => {
         if (gameRef.current && !gameOver) {
           const { state } = gameRef.current;
           if (state.currentPlayer !== 0 && state.phase === 'AwaitMove') {
-            console.log(`[CPU] Auto-scheduling next turn for player ${state.currentPlayer}`);
+            debugGameLog(`[CPU] Auto-scheduling next turn for player ${state.currentPlayer}`);
             if (scheduleCpuTurnRef.current) {
               scheduleCpuTurnRef.current();
             }
@@ -336,7 +344,7 @@ function CpuPlayContent() {
       console.error('[CPU] Turn error:', error);
     } finally {
       isProcessingRef.current = false;
-      console.log(`[CPU] Processing flag cleared`);
+      debugGameLog(`[CPU] Processing flag cleared`);
     }
   };
 
@@ -400,7 +408,7 @@ function CpuPlayContent() {
   const playMove = async (player: number, card: number) => {
     if (!gameRef.current) return;
 
-    console.log(`[PlayMove] Starting move - Player: ${player}, Card: ${card}`);
+    debugGameLog(`[PlayMove] Starting move - Player: ${player}, Card: ${card}`);
 
     try {
       await runAnimation(async () => {
@@ -549,7 +557,7 @@ function CpuPlayContent() {
     if (gameState && !gameOver && !isProcessingRef.current && !isAnimating && gameRef.current) {
       const { state } = gameRef.current;
       if (state.currentPlayer !== 0 && state.phase === 'AwaitMove' && !state.isFinalTrick) {
-        console.log(`[useEffect] Scheduling CPU turn for player ${state.currentPlayer}`);
+        debugGameLog(`[useEffect] Scheduling CPU turn for player ${state.currentPlayer}`);
         if (scheduleCpuTurnRef.current) {
           scheduleCpuTurnRef.current();
         }
@@ -608,14 +616,14 @@ function CpuPlayContent() {
     )
       return;
 
-    console.log('[Timeout] Handling timeout for player 0');
+    debugGameLog('[Timeout] Handling timeout for player 0');
 
     // 制限時間切れ時のランダムカード選択
     const legalMoves = getLegalMoves(gameState, 0);
     if (legalMoves.length > 0) {
       const randomIndex = Math.floor(Math.random() * legalMoves.length);
       const selectedCard = legalMoves[randomIndex];
-      console.log(
+      debugGameLog(
         `[Timeout] Auto-selecting random card: ${selectedCard} from legal moves:`,
         legalMoves
       );
@@ -624,14 +632,14 @@ function CpuPlayContent() {
       const hand = gameState.players[0].hand;
       if (hand.length > 0) {
         const minCard = Math.min(...hand);
-        console.log(`[Timeout] No legal moves, selecting minimum card: ${minCard}`);
+        debugGameLog(`[Timeout] No legal moves, selecting minimum card: ${minCard}`);
         await handleCardClick(minCard);
       }
     }
   };
 
   useEffect(() => {
-    console.log(
+    debugGameLog(
       '[Showdown-Check] isFinalTrick:',
       gameState?.isFinalTrick,
       'finalTrickStarted:',
@@ -648,7 +656,7 @@ function CpuPlayContent() {
       const { state, config, rng } = gameRef.current;
       if (!state.isFinalTrick || state.phase !== 'AwaitMove') return;
 
-      console.log('[Showdown] === SHOWDOWN STARTING ===');
+      debugGameLog('[Showdown] === SHOWDOWN STARTING ===');
       let currentState = state;
       const showdownTrickCards: Move[] = [...state.trickCards];
       const selectedPlayers: number[] = [];
@@ -668,9 +676,9 @@ function CpuPlayContent() {
           isDiscard: false,
         };
         showdownTrickCards.push(move);
-        console.log('[Showdown] Player', playerIndex, 'card:', selectedCard, 'isDiscard:', false);
+        debugGameLog('[Showdown] Player', playerIndex, 'card:', selectedCard, 'isDiscard:', false);
         const result = applyMove(currentState, move, config, rng);
-        console.log('[Showdown] applyMove result:', result.success, result.message);
+        debugGameLog('[Showdown] applyMove result:', result.success, result.message);
         if (!result.success) {
           console.error('[Showdown] applyMove failed for player', playerIndex, result.message);
           setFinalTrickStatusText('ショーダウン処理に失敗しました。');
@@ -683,7 +691,7 @@ function CpuPlayContent() {
         selectedPlayers.push(playerIndex);
       }
 
-      console.log('[Showdown] Final trickCards:', showdownTrickCards);
+      debugGameLog('[Showdown] Final trickCards:', showdownTrickCards);
 
       const openedPlayers = showdownTrickCards.map(move => move.player);
       const winner = determineTrickWinner(showdownTrickCards);
@@ -692,7 +700,7 @@ function CpuPlayContent() {
       setFinalTrickOpenedPlayers(openedPlayers);
       setTableTrickCards(showdownTrickCards);
       setLatestPlayedKey(null);
-      console.log('[Showdown] Setting state with', showdownTrickCards.length, 'cards');
+      debugGameLog('[Showdown] Setting state with', showdownTrickCards.length, 'cards');
       setGameState({
         ...currentState,
         trickCards: showdownTrickCards,
@@ -707,7 +715,7 @@ function CpuPlayContent() {
       setFinalTrickStatusText(null);
 
       const showResultTimer = setTimeout(() => {
-        console.log('[Showdown] Calculating penalty...');
+        debugGameLog('[Showdown] Calculating penalty...');
         const winnerName = winner === 0 ? 'あなた' : `CPU ${winner}`;
         const playedCards = showdownTrickCards.filter(trickCard => !trickCard.isDiscard);
         const allOnes =

@@ -1,14 +1,16 @@
 'use client';
 
+import { apiJson, ApiRequestError } from "@/lib/api";
 import { getNickname } from "@/lib/profile";
-import { upsertLocalRoom } from "@/lib/roomSystemUnified";
+import { getRoom, joinRoom, upsertLocalRoom } from "@/lib/roomSystemUnified";
+import { USE_SERVER_SYNC } from "@/lib/serverSync";
 import type { Room, RoomResponse } from "@/types/room";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { apiJson } from "@/lib/api";
 
 export default function FriendJoinPage() {
   const router = useRouter();
+  const serverSyncEnabled = USE_SERVER_SYNC;
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
@@ -16,6 +18,55 @@ export default function FriendJoinPage() {
   useEffect(() => {
     document.title = 'ルーム参加 | Five Cucumber';
   }, []);
+
+  const joinFailureMessage = (reason?: string) => {
+    switch (reason) {
+      case 'not-found':
+        return serverSyncEnabled
+          ? 'ルーム番号が違います'
+          : 'この端末にローカルルームが見つかりません。別端末の友達と遊ぶにはサーバー同期設定が必要です。';
+      case 'full':
+        return 'この部屋はすでに定員です';
+      case 'locked':
+      case 'busy':
+        return '対戦中のため入室できません';
+      case 'expired':
+        return '部屋の有効期限が切れました';
+      case 'bad-request':
+        return 'ルーム番号の形式が正しくありません';
+      case 'no-shared-store':
+        return 'フレンド対戦のサーバー同期に必要な共有ストアが未設定です。ローカル確認ではサーバー同期をOFFにしてください。';
+      default:
+        return '参加に失敗しました';
+    }
+  };
+
+  const backendFailureMessage = (err: unknown) => {
+    if (err instanceof ApiRequestError) {
+      const body = err.response.data as RoomResponse | { reason?: string } | undefined;
+      if (err.response.status === 401) {
+        return 'サーバー同期に必要な認証設定が不足しています。フレンド対戦を公開環境で使うにはFirebase Admin設定が必要です。';
+      }
+      return joinFailureMessage(body?.reason);
+    }
+
+    const message = err instanceof Error ? err.message : String(err);
+    return `ネットワークエラーが発生しました${message ? ` (${message})` : ''}`;
+  };
+
+  const joinLocalRoom = (trimmedRoomCode: string, nickname: string) => {
+    const result = joinRoom(trimmedRoomCode, nickname);
+    if (!result.success || !result.roomId) {
+      setError(joinFailureMessage(result.reason));
+      return;
+    }
+
+    const localRoom = getRoom(result.roomId);
+    if (localRoom) {
+      upsertLocalRoom(localRoom);
+    }
+    router.push(`/friend/room/${result.roomId}`);
+  };
 
   const handleJoinRoom = async () => {
     const nickname = getNickname();
@@ -29,13 +80,20 @@ export default function FriendJoinPage() {
       return;
     }
 
+    const trimmedRoomCode = roomCode.trim();
+
     setIsJoining(true);
     setError(null);
 
     try {
+      if (!serverSyncEnabled) {
+        joinLocalRoom(trimmedRoomCode, nickname);
+        return;
+      }
+
       const data = await apiJson<RoomResponse>('/friend/join', {
         method: 'POST',
-        json: { roomId: roomCode.trim(), nickname },
+        json: { roomId: trimmedRoomCode, nickname },
       });
       if (data.ok && data.roomId) {
         try {
@@ -62,32 +120,10 @@ export default function FriendJoinPage() {
         } catch {}
         router.push(`/friend/room/${data.roomId}`);
       } else {
-        const reason = data.reason ?? 'unknown';
-        switch (reason) {
-          case 'not-found':
-            setError('ルーム番号が違います');
-            break;
-          case 'full':
-            setError('この部屋はすでに定員です');
-            break;
-          case 'locked':
-          case 'busy':
-            setError('対戦中のため入室できません');
-            break;
-          case 'expired':
-            setError('部屋の有効期限が切れました');
-            break;
-          case 'bad-request':
-            setError('ルーム番号の形式が正しくありません');
-            break;
-          default:
-            setError('参加に失敗しました');
-            break;
-        }
+        setError(joinFailureMessage(data.reason));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(`ネットワークエラーが発生しました${message ? ` (${message})` : ''}`);
+      setError(backendFailureMessage(err));
     } finally {
       setIsJoining(false);
     }

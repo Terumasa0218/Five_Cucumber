@@ -5,6 +5,7 @@ export interface Profile {
 }
 
 const PROFILE_KEY = 'five-cucumber-profile';
+export const PROFILE_UPDATED_EVENT = 'five-cucumber-profile-updated';
 
 // 許容文字の正規表現（半角英数字、ひらがな、カタカナ、漢字）
 const ALLOWED_CHARS = /^[A-Za-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF]+$/;
@@ -47,6 +48,7 @@ export function setProfile(profile: Profile): void {
   
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
   } catch {
     // エラーは無視
   }
@@ -111,4 +113,5 @@ export function resetProfile(): void {
   if (typeof window === 'undefined') return;
   
   localStorage.removeItem(PROFILE_KEY);
+  window.dispatchEvent(new Event(PROFILE_UPDATED_EVENT));
 }

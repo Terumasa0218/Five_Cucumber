@@ -1,9 +1,10 @@
 "use client";
 
 import { RoomSettingsForm } from "@/components/ui";
-import { apiJson } from "@/lib/api";
+import { apiJson, ApiRequestError } from "@/lib/api";
 import { getNickname } from "@/lib/profile";
-import { upsertLocalRoom } from "@/lib/roomSystemUnified";
+import { createRoom, getRoom, upsertLocalRoom } from "@/lib/roomSystemUnified";
+import { USE_SERVER_SYNC } from "@/lib/serverSync";
 import type { Room, RoomResponse } from "@/types/room";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -19,6 +20,8 @@ export default function FriendCreatePage() {
   type SettingKey = keyof FriendRoomSettings;
 
   type CreateRoomResponse = RoomResponse & { storage?: string };
+
+  const serverSyncEnabled = USE_SERVER_SYNC;
 
   const [settings, setSettings] = useState<FriendRoomSettings>({
     roomSize: 4,
@@ -55,6 +58,54 @@ export default function FriendCreatePage() {
     document.title = "ルーム作成 | Five Cucumber";
   }, []);
 
+  const roomFailureMessage = (reason?: string, detail?: unknown) => {
+    if (reason === "no-shared-store") {
+      return "フレンド対戦のサーバー同期に必要な共有ストアが未設定です。ローカル確認ではサーバー同期をOFFにしてください。";
+    }
+    if (reason === "bad-request" || reason === "invalid-json") {
+      return "ルーム設定に不正な値があります。設定を見直してください。";
+    }
+    if (reason === "kv-failed") {
+      return "共有ストアへの保存に失敗しました。KV/Redis設定を確認してください。";
+    }
+
+    const suffix = detail ? ` (${String(detail)})` : "";
+    return `ルーム作成に失敗しました${reason ? `: ${reason}` : ""}${suffix}`;
+  };
+
+  const backendFailureMessage = (err: unknown) => {
+    if (err instanceof ApiRequestError) {
+      const body = err.response.data as (RoomResponse & { error?: string }) | undefined;
+      if (err.response.status === 401) {
+        return "サーバー同期に必要な認証設定が不足しています。フレンド対戦を公開環境で使うにはFirebase Admin設定が必要です。";
+      }
+      return roomFailureMessage(body?.reason, body?.detail ?? body?.error);
+    }
+
+    const message = err instanceof Error ? err.message : String(err);
+    return `作成に失敗しました${message ? ` (${message})` : ""}`;
+  };
+
+  const createLocalRoom = (nickname: string) => {
+    const result = createRoom(
+      Number(settings.roomSize),
+      nickname,
+      Number(settings.turnSeconds),
+      Number(settings.maxCucumbers),
+    );
+
+    if (!result.success || !result.roomId) {
+      setError(roomFailureMessage(result.reason));
+      return;
+    }
+
+    const localRoom = getRoom(result.roomId);
+    if (localRoom) {
+      upsertLocalRoom(localRoom);
+    }
+    router.push(`/friend/room/${result.roomId}`);
+  };
+
   const handleCreateRoom = async () => {
     const nickname = getNickname();
     if (!nickname) {
@@ -66,6 +117,11 @@ export default function FriendCreatePage() {
     setError(null);
 
     try {
+      if (!serverSyncEnabled) {
+        createLocalRoom(nickname);
+        return;
+      }
+
       const payload = {
         roomSize: Number(settings.roomSize),
         nickname,
@@ -93,14 +149,10 @@ export default function FriendCreatePage() {
         } catch {}
         router.push(`/friend/room/${data.roomId}`);
       } else {
-        const reason = data?.reason || "unknown-error";
-        const detail = data?.detail ? ` (${data.detail})` : "";
-        setError(`ルーム作成に失敗しました: ${reason}${detail}`);
+        setError(roomFailureMessage(data?.reason, data?.detail));
       }
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      const msg = message ? ` (${message})` : "";
-      setError(`作成に失敗しました${msg}`);
+      setError(backendFailureMessage(e));
     } finally {
       setIsCreating(false);
     }
