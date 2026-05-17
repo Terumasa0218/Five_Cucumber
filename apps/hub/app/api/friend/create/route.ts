@@ -21,13 +21,11 @@ function parseNumberish(value: unknown): number | null {
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const auth = await verifyAuth(req);
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  console.info('[KV URL in runtime]', process.env.KV_REST_API_URL, process.env.UPSTASH_REDIS_REST_URL);
   try {
     // リクエストボディの取得と検証
     let body: CreateRoomRequest;
     try {
       const text = await req.text();
-      console.log('[API] Raw request body:', text);
       if (!text || text.trim() === '') {
         throw new Error('Empty request body');
       }

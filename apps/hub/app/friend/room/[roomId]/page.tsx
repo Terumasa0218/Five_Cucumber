@@ -219,6 +219,13 @@ export default function RoomWaitingPage() {
   const handleLeaveRoom = async () => {
     if (!nickname || !room) return;
     try {
+      if (!useServer) {
+        const { leaveRoom } = await import('@/lib/roomSystemUnified');
+        leaveRoom(roomId, nickname);
+        router.push('/home');
+        return;
+      }
+
       await apiJson<{ ok: boolean; reason?: string }>(`/friend/leave`, {
         method: 'POST',
         json: { roomId, nickname },
@@ -243,6 +250,11 @@ export default function RoomWaitingPage() {
       return;
     }
     try {
+      if (!useServer) {
+        setError('このローカルルームは待機画面の確認用です。別端末のフレンド対戦を開始するにはサーバー同期設定が必要です。');
+        return;
+      }
+
       await apiJson<{ ok: boolean }>(`/friend/status`, {
         method: 'POST',
         json: { roomId, status: 'playing' },

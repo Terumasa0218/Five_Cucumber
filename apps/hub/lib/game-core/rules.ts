@@ -71,11 +71,8 @@ export function determineTrickWinner(trickCards: Move[]): number {
 
 // 最終トリックのペナルティ計算
 export function calculateFinalTrickPenalty(trickCards: Move[], _config: GameConfig): { winner: number; penalty: number } {
-  console.log('[Penalty] Input trickCards:', JSON.stringify(trickCards));
   const playedCards = trickCards.filter(tc => !tc.isDiscard);
-  console.log('[Penalty] playedCards (after filter):', JSON.stringify(playedCards));
   if (playedCards.length === 0) {
-    console.log('[Penalty] Result: winner=', -1, 'penalty=', 0);
     return { winner: -1, penalty: 0 };
   }
 
@@ -84,7 +81,6 @@ export function calculateFinalTrickPenalty(trickCards: Move[], _config: GameConf
 
   const allPlayedOne = playedCards.every(tc => tc.card === 1);
   if (allPlayedOne) {
-    console.log('[Penalty] Result: winner=', winner, 'penalty=', 0);
     return { winner, penalty: 0 };
   }
 
@@ -94,7 +90,6 @@ export function calculateFinalTrickPenalty(trickCards: Move[], _config: GameConf
     penalty *= 2;
   }
 
-  console.log('[Penalty] Result: winner=', winner, 'penalty=', penalty);
   return { winner, penalty };
 }
 

@@ -2,6 +2,14 @@
 
 import { Room } from '@/types/room';
 
+const DEBUG_ROOM_SYSTEM = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
+
+function logRoomDebug(...args: unknown[]): void {
+  if (DEBUG_ROOM_SYSTEM) {
+    console.log(...args);
+  }
+}
+
 // サーバーサイド用メモリストレージ（グローバル）
 let serverRooms: Map<string, Room> | null = null;
 
@@ -12,8 +20,8 @@ export function getServerRoomsStorage(): Map<string, Room> {
   // グローバル変数が初期化されていない場合、必ず初期化する
   if (!serverRooms) {
     serverRooms = new Map();
-    console.log('[RoomSystem] Initialized server-side room storage');
-    console.log('[RoomSystem] Server rooms map created:', serverRooms);
+    logRoomDebug('[RoomSystem] Initialized server-side room storage');
+    logRoomDebug('[RoomSystem] Server rooms map created:', serverRooms);
   }
   return serverRooms;
 }
@@ -48,15 +56,15 @@ export function getRoomFromMemory(roomId: string): Room | null {
     throw new Error('This function is for server-side only');
   }
   const storage = getServerRoomsStorage();
-  console.log('[RoomSystem] Getting room from memory:', roomId);
-  console.log('[RoomSystem] Available rooms in memory:', Array.from(storage.keys()));
-  console.log('[RoomSystem] Storage size:', storage.size);
-  console.log('[RoomSystem] Storage object:', storage);
+  logRoomDebug('[RoomSystem] Getting room from memory:', roomId);
+  logRoomDebug('[RoomSystem] Available rooms in memory:', Array.from(storage.keys()));
+  logRoomDebug('[RoomSystem] Storage size:', storage.size);
+  logRoomDebug('[RoomSystem] Storage object:', storage);
 
   const room = storage.get(roomId);
-  console.log('[RoomSystem] Room found in memory:', room ? 'yes' : 'no');
+  logRoomDebug('[RoomSystem] Room found in memory:', room ? 'yes' : 'no');
   if (room) {
-    console.log('[RoomSystem] Room data:', JSON.stringify(room, null, 2));
+    logRoomDebug('[RoomSystem] Room data:', JSON.stringify(room, null, 2));
   }
 
   return room || null;
@@ -70,21 +78,21 @@ export function putRoomToMemory(room: Room): void {
     throw new Error('This function is for server-side only');
   }
   const storage = getServerRoomsStorage();
-  console.log('[RoomSystem] Saving room to memory:', room.id);
-  console.log('[RoomSystem] Room data:', JSON.stringify(room, null, 2));
-  console.log('[RoomSystem] Storage before save size:', storage.size);
-  console.log('[RoomSystem] Storage before save keys:', Array.from(storage.keys()));
+  logRoomDebug('[RoomSystem] Saving room to memory:', room.id);
+  logRoomDebug('[RoomSystem] Room data:', JSON.stringify(room, null, 2));
+  logRoomDebug('[RoomSystem] Storage before save size:', storage.size);
+  logRoomDebug('[RoomSystem] Storage before save keys:', Array.from(storage.keys()));
 
   storage.set(room.id, room);
-  console.log('[RoomSystem] Saved room to server memory:', room.id);
-  console.log('[RoomSystem] Current storage size:', storage.size);
-  console.log('[RoomSystem] Available rooms after save:', Array.from(storage.keys()));
+  logRoomDebug('[RoomSystem] Saved room to server memory:', room.id);
+  logRoomDebug('[RoomSystem] Current storage size:', storage.size);
+  logRoomDebug('[RoomSystem] Available rooms after save:', Array.from(storage.keys()));
 
   // デバッグ用: 保存されたルームの確認
   const savedRoom = storage.get(room.id);
-  console.log('[RoomSystem] Verification - saved room exists:', savedRoom ? 'yes' : 'no');
+  logRoomDebug('[RoomSystem] Verification - saved room exists:', savedRoom ? 'yes' : 'no');
   if (savedRoom) {
-    console.log('[RoomSystem] Verification - saved room data matches:', JSON.stringify(savedRoom) === JSON.stringify(room));
+    logRoomDebug('[RoomSystem] Verification - saved room data matches:', JSON.stringify(savedRoom) === JSON.stringify(room));
   }
 }
 
@@ -107,7 +115,7 @@ function getRoomsStorage(): Map<string, Room> {
   if (typeof window === 'undefined') {
     if (!serverRooms) {
       serverRooms = new Map();
-      console.log('[RoomSystem] Initialized server-side room storage');
+      logRoomDebug('[RoomSystem] Initialized server-side room storage');
     }
     return serverRooms;
   }
@@ -116,13 +124,13 @@ function getRoomsStorage(): Map<string, Room> {
   try {
     const stored = localStorage.getItem('five-cucumber-rooms-v2');
     if (!stored) {
-      console.log('[RoomSystem] No client-side room storage found');
+      logRoomDebug('[RoomSystem] No client-side room storage found');
       return new Map();
     }
     
     const roomsArray = JSON.parse(stored) as Array<[string, Room]>;
     const rooms = new Map(roomsArray);
-    console.log('[RoomSystem] Loaded client-side rooms:', rooms.size);
+    logRoomDebug('[RoomSystem] Loaded client-side rooms:', rooms.size);
     return rooms;
   } catch (error) {
     console.error('[RoomSystem] Failed to load client-side rooms:', error);
@@ -137,7 +145,7 @@ function saveRoomsToStorage(rooms: Map<string, Room>): void {
   // サーバーサイドはメモリに保存（既に参照で更新済み）
   if (typeof window === 'undefined') {
     serverRooms = rooms;
-    console.log('[RoomSystem] Saved server-side rooms:', rooms.size);
+    logRoomDebug('[RoomSystem] Saved server-side rooms:', rooms.size);
     return;
   }
   
@@ -145,7 +153,7 @@ function saveRoomsToStorage(rooms: Map<string, Room>): void {
   try {
     const roomsArray = Array.from(rooms.entries());
     localStorage.setItem('five-cucumber-rooms-v2', JSON.stringify(roomsArray));
-    console.log('[RoomSystem] Saved client-side rooms:', rooms.size);
+    logRoomDebug('[RoomSystem] Saved client-side rooms:', rooms.size);
   } catch (error) {
     console.error('[RoomSystem] Failed to save client-side rooms:', error);
   }
@@ -218,10 +226,10 @@ export function createRoom(roomSize: number, nickname: string, turnSeconds: numb
  */
 export function joinRoom(roomId: string, nickname: string): { success: boolean; roomId?: string; reason?: string } {
   try {
-    console.log(`[RoomSystem] Attempting to join room ${roomId} with nickname: ${nickname}`);
+    logRoomDebug(`[RoomSystem] Attempting to join room ${roomId} with nickname: ${nickname}`);
     
     if (!nickname || typeof nickname !== 'string' || !nickname.trim()) {
-      console.log('[RoomSystem] Invalid nickname provided');
+      logRoomDebug('[RoomSystem] Invalid nickname provided');
       return { success: false, reason: 'bad-request' };
     }
 
@@ -229,29 +237,29 @@ export function joinRoom(roomId: string, nickname: string): { success: boolean; 
     const room = rooms.get(roomId);
 
     if (!room) {
-      console.log(`[RoomSystem] Room ${roomId} not found`);
+      logRoomDebug(`[RoomSystem] Room ${roomId} not found`);
       return { success: false, reason: 'not-found' };
     }
 
     if (room.status !== 'waiting') {
-      console.log(`[RoomSystem] Room ${roomId} is not in waiting status: ${room.status}`);
+      logRoomDebug(`[RoomSystem] Room ${roomId} is not in waiting status: ${room.status}`);
       return { success: false, reason: 'locked' };
     }
 
     const trimmedNickname = nickname.trim();
-    console.log(`[RoomSystem] Room ${roomId} current seats:`, room.seats.map((s, i) => `${i}: ${s?.nickname || 'empty'}`));
+    logRoomDebug(`[RoomSystem] Room ${roomId} current seats:`, room.seats.map((s, i) => `${i}: ${s?.nickname || 'empty'}`));
 
     // 既に着席済み（同名）の場合はそのままOK（再入室）
     const existingIndex = room.seats.findIndex(s => s && s.nickname === trimmedNickname);
     if (existingIndex >= 0) {
-      console.log(`[RoomSystem] Player ${trimmedNickname} already in room at seat ${existingIndex}`);
+      logRoomDebug(`[RoomSystem] Player ${trimmedNickname} already in room at seat ${existingIndex}`);
       return { success: true, roomId };
     }
 
     // 空席検索して着席
     const emptyIndex = room.seats.findIndex(s => s === null);
     if (emptyIndex === -1) {
-      console.log(`[RoomSystem] Room ${roomId} is full`);
+      logRoomDebug(`[RoomSystem] Room ${roomId} is full`);
       return { success: false, reason: 'full' };
     }
 
@@ -259,7 +267,7 @@ export function joinRoom(roomId: string, nickname: string): { success: boolean; 
     rooms.set(roomId, room);
     saveRoomsToStorage(rooms);
 
-    console.log(`[RoomSystem] Player ${trimmedNickname} successfully joined room ${roomId} at seat ${emptyIndex}`);
+    logRoomDebug(`[RoomSystem] Player ${trimmedNickname} successfully joined room ${roomId} at seat ${emptyIndex}`);
     return { success: true, roomId };
   } catch (error) {
     console.error('Room join error:', error);

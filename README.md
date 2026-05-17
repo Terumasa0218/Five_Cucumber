@@ -15,6 +15,7 @@ Use these documents as the current source of truth:
 - `docs/product-spec.md` - current product specification
 - `docs/work-plan.md` - implementation phases and task order
 - `docs/rules/cucumber5.md` - game rule specification
+- `docs/local-playability.md` - local backend fallback and server-sync behavior
 
 Older investigation notes, legacy flow descriptions, and `.docx` proposal files remain as historical reference only. When they conflict with the canonical docs above, follow the canonical docs.
 
@@ -124,6 +125,8 @@ git diff --check
 
 ## Environment Notes
 
+CPU play and local profile setup should work without Firebase Admin, KV, Redis, or Ably. Friend rooms use a localStorage review mode when server sync is disabled, but real multi-device friend matches require authenticated requests and a shared store.
+
 Friend room APIs currently depend on authenticated requests and a shared store for full server-side operation. Relevant environment areas include:
 
 - `NEXT_PUBLIC_FIREBASE_*`
@@ -135,6 +138,7 @@ Friend room APIs currently depend on authenticated requests and a shared store f
 - `NEXT_PUBLIC_USE_SERVER`
 
 See `docs/deploy/` and `docs/ai-assisted-development-setup.md` for operational details.
+See `docs/local-playability.md` for the expected local fallback behavior.
 
 ## Development Policy
 

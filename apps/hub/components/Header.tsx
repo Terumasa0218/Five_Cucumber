@@ -1,5 +1,5 @@
 'use client';
-import { getNickname } from '@/lib/profile';
+import { getNickname, PROFILE_UPDATED_EVENT } from '@/lib/profile';
 import { t } from '@/lib/i18n';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -20,8 +20,12 @@ export default function Header(){
     };
     
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    window.addEventListener(PROFILE_UPDATED_EVENT, handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(PROFILE_UPDATED_EVENT, handleStorageChange);
+    };
+  }, [pathname]);
 
   if (pathname?.startsWith('/home')) {
     return null;
