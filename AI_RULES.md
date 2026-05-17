@@ -64,7 +64,7 @@ Before making changes, the AI agent must:
 2. Read `AI_RULES.md`.
 3. Read `WORKFLOW.md` if present.
 4. Read `PLAN.md` if present.
-5. Read `README.md` and relevant files under `docs/` when the task affects product behavior, implementation direction, deployment, or validation.
+5. Read `README.md`, `docs/product-spec.md`, `docs/work-plan.md`, and `docs/rules/cucumber5.md` when the task affects product behavior, implementation direction, gameplay, deployment, or validation.
 6. Confirm the current working directory is the repository root.
 7. Confirm the canonical remote with `git remote -v`.
 8. Run `git status --short`.
