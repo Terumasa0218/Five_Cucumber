@@ -64,6 +64,26 @@ describe('determineTrickWinner', () => {
 
     expect(determineTrickWinner(trick)).toBe(3);
   });
+
+  it('捨てカードは勝者判定に参加しない', () => {
+    const trick: Move[] = [
+      { player: 0, card: 14, timestamp: 1 },
+      { player: 1, card: 15, timestamp: 2, isDiscard: true },
+      { player: 2, card: 11, timestamp: 3 },
+      { player: 3, card: 14, timestamp: 4 },
+    ];
+
+    expect(determineTrickWinner(trick)).toBe(3);
+  });
+
+  it('勝者判定対象がない場合は-1を返す', () => {
+    const trick: Move[] = [
+      { player: 0, card: 1, timestamp: 1, isDiscard: true },
+      { player: 1, card: 2, timestamp: 2, isDiscard: true },
+    ];
+
+    expect(determineTrickWinner(trick)).toBe(-1);
+  });
 });
 
 describe('getLegalMoves', () => {
@@ -92,6 +112,33 @@ describe('getLegalMoves', () => {
     };
 
     expect(getLegalMoves(state, 0)).toEqual([2, 5]);
+  });
+
+  it('場のカードがある場合は場以上のカードと手札の最小カードを返す', () => {
+    const state = {
+      players: [
+        { hand: [1, 9, 12], cucumbers: 0, graveyard: [] },
+        { hand: [3], cucumbers: 0, graveyard: [] },
+        { hand: [4], cucumbers: 0, graveyard: [] },
+        { hand: [6], cucumbers: 0, graveyard: [] },
+      ],
+      currentPlayer: 0,
+      currentRound: 1,
+      currentTrick: 2,
+      fieldCard: 10,
+      sharedGraveyard: [],
+      trickCards: [],
+      actionCount: 0,
+      firstPlayer: 0,
+      isGameOver: false,
+      gameOverPlayers: [],
+      remainingCards: [],
+      cardCounts: [],
+      phase: 'AwaitMove' as const,
+      isFinalTrick: false,
+    };
+
+    expect(getLegalMoves(state, 0)).toEqual([12, 1]);
   });
 });
 

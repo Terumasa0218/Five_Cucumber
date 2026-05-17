@@ -53,20 +53,21 @@ export function getLegalMoves(state: GameState, player: number): number[] {
 
 // トリックの勝者を決定
 export function determineTrickWinner(trickCards: Move[]): number {
-  if (trickCards.length === 0) return -1;
+  const playedCards = trickCards.filter(trickCard => !trickCard.isDiscard);
+  if (playedCards.length === 0) return -1;
 
   let winnerIndex = 0;
-  let highestValue = trickCards[0].card;
+  let highestValue = playedCards[0].card;
 
-  for (let i = 1; i < trickCards.length; i++) {
+  for (let i = 1; i < playedCards.length; i++) {
     // 同値の場合は後から出したカードを勝者として上書きする
-    if (trickCards[i].card >= highestValue) {
-      highestValue = trickCards[i].card;
+    if (playedCards[i].card >= highestValue) {
+      highestValue = playedCards[i].card;
       winnerIndex = i;
     }
   }
 
-  return trickCards[winnerIndex].player;
+  return playedCards[winnerIndex].player;
 }
 
 // 最終トリックのペナルティ計算
