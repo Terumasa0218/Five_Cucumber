@@ -62,6 +62,7 @@ Goal: make friend-room play reliable enough for real users.
 Tasks:
 
 - Confirm the server-source-of-truth strategy: KV, Redis, polling, Ably, or a combination.
+  - Phase 3 MVP decision: room metadata lives in shared KV, game updates go through the friend game API, clients poll authoritative snapshots, and Ably is optional acceleration.
 - Verify room creation, join, waiting room, start, play, and game-over flow with two browser sessions.
 - Ensure room IDs, copy text, and validation all use the same 6-digit rule.
 - Clarify host-only actions and non-host behavior.

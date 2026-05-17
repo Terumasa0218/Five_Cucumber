@@ -3,12 +3,20 @@ import * as Ably from 'ably';
 import type { Types } from 'ably';
 import { apiJson } from '@/lib/api';
 
+const DEBUG_ROOMS = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
+const debugLog = (...args: unknown[]) => {
+  if (DEBUG_ROOMS) console.log(...args);
+};
+const debugWarn = (...args: unknown[]) => {
+  if (DEBUG_ROOMS) console.warn(...args);
+};
+
 type AblyTokenResponse =
   | { ok: true; token: Types.TokenRequest }
   | { ok: false; reason: string; message?: string };
 
 export function makeClient(clientId: string, channelName: string): Types.RealtimePromise {
-  console.log('[Ably] Creating client for user:', clientId, 'channel:', channelName);
+  debugLog('[Ably] Creating client for user:', clientId, 'channel:', channelName);
 
   const authCallback: NonNullable<Types.AuthOptions['authCallback']> = async (_tokenParams, callback) => {
     try {
@@ -19,7 +27,7 @@ export function makeClient(clientId: string, channelName: string): Types.Realtim
       }
       callback(null, data.token);
     } catch (error) {
-      console.error('[Ably] authCallback error:', error);
+      debugWarn('[Ably] authCallback error:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       callback(errorMessage, null);
     }
@@ -47,23 +55,23 @@ export function makeClient(clientId: string, channelName: string): Types.Realtim
 
   // 接続状態を監視
   client.connection.on('connecting', () => {
-    console.log('[Ably] Connecting...');
+    debugLog('[Ably] Connecting...');
   });
 
   client.connection.on('connected', () => {
-    console.log('[Ably] Connected successfully');
+    debugLog('[Ably] Connected successfully');
   });
 
   client.connection.on('failed', (stateChange) => {
-    console.error('[Ably] Connection failed:', stateChange.reason);
+    debugWarn('[Ably] Connection failed:', stateChange.reason);
   });
 
   client.connection.on('disconnected', () => {
-    console.warn('[Ably] Disconnected - will auto-reconnect');
+    debugWarn('[Ably] Disconnected - will auto-reconnect');
   });
 
   client.connection.on('suspended', () => {
-    console.warn('[Ably] Connection suspended - will retry');
+    debugWarn('[Ably] Connection suspended - will retry');
   });
 
   return client;

@@ -1,6 +1,7 @@
 import { kv } from '@vercel/kv';
 
 export const redis = kv;
+const DEBUG_ROOMS = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
 
 // Vercel KVが利用できない場合のフォールバック
 export const isRedisAvailable = () => {
@@ -8,7 +9,9 @@ export const isRedisAvailable = () => {
   const hasUrl = !!process.env.KV_REST_API_URL || !!process.env.VERCEL_REDIS_URL;
   const hasToken = !!process.env.KV_REST_API_TOKEN || !!process.env.VERCEL_REDIS_TOKEN;
   const enabled = hasUrl && hasToken;
-  console.log('[Redis] KV availability:', { hasUrl, hasToken, enabled, nodeEnv: process.env.NODE_ENV });
+  if (DEBUG_ROOMS) {
+    console.log('[Redis] KV availability:', { hasUrl, hasToken, enabled, nodeEnv: process.env.NODE_ENV });
+  }
   return enabled;
 };
 

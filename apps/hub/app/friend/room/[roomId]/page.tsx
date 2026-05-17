@@ -3,8 +3,7 @@
 import { FriendRoomLayout, PlayerSeatGrid, RoomActionBar, RoomSummaryCard } from "@/components/ui";
 import { apiJson, apiRequest, ApiRequestError } from "@/lib/api";
 import { getNickname } from "@/lib/profile";
-import { getClientAuthUid } from '@/lib/clientAuth';
-import { makeClient } from "@/lib/realtime-client";
+import { normalizeRoomId } from "@/lib/friend-room";
 import { getRoom as getLocalRoom } from "@/lib/roomSystemUnified";
 import { USE_SERVER_SYNC } from "@/lib/serverSync";
 import type { Room, RoomResponse } from "@/types/room";
@@ -18,7 +17,7 @@ export default function RoomWaitingPage() {
   const useServer = USE_SERVER_SYNC;
   const params = useParams();
   const router = useRouter();
-  const roomId = params.roomId as string;
+  const roomId = normalizeRoomId(params.roomId);
   const [room, setRoom] = useState<Room | null>(null);
   const [nickname, setNickname] = useState<string | null>(null);
   const [isInRoom, setIsInRoom] = useState(false);
@@ -26,6 +25,13 @@ export default function RoomWaitingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const debugRooms = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
+  const debugLog = (...args: unknown[]) => {
+    if (debugRooms) console.log(...args);
+  };
+  const debugWarn = (...args: unknown[]) => {
+    if (debugRooms) console.warn(...args);
+  };
 
   useEffect(() => {
     document.title = `ルーム ${roomId} | Five Cucumber`;
@@ -60,7 +66,7 @@ export default function RoomWaitingPage() {
             const controller = new AbortController();
             timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒タイムアウト
 
-            const response = await apiRequest<RoomResponse>(`/friend/room/${roomId}`, {
+            const response = await apiRequest<RoomResponse>(`/api/friend/room/${roomId}`, {
               signal: controller.signal,
               headers: {
                 'Cache-Control': 'no-cache',
@@ -88,7 +94,7 @@ export default function RoomWaitingPage() {
               setError('ルーム情報の取得に失敗しました');
             }
           } catch (err) {
-            console.error('Room fetch error:', err);
+            debugWarn('Room fetch error:', err);
             if (err instanceof DOMException && err.name === 'AbortError') {
               setError('リクエストがタイムアウトしました。ネットワーク状況を確認してください。');
             } else if (err instanceof ApiRequestError && err.response.status === 404) {
@@ -108,7 +114,7 @@ export default function RoomWaitingPage() {
 
             // スマホでのネットワーク不安定さを考慮してリトライ
             if (retryCount < 2) {
-              console.log(`Room fetch retry ${retryCount + 1}/2`);
+              debugLog(`Room fetch retry ${retryCount + 1}/2`);
               setTimeout(() => fetchRoom(retryCount + 1), 1000);
               return;
             }
@@ -125,7 +131,7 @@ export default function RoomWaitingPage() {
         // スマホ対応: User-Agentを確認
         const userAgent = navigator.userAgent;
         const isMobile = /Mobile|iP(hone|od|ad)|Android|BlackBerry|IEMobile/.test(userAgent);
-        console.log('[RoomPage] User agent:', userAgent, 'Mobile:', isMobile);
+        debugLog('[RoomPage] User agent:', userAgent, 'Mobile:', isMobile);
 
         const pollInterval: ReturnType<typeof setInterval> | undefined = useServer
           ? setInterval(() => fetchRoom(), isMobile ? 2000 : 3000)
@@ -134,7 +140,7 @@ export default function RoomWaitingPage() {
         // デバッグ用: サーバーメモリの状況を確認
         if (useServer) {
           fetchRoom().then(() => {
-            console.log('[RoomPage] Initial fetch completed');
+            debugLog('[RoomPage] Initial fetch completed');
           });
         }
 
@@ -142,43 +148,47 @@ export default function RoomWaitingPage() {
         if (useServer && currentNickname) {
           (async () => {
             try {
+              const [{ getClientAuthUid }, { makeClient }] = await Promise.all([
+                import('@/lib/clientAuth'),
+                import('@/lib/realtime-client'),
+              ]);
               const authUid = await getClientAuthUid();
               const channelName = `room-${roomId}-user-${currentNickname}`;
-              console.log(`[RoomPage] Initializing Ably client for room: ${roomId}, user: ${currentNickname}, authUid: ${authUid}, mobile: ${isMobile}`);
+              debugLog(`[RoomPage] Initializing Ably client for room: ${roomId}, user: ${currentNickname}, authUid: ${authUid}, mobile: ${isMobile}`);
 
               const ablyClient = makeClient(authUid, channelName);
               const channel = ablyClient.channels.get(channelName);
 
             // スマホ対応: チャネル状態を監視
             channel.on('attaching', () => {
-              console.log('[RoomPage] Ably channel attaching...');
+              debugLog('[RoomPage] Ably channel attaching...');
             });
 
             channel.on('attached', () => {
-              console.log('[RoomPage] Ably channel attached successfully');
+              debugLog('[RoomPage] Ably channel attached successfully');
             });
 
             channel.on('failed', (stateChange: Types.ChannelStateChange) => {
-              console.error('[RoomPage] Ably channel failed:', stateChange.reason);
+              debugWarn('[RoomPage] Ably channel failed:', stateChange.reason);
               // スマホではAblyが失敗しやすいので、警告を表示
               if (isMobile) {
-                console.warn('[RoomPage] Ably failed on mobile - relying on polling fallback');
+                debugWarn('[RoomPage] Ably failed on mobile - relying on polling fallback');
               }
             });
 
             channel.subscribe('room_updated', (message: Types.Message) => {
-              console.log('[RoomPage] Received room_updated event:', message.data);
+              debugLog('[RoomPage] Received room_updated event:', message.data);
               const { room: updatedRoom, event, joinedPlayer } = message.data;
 
               if (updatedRoom) {
-                console.log('[RoomPage] Updating room state with new data:', updatedRoom);
+                debugLog('[RoomPage] Updating room state with new data:', updatedRoom);
                 setRoom(updatedRoom);
 
                 const isParticipating = updatedRoom.seats.some((seat: Room['seats'][number]) => seat?.nickname === currentNickname);
                 setIsInRoom(isParticipating);
 
                 if (event === 'player_joined' && joinedPlayer) {
-                  console.log(`[RoomPage] Player ${joinedPlayer} joined the room`);
+                  debugLog(`[RoomPage] Player ${joinedPlayer} joined the room`);
                   // スマホでは通知を表示してユーザーに知らせる
                   if (isMobile && 'Notification' in window && Notification.permission === 'granted') {
                     new Notification('Five Cucumber', {
@@ -189,13 +199,13 @@ export default function RoomWaitingPage() {
               }
             });
 
-            console.log(`[RoomPage] Subscribed to room updates for room: ${roomId}, user: ${currentNickname}`);
+            debugLog(`[RoomPage] Subscribed to room updates for room: ${roomId}, user: ${currentNickname}`);
 
             } catch (error) {
-              console.error('[RoomPage] Failed to initialize Ably client:', error);
+              debugWarn('[RoomPage] Failed to initialize Ably client:', error);
               // スマホではAblyが失敗しやすいので、警告を表示
               if (isMobile) {
-                console.warn('[RoomPage] Ably initialization failed on mobile - relying on polling fallback');
+                debugWarn('[RoomPage] Ably initialization failed on mobile - relying on polling fallback');
               }
             }
           })();
@@ -226,12 +236,12 @@ export default function RoomWaitingPage() {
         return;
       }
 
-      await apiJson<{ ok: boolean; reason?: string }>(`/friend/leave`, {
+      await apiJson<{ ok: boolean; reason?: string }>(`/api/friend/leave`, {
         method: 'POST',
         json: { roomId, nickname },
       });
     } catch (err) {
-      console.error('Leave room error:', err);
+      debugWarn('Leave room error:', err);
     } finally {
       router.push('/home');
     }
@@ -255,23 +265,14 @@ export default function RoomWaitingPage() {
         return;
       }
 
-      await apiJson<{ ok: boolean }>(`/friend/status`, {
+      await apiJson<{ ok: boolean; reason?: string }>(`/api/friend/status`, {
         method: 'POST',
-        json: { roomId, status: 'playing' },
+        json: { roomId, status: 'playing', nickname },
       });
       router.push(`/friend/play/${roomId}`);
     } catch (err) {
-      console.error('Start game error, fallback to local:', err);
-      try {
-        const { updateRoomStatus, getRoom, upsertLocalRoom } = await import('@/lib/roomSystemUnified');
-        updateRoomStatus(roomId, 'playing');
-        const local = getRoom(roomId);
-        if (local) {
-          const updatedRoom: Room = { ...local, status: 'playing' };
-          upsertLocalRoom(updatedRoom);
-        }
-      } catch {}
-      router.push(`/friend/play/${roomId}`);
+      debugWarn('Start game error:', err);
+      setError('ゲーム開始に失敗しました。認証、共有ストア、または参加者状態を確認してください。');
     }
   };
 
@@ -282,7 +283,7 @@ export default function RoomWaitingPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.warn('Copy room id failed:', err);
+      debugWarn('Copy room id failed:', err);
     }
   };
 

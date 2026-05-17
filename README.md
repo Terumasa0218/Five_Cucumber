@@ -15,6 +15,7 @@ Use these documents as the current source of truth:
 - `docs/product-spec.md` - current product specification
 - `docs/work-plan.md` - implementation phases and task order
 - `docs/rules/cucumber5.md` - game rule specification
+- `docs/friend-match-sync.md` - friend-room synchronization strategy
 - `docs/local-playability.md` - local backend fallback and server-sync behavior
 
 Older investigation notes, legacy flow descriptions, and `.docx` proposal files remain as historical reference only. When they conflict with the canonical docs above, follow the canonical docs.

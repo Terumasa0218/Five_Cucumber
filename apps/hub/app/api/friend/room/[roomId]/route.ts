@@ -7,6 +7,7 @@ import { kv, roomTTL } from '@/lib/kv';
 import { NextResponse } from 'next/server';
 import type { Room } from '@/types/room';
 import { verifyAuth } from '@/lib/auth';
+import { normalizeRoomId } from '@/lib/friend-room';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
@@ -14,7 +15,10 @@ const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalida
 export async function GET(req: Request, { params }: { params: { roomId: string } }) {
   const auth = await verifyAuth(req);
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const id = String(params.roomId);
+  const id = normalizeRoomId(params.roomId);
+  if (id.length !== 6) {
+    return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400, headers: noStore });
+  }
   try {
     const room = await kv.get<Room>(keyOf(id));
     if (!room) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { apiJson, ApiRequestError } from "@/lib/api";
+import { normalizeRoomId } from "@/lib/friend-room";
 import { getNickname } from "@/lib/profile";
 import { getRoom, joinRoom, upsertLocalRoom } from "@/lib/roomSystemUnified";
 import { USE_SERVER_SYNC } from "@/lib/serverSync";
@@ -80,7 +81,11 @@ export default function FriendJoinPage() {
       return;
     }
 
-    const trimmedRoomCode = roomCode.trim();
+    const trimmedRoomCode = normalizeRoomId(roomCode);
+    if (trimmedRoomCode.length !== 6) {
+      setError('ルーム番号の形式が正しくありません');
+      return;
+    }
 
     setIsJoining(true);
     setError(null);
@@ -91,7 +96,7 @@ export default function FriendJoinPage() {
         return;
       }
 
-      const data = await apiJson<RoomResponse>('/friend/join', {
+      const data = await apiJson<RoomResponse>('/api/friend/join', {
         method: 'POST',
         json: { roomId: trimmedRoomCode, nickname },
       });
@@ -101,7 +106,7 @@ export default function FriendJoinPage() {
             upsertLocalRoom(data.room);
           } else {
             // 追加取得で保存を試みる
-            const rd = await apiJson<RoomResponse>(`/friend/room/${data.roomId}`);
+            const rd = await apiJson<RoomResponse>(`/api/friend/room/${data.roomId}`);
             if (rd.ok && rd.room) {
               upsertLocalRoom(rd.room);
             } else {

@@ -23,6 +23,7 @@ Unity and Blender remain deferred. Do not add Unity or Blender files during ordi
 - `docs/product-spec.md`
 - `docs/work-plan.md`
 - `docs/rules/cucumber5.md`
+- `docs/friend-match-sync.md`
 - `docs/deprecated-docs.md`
 - `AGENTS.md`
 - `AI_RULES.md`
@@ -54,7 +55,7 @@ See `docs/work-plan.md` for details.
 
 ## Near-Term Priority
 
-Complete the Phase 2 review gate, then start Phase 3 Friend Match MVP only after user confirmation.
+Finish Phase 3 Friend Match MVP, then stop for user review before starting Phase 4.
 
 ## Open Decisions
 

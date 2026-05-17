@@ -1,5 +1,11 @@
 // 統一されたルームシステム（クライアント・サーバー両対応）
 
+import {
+  createFriendRoom,
+  joinRoomSnapshot,
+  normalizeFriendRoomSettings,
+  normalizeNickname,
+} from '@/lib/friend-room';
 import { Room } from '@/types/room';
 
 const DEBUG_ROOM_SYSTEM = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
@@ -179,37 +185,23 @@ function generateRoomId(): string {
 }
 
 /**
- * 数値を指定範囲内にクランプ
- */
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
-/**
  * ルームを作成（作成者は seats[0] に固定配置）
  */
 export function createRoom(roomSize: number, nickname: string, turnSeconds: number = 15, maxCucumbers: number = 6): { success: boolean; roomId?: string; reason?: string } {
   try {
-    if (!nickname || typeof nickname !== 'string' || !nickname.trim()) {
+    const trimmedNickname = normalizeNickname(nickname);
+    if (!trimmedNickname) {
       return { success: false, reason: 'bad-request' };
     }
 
-    const size = clamp(roomSize, 2, 6);
     const rooms = getRoomsStorage();
     const id = generateRoomId();
-
-    const room: Room = {
+    const settings = normalizeFriendRoomSettings({ roomSize, turnSeconds, maxCucumbers });
+    const room = createFriendRoom({
       id,
-      size,
-      seats: Array.from({ length: size }, () => null),
-      status: 'waiting',
-      createdAt: Date.now(),
-      turnSeconds: Math.max(0, turnSeconds),
-      maxCucumbers: clamp(maxCucumbers, 4, 7)
-    };
-
-    // ★ 作成者は必ず先頭席（seats[0]）に配置
-    room.seats[0] = { nickname: nickname.trim() };
+      nickname: trimmedNickname,
+      ...settings,
+    });
 
     rooms.set(id, room);
     saveRoomsToStorage(rooms);
@@ -227,47 +219,25 @@ export function createRoom(roomSize: number, nickname: string, turnSeconds: numb
 export function joinRoom(roomId: string, nickname: string): { success: boolean; roomId?: string; reason?: string } {
   try {
     logRoomDebug(`[RoomSystem] Attempting to join room ${roomId} with nickname: ${nickname}`);
-    
-    if (!nickname || typeof nickname !== 'string' || !nickname.trim()) {
+
+    const trimmedNickname = normalizeNickname(nickname);
+    if (!trimmedNickname) {
       logRoomDebug('[RoomSystem] Invalid nickname provided');
       return { success: false, reason: 'bad-request' };
     }
 
     const rooms = getRoomsStorage();
     const room = rooms.get(roomId);
-
-    if (!room) {
-      logRoomDebug(`[RoomSystem] Room ${roomId} not found`);
-      return { success: false, reason: 'not-found' };
+    const result = joinRoomSnapshot(room ?? null, trimmedNickname);
+    if (!result.ok) {
+      logRoomDebug(`[RoomSystem] Room join failed: ${result.reason}`);
+      return { success: false, reason: result.reason };
     }
 
-    if (room.status !== 'waiting') {
-      logRoomDebug(`[RoomSystem] Room ${roomId} is not in waiting status: ${room.status}`);
-      return { success: false, reason: 'locked' };
-    }
-
-    const trimmedNickname = nickname.trim();
-    logRoomDebug(`[RoomSystem] Room ${roomId} current seats:`, room.seats.map((s, i) => `${i}: ${s?.nickname || 'empty'}`));
-
-    // 既に着席済み（同名）の場合はそのままOK（再入室）
-    const existingIndex = room.seats.findIndex(s => s && s.nickname === trimmedNickname);
-    if (existingIndex >= 0) {
-      logRoomDebug(`[RoomSystem] Player ${trimmedNickname} already in room at seat ${existingIndex}`);
-      return { success: true, roomId };
-    }
-
-    // 空席検索して着席
-    const emptyIndex = room.seats.findIndex(s => s === null);
-    if (emptyIndex === -1) {
-      logRoomDebug(`[RoomSystem] Room ${roomId} is full`);
-      return { success: false, reason: 'full' };
-    }
-
-    room.seats[emptyIndex] = { nickname: trimmedNickname };
-    rooms.set(roomId, room);
+    rooms.set(roomId, result.room);
     saveRoomsToStorage(rooms);
 
-    logRoomDebug(`[RoomSystem] Player ${trimmedNickname} successfully joined room ${roomId} at seat ${emptyIndex}`);
+    logRoomDebug(`[RoomSystem] Player ${trimmedNickname} successfully joined room ${roomId} at seat ${result.seatIndex}`);
     return { success: true, roomId };
   } catch (error) {
     console.error('Room join error:', error);
