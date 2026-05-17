@@ -5,6 +5,7 @@ export const revalidate = 0;
 import { kvGetJSON, kvSaveJSON, roomTTL } from '@/lib/kv';
 import { withLock } from '@/lib/lock';
 import { realtime } from '@/lib/realtime';
+import { joinRoomSnapshot, normalizeNickname, normalizeRoomId } from '@/lib/friend-room';
 import { Room, RoomSeat } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
@@ -27,34 +28,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   try {
     const raw = (await req.json()) as JoinRoomPayload;
-    const nicknameInput = typeof raw.nickname === 'string' ? raw.nickname.trim() : '';
+    const nicknameInput = normalizeNickname(raw.nickname);
     const roomIdCandidate = raw.roomId ?? raw.code ?? raw.roomCode;
-    const roomId = roomIdCandidate === undefined || roomIdCandidate === null ? '' : String(roomIdCandidate).trim();
+    const roomId = normalizeRoomId(roomIdCandidate);
 
-    if (!nicknameInput || !roomId) {
+    if (!nicknameInput || roomId.length !== 6) {
       return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400, headers: noStore });
     }
 
     const { room, status } = await withLock(`friend-room:${roomId}`, async () => {
       const room = await kvGetJSON<Room>(keyOf(roomId));
-      if (!room) {
-        return { status: 'not-found' as const };
-      }
-      if (room.status !== 'waiting') {
-        return { status: 'locked' as const };
+      const result = joinRoomSnapshot(room, nicknameInput);
+      if (!result.ok) {
+        return { status: result.reason };
       }
 
-      const already = room.seats.some((seat) => seat?.nickname === nicknameInput);
-      if (!already) {
-        const emptyIndex = room.seats.findIndex((seat) => seat === null);
-        if (emptyIndex === -1) {
-          return { status: 'full' as const };
-        }
-        room.seats[emptyIndex] = { nickname: nicknameInput };
-      }
-
-      await kvSaveJSON(keyOf(roomId), room, roomTTL);
-      return { status: 'ok' as const, room };
+      await kvSaveJSON(keyOf(roomId), result.room, roomTTL);
+      return { status: 'ok' as const, room: result.room };
     }, { retry: 2, retryDelayMs: 100 });
 
     if (status === 'not-found') {
@@ -65,6 +55,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
     if (status === 'full') {
       return NextResponse.json({ ok: false, reason: 'full' }, { status: 409, headers: noStore });
+    }
+    if (!room) {
+      return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400, headers: noStore });
     }
 
     try {

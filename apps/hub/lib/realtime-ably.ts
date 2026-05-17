@@ -2,6 +2,13 @@ import Ably from 'ably/promises';
 import type { RealtimeAdapter } from './realtime-adapter';
 
 let restInstance: InstanceType<typeof Ably.Rest> | null = null;
+const DEBUG_ROOMS = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
+const debugLog = (...args: unknown[]) => {
+  if (DEBUG_ROOMS) console.log(...args);
+};
+const debugWarn = (...args: unknown[]) => {
+  if (DEBUG_ROOMS) console.warn(...args);
+};
 
 function getRest(): InstanceType<typeof Ably.Rest> {
   if (!process.env.ABLY_API_KEY) {
@@ -9,7 +16,7 @@ function getRest(): InstanceType<typeof Ably.Rest> {
   }
 
   if (!restInstance) {
-    console.log('[Ably] Initializing Ably REST client');
+    debugLog('[Ably] Initializing Ably REST client');
     restInstance = new Ably.Rest(process.env.ABLY_API_KEY);
   }
   return restInstance;
@@ -20,20 +27,20 @@ export const ablyAdapter: RealtimeAdapter = {
     try {
       const rest = getRest();
       const channel = rest.channels.get(`room-${roomId}-user-${uid}`);
-      console.log('[Ably] Publishing to user channel:', roomId, uid, event);
+      debugLog('[Ably] Publishing to user channel:', roomId, uid, event);
       await channel.publish(event, payload);
     } catch (error) {
-      console.error('[Ably] Failed to publish to user via room channel:', error);
+      debugWarn('[Ably] Failed to publish to user via room channel:', error);
       throw error;
     }
   },
   async publishToMany(roomId, uids, event, build) {
     try {
       const rest = getRest();
-      console.log('[Ably] Publishing to many user channels:', roomId, uids.length, event);
+      debugLog('[Ably] Publishing to many user channels:', roomId, uids.length, event);
 
       if (uids.length === 0) {
-        console.log('[Ably] No users to publish to, skipping');
+        debugLog('[Ably] No users to publish to, skipping');
         return;
       }
 
@@ -44,10 +51,10 @@ export const ablyAdapter: RealtimeAdapter = {
         })
       );
 
-      console.log('[Ably] Successfully published to user channels');
+      debugLog('[Ably] Successfully published to user channels');
     } catch (error) {
-      console.error('[Ably] Failed to publish to room channel:', error);
-      console.warn('[Ably] Some publishes may have failed, but continuing...');
+      debugWarn('[Ably] Failed to publish to room channel:', error);
+      debugWarn('[Ably] Some publishes may have failed, but continuing...');
     }
   },
 };

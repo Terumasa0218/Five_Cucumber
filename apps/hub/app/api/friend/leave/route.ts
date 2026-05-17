@@ -5,6 +5,7 @@ import type { Room, RoomSeat } from '@/types/room';
 import { kvGetJSON, kvSaveJSON, roomTTL } from '@/lib/kv';
 import { verifyAuth } from '@/lib/auth';
 import { withLock } from '@/lib/lock';
+import { normalizeNickname, normalizeRoomId } from '@/lib/friend-room';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 
@@ -24,10 +25,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     const body = (await req.json()) as LeaveRoomPayload;
-    const roomId = typeof body.roomId === 'string' ? body.roomId.trim() : '';
-    const nickname = typeof body.nickname === 'string' ? body.nickname.trim() : '';
+    const roomId = normalizeRoomId(body.roomId);
+    const nickname = normalizeNickname(body.nickname);
 
-    if (!roomId || !nickname) {
+    if (roomId.length !== 6 || !nickname) {
       return json({ ok: false, reason: 'bad-request' }, 400);
     }
 

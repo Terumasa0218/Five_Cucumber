@@ -5,6 +5,7 @@ import { BattleHud, EllipseTable, Timer } from '@/components/ui';
 import PageBackground from '@/components/ui/PageBackground';
 import { BACKGROUNDS } from '@/lib/backgrounds';
 import { apiJson, apiRequest } from '@/lib/api';
+import { normalizeRoomId } from '@/lib/friend-room';
 import {
   GameConfig,
   GameState,
@@ -26,7 +27,7 @@ import '../../../cucumber/cpu/play/game.css';
 function FriendPlayContent() {
   const params = useParams();
   const router = useRouter();
-  const roomCode = params.roomCode as string;
+  const roomCode = normalizeRoomId(params.roomCode);
 
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [gameOver, setGameOver] = useState(false);
@@ -54,6 +55,10 @@ function FriendPlayContent() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastVersionRef = useRef<number>(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const debugRooms = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
+  const debugWarn = (...args: unknown[]) => {
+    if (debugRooms) console.warn(...args);
+  };
 
   type FriendGameResponse = { ok: true; snapshot: GameSnapshot } | { ok: false; reason: string };
   type UpdateStatusResponse = { ok: boolean; reason?: string };
@@ -106,7 +111,7 @@ function FriendPlayContent() {
         return { room: localRoom, playerIndex };
       }
 
-      const data = await apiJson<RoomResponse>(`/friend/room/${roomCode}`);
+      const data = await apiJson<RoomResponse>(`/api/friend/room/${roomCode}`);
       if (!data.ok || !data.room) throw new Error('Invalid room data');
 
       setRoomConfig(data.room);
@@ -115,7 +120,7 @@ function FriendPlayContent() {
       setMySeatIndex(playerIndex);
       return { room: data.room, playerIndex };
     } catch (error) {
-      console.error('[Friend Game] Failed to fetch room config:', error);
+      debugWarn('[Friend Game] Failed to fetch room config:', error);
       router.push('/home');
       return null;
     }
@@ -128,25 +133,36 @@ function FriendPlayContent() {
       if (!info) return;
       const room = info.room;
       const myIndex = info.playerIndex;
+      const nickname = getNickname();
+      if (!nickname) {
+        router.push(`/setup?returnTo=/friend/play/${roomCode}`);
+        return;
+      }
+
+      if (!useServer) {
+        setToast('このローカルルームは待機画面の確認用です。フレンド対戦の開始にはサーバー同期設定が必要です。');
+        router.push(`/friend/room/${roomCode}`);
+        return;
+      }
 
       // ルームの状態をチェック
       if (room.status !== 'playing') {
         if (myIndex === 0) {
           try {
-            await apiJson<UpdateStatusResponse>('/friend/status', {
+            await apiJson<UpdateStatusResponse>('/api/friend/status', {
               method: 'POST',
-              json: { roomId: roomCode, status: 'playing' },
+              json: { roomId: roomCode, status: 'playing', nickname },
             });
             room.status = 'playing';
           } catch (e) {
-            console.warn('[Friend Game] Failed to set playing status:', e);
+            debugWarn('[Friend Game] Failed to set playing status:', e);
           }
         } else {
           let tries = 0;
           while (tries < 5) {
             await new Promise((resolve) => setTimeout(resolve, 400));
             try {
-              const d = await apiJson<RoomResponse>(`/friend/room/${roomCode}`);
+              const d = await apiJson<RoomResponse>(`/api/friend/room/${roomCode}`);
               if (d.ok && d.room?.status === 'playing') {
                 room.status = 'playing';
                 break;
@@ -163,7 +179,6 @@ function FriendPlayContent() {
         }
       }
 
-      const nickname = getNickname();
       const isPlayerInRoom = room.seats.some((seat) => seat?.nickname === nickname);
       if (!isPlayerInRoom) {
         router.push(`/friend/room/${roomCode}`);
@@ -195,15 +210,15 @@ function FriendPlayContent() {
         setGameResults([]);
         setIsGameInitialized(true);
         try {
-          const data = await apiJson<FriendGameResponse>(`/friend/game/${roomCode}`, {
+          const data = await apiJson<FriendGameResponse>(`/api/friend/game/${roomCode}`, {
             method: 'POST',
-            json: { type: 'init', state, config },
+            json: { type: 'init', nickname, state, config },
           });
           if (data.ok) {
             lastVersionRef.current = data.snapshot.version ?? 1;
           }
         } catch (initError) {
-          console.warn('[Friend Game] Failed to persist snapshot:', initError);
+          debugWarn('[Friend Game] Failed to persist snapshot:', initError);
         }
       } else {
         // ゲストはサーバーのスナッ��ショットを取得するまで待機
@@ -211,7 +226,7 @@ function FriendPlayContent() {
           let retries = 0;
           while (retries < 10) {
             try {
-              const data = await apiJson<FriendGameResponse>(`/friend/game/${roomCode}`);
+              const data = await apiJson<FriendGameResponse>(`/api/friend/game/${roomCode}?nickname=${encodeURIComponent(nickname)}`);
               if (data.ok) {
                 const rng = new SeededRngClass(data.snapshot.config.seed);
                 gameRef.current = {
@@ -246,7 +261,7 @@ function FriendPlayContent() {
           try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 8000);
-            const response = await apiRequest<FriendGameResponse>(`/friend/game/${roomCode}`, {
+            const response = await apiRequest<FriendGameResponse>(`/api/friend/game/${roomCode}?nickname=${encodeURIComponent(nickname)}`, {
               signal: controller.signal,
               headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' },
               parseAs: 'json',
@@ -269,13 +284,13 @@ function FriendPlayContent() {
             }
           } catch (error) {
             if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
-              console.warn('[Game Poll] Request timeout');
+              debugWarn('[Game Poll] Request timeout');
             }
           }
         }, 3000);
       }
     } catch (error) {
-      console.error('[Friend Game] Failed to start game:', error);
+      debugWarn('[Friend Game] Failed to start game:', error);
       setToast('ゲーム初期化に失敗しました');
       router.push('/home');
     }
@@ -303,9 +318,11 @@ function FriendPlayContent() {
         isDiscard: isDiscardMove,
       };
 
-      const data = await apiJson<FriendGameResponse>(`/friend/game/${roomCode}`, {
+      const nickname = getNickname();
+      if (!nickname) return;
+      const data = await apiJson<FriendGameResponse>(`/api/friend/game/${roomCode}`, {
         method: 'POST',
-        json: { type: 'move', move },
+        json: { type: 'move', nickname, move },
       });
       if (data.ok) {
         lastVersionRef.current = data.snapshot.version ?? lastVersionRef.current + 1;
@@ -316,7 +333,7 @@ function FriendPlayContent() {
         checkGameOver(data.snapshot.state);
       }
     } catch (error) {
-      console.error('[Friend Game] Error during move:', error);
+      debugWarn('[Friend Game] Error during move:', error);
       setToast('カード送信に失敗しました');
       setTimeout(() => setToast(null), 3000);
     } finally {

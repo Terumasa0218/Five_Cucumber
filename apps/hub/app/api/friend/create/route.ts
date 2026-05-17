@@ -2,6 +2,11 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 import { kvExists, kvSaveJSON, roomTTL } from '@/lib/kv';
+import {
+  createFriendRoom,
+  normalizeFriendRoomSettings,
+  normalizeNickname,
+} from '@/lib/friend-room';
 import { CreateRoomRequest, Room } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
@@ -39,6 +44,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const { roomSize, nickname, turnSeconds, maxCucumbers } = body;
+    const trimmedNickname = normalizeNickname(nickname);
 
     // 数値フィールドの正規化
     const nRoomSize = parseNumberish(roomSize);
@@ -76,7 +82,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // バリデーション
-    if (!nickname || typeof nickname !== 'string' || !nickname.trim()) {
+    if (!trimmedNickname) {
       return NextResponse.json(
         { ok: false, reason: 'bad-request' },
         { status: 400, headers: noStore }
@@ -132,16 +138,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         { status: 500, headers: noStore }
       );
     }
-    const room: Room = {
-      id,
-      size: nRoomSize,
-      seats: Array.from({ length: nRoomSize }, () => null),
-      status: 'waiting',
-      createdAt: Date.now(),
+    const settings = normalizeFriendRoomSettings({
+      roomSize: nRoomSize,
       turnSeconds: nTurnSeconds,
       maxCucumbers: nMaxCucumbers,
-    };
-    room.seats[0] = { nickname: nickname.trim() };
+    });
+    const room: Room = createFriendRoom({
+      id,
+      nickname: trimmedNickname,
+      ...settings,
+    });
 
     const roomId = String(room.id ?? id);
     const key = `friend:room:${roomId}`;

@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: [
+      'lib/__tests__/**/*.test.ts',
       'lib/game-core/__tests__/**/*.test.ts',
       'lib/modes/**/__tests__/**/*.test.ts',
     ],

@@ -5,6 +5,7 @@ import type { Room, RoomStatus } from '@/types/room';
 import { kvGetJSON, kvSaveJSON, roomTTL } from '@/lib/kv';
 import { verifyAuth } from '@/lib/auth';
 import { withLock } from '@/lib/lock';
+import { canStartRoom, normalizeNickname, normalizeRoomId } from '@/lib/friend-room';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 
@@ -12,7 +13,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-type StatusPayload = { roomId?: unknown; status?: unknown };
+type StatusPayload = { roomId?: unknown; status?: unknown; nickname?: unknown };
 
 const isRoomStatus = (value: string): value is RoomStatus =>
   value === 'waiting' || value === 'playing' || value === 'closed';
@@ -22,10 +23,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (!auth) return json({ error: 'Unauthorized' }, 401);
   try {
     const body = (await req.json()) as StatusPayload;
-    const roomId = typeof body.roomId === 'string' ? body.roomId.trim() : '';
+    const roomId = normalizeRoomId(body.roomId);
     const statusInput = typeof body.status === 'string' ? body.status.trim() : '';
+    const nickname = normalizeNickname(body.nickname);
 
-    if (!roomId || !statusInput || !isRoomStatus(statusInput)) {
+    if (roomId.length !== 6 || !statusInput || !isRoomStatus(statusInput) || !nickname) {
       return json({ ok: false, reason: 'bad-request' }, 400);
     }
 
@@ -33,6 +35,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const room = await kvGetJSON<Room>(keyOf(roomId));
       if (!room) {
         return json({ ok: false, reason: 'not-found' }, 404);
+      }
+
+      if (statusInput === 'playing') {
+        const startCheck = canStartRoom(room, nickname);
+        if (!startCheck.ok) {
+          return json({ ok: false, reason: startCheck.reason }, startCheck.reason === 'host-only' ? 403 : 409);
+        }
+      }
+
+      if (statusInput === 'closed' && !room.seats.some((seat) => seat?.nickname === nickname)) {
+        return json({ ok: false, reason: 'not-member' }, 403);
       }
 
       // 無効な状態遷移を防止
