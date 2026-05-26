@@ -79,7 +79,12 @@ tests/             root-level Playwright tests
 /online                   future public online mode placeholder
 ```
 
-Legacy generic routes under `/play/[gameId]` and `/lobby/[gameId]` are not the current MVP path unless a future phase explicitly revives them.
+Legacy generic routes are compatibility redirects only:
+
+- `/play/cucumber5` -> `/cucumber/cpu/play`
+- `/lobby/cucumber5?mode=friends` -> `/friend`
+- `/lobby/cucumber5?mode=cpu` -> `/cucumber/cpu/settings`
+- `/lobby/cucumber5?mode=public` -> `/online`
 
 ## Quick Start
 

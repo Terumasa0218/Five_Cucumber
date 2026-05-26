@@ -1,44 +1,32 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Home Page', () => {
-  test('should display home page with game tiles', async ({ page }) => {
+  test('shows the current game entry points', async ({ page }) => {
     await page.goto('/home');
-    
-    // Check if the page loads
+
     await expect(page).toHaveTitle(/Five Cucumber/);
-    
-    // Check for main elements
-    await expect(page.locator('h1')).toContainText('ようこそ');
-    await expect(page.locator('[data-testid="presence-badge"]')).toBeVisible();
-    
-    // Check for game tile
-    await expect(page.locator('.game-tile')).toBeVisible();
-    await expect(page.locator('.game-tile__name')).toContainText('５本のきゅうり');
+    await expect(page.getByRole('heading', { name: '5本のきゅうり' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'ルール説明' })).toHaveAttribute(
+      'href',
+      '/rules',
+    );
+    await expect(page.getByRole('link', { name: 'CPU対戦を始める' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'フレンド対戦を始める' })).toBeVisible();
   });
 
-  test('should filter games by player count', async ({ page }) => {
+  test('opens CPU settings from the primary CTA', async ({ page }) => {
     await page.goto('/home');
-    
-    // Change player count
-    await page.selectOption('select[id="playerCount"]', '2');
-    
-    // Check if game is still visible (cucumber5 supports 2-6 players)
-    await expect(page.locator('.game-tile')).toBeVisible();
-    
-    // Change to unsupported player count
-    await page.selectOption('select[id="playerCount"]', '1');
-    
-    // Check if no games message appears
-    await expect(page.locator('.no-games')).toBeVisible();
+    await page.getByRole('link', { name: 'CPU対戦を始める' }).click();
+
+    await expect(page).toHaveURL('/cucumber/cpu/settings');
+    await expect(page.getByRole('heading', { name: 'CPU 対戦の設定' })).toBeVisible();
   });
 
-  test('should navigate to lobby when clicking play', async ({ page }) => {
+  test('opens friend room creation from the primary CTA', async ({ page }) => {
     await page.goto('/home');
-    
-    // Click play button
-    await page.click('.game-tile .btn--primary');
-    
-    // Should navigate to lobby
-    await expect(page).toHaveURL(/\/lobby\/cucumber5/);
+    await page.getByRole('link', { name: 'フレンド対戦を始める' }).click();
+
+    await expect(page).toHaveURL('/friend/create');
+    await expect(page.getByRole('heading', { name: 'フレンドルームを作成' })).toBeVisible();
   });
 });

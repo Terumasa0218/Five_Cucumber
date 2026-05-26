@@ -1,187 +1,90 @@
-# メールリンク認証テストガイド
+# Deployment Smoke Test Guide
 
-## テスト環境の準備
+This guide covers the current Web MVP smoke checks for local and deployed environments.
 
-### 1. ローカル環境でのテスト
+## Setup
+
+Local:
 
 ```bash
-# 開発サーバー起動
 pnpm -w dev
-
-# ブラウザで http://localhost:3000 にアクセス
 ```
 
-### 2. 本番環境でのテスト
+Open `http://localhost:3000`.
 
-- Vercelデプロイ完了後、本番URLでテスト
-- 環境変数が正しく設定されていることを確認
+Production:
 
-## テストケース
+- Use the latest deployed URL.
+- Confirm required Firebase client variables are present.
+- Confirm Firebase Admin and KV/Redis variables are present before testing real multi-device friend matches.
 
-### ケース1: 新規ユーザー登録
+## Core Smoke Tests
 
-#### 手順
-1. `/auth/login` にアクセス
-2. **「新規作成」** タブを選択
-3. ユーザー名を入力（例: `testuser`）
-4. メールアドレスを入力（例: `test@example.com`）
-5. **「リンクを送信」** をクリック
+### Home
 
-#### 期待結果
-- 「送信完了」メッセージが表示される
-- 入力したメールアドレスが表示される
-- メールが受信される
+1. Open `/home`.
+2. Confirm the `5本のきゅうり` title is visible.
+3. Confirm these links exist:
+   - CPU match: `/cucumber/cpu/settings`
+   - Friend match: `/friend/create`
+   - Online placeholder: `/online`
+   - Rules: `/rules`
 
-#### 確認項目
-- [ ] フォームバリデーションが正常に動作
-- [ ] エラーメッセージが適切に表示
-- [ ] メール送信が成功
-- [ ] 送信完了画面が表示
+### CPU Match
 
-### ケース2: メールリンクでの認証完了
+1. Open `/cucumber/cpu/settings`.
+2. Select player count, time limit, cucumber limit, and CPU difficulty.
+3. Start the match.
+4. Confirm the app navigates to `/cucumber/cpu/play`.
+5. Confirm the battle HUD, seats, and seven starting hand cards render.
 
-#### 手順
-1. 受信したメール内のリンクをクリック
-2. `/auth/complete` にリダイレクトされる
-3. 認証処理が実行される
-4. `/home` にリダイレクトされる
+### Friend Match
 
-#### 期待結果
-- 認証が正常に完了する
-- ユーザー情報がFirestoreに保存される
-- ホーム画面にリダイレクトされる
+1. Open `/friend`.
+2. Open `/friend/create`.
+3. Create a room after setting a nickname when prompted.
+4. Confirm the generated room code is six digits.
+5. Open `/friend/join` in a second browser profile or device.
+6. Join with the six-digit room code.
+7. Confirm both players reach the waiting room.
 
-#### 確認項目
-- [ ] 認証完了メッセージが表示
-- [ ] Firestoreに `profiles/{uid}` が作成される
-- [ ] Firestoreに `usernames/{name}` が作成される
-- [ ] ホーム画面に正しくリダイレクト
-- [ ] ヘッダーにユーザー名が表示
+When server sync is disabled or backend variables are missing, local review mode may create rooms only in the same browser storage. Real multi-device friend matches require Firebase authentication plus the shared store.
 
-### ケース3: 既存ユーザーのログイン
+### Legacy Route Compatibility
 
-#### 手順
-1. `/auth/login` にアクセス
-2. **「ログイン」** タブを選択
-3. 登録済みのメールアドレスを入力
-4. **「リンクを送信」** をクリック
-5. メール内のリンクで認証
+1. Open `/play/cucumber5?mode=cpu&players=2&difficulty=easy`.
+2. Confirm it redirects to `/cucumber/cpu/play` and maps `difficulty` to `cpuLevel`.
+3. Open `/lobby/cucumber5?mode=friends`.
+4. Confirm it redirects to `/friend`.
+5. Open `/lobby/cucumber5?mode=public`.
+6. Confirm it redirects to `/online`.
 
-#### 期待結果
-- 新規作成時と同様に認証が完了
-- 既存のユーザー情報が保持される
+## Validation Commands
 
-#### 確認項目
-- [ ] ログインタブが正常に動作
-- [ ] 既存ユーザーでの認証が成功
-- [ ] ユーザー情報が正しく表示
-
-### ケース4: ホーム画面の3CTA
-
-#### 手順
-1. 認証完了後、ホーム画面にアクセス
-2. 3つのCTAボタンを確認
-
-#### 期待結果
-- CPU対戦、オンライン対戦、フレンド対戦の3つが表示
-- 各ボタンが正しいリンクに遷移
-
-#### 確認項目
-- [ ] 3つのCTAが正しく表示
-- [ ] CPU対戦ボタンが `/play/cucumber5?mode=cpu...` に遷移
-- [ ] オンライン対戦ボタンが `/lobby/cucumber5?mode=public` に遷移
-- [ ] フレンド対戦ボタンが `/lobby/cucumber5?mode=friends` に遷移
-
-## エラーケースのテスト
-
-### ケース5: 無効なメールアドレス
-
-#### 手順
-1. 無効なメールアドレスを入力
-2. 送信を試行
-
-#### 期待結果
-- 適切なエラーメッセージが表示
-- 送信が失敗する
-
-### ケース6: 無効なリンク
-
-#### 手順
-1. 無効な認証リンクにアクセス
-
-#### 期待結果
-- エラーメッセージが表示
-- 適切なフォールバック処理が実行
-
-## パフォーマンステスト
-
-### ケース7: 同時アクセス
-
-#### 手順
-1. 複数のブラウザで同時に認証を試行
-2. レスポンス時間を測定
-
-#### 確認項目
-- [ ] 認証処理が正常に完了
-- [ ] レスポンス時間が許容範囲内
-- [ ] エラーが発生しない
-
-## セキュリティテスト
-
-### ケース8: 認証状態の確認
-
-#### 手順
-1. 認証完了後、ページをリロード
-2. 認証状態が保持されることを確認
-
-#### 確認項目
-- [ ] 認証状態が正しく保持
-- [ ] ユーザー情報が正しく表示
-- [ ] 未認証時の適切なリダイレクト
-
-## テスト結果の記録
-
-### テスト結果テンプレート
-
-```
-テスト日時: YYYY-MM-DD HH:MM
-テスト環境: [ローカル/本番]
-テスト者: [名前]
-
-ケース1: 新規ユーザー登録
-- 結果: [成功/失敗]
-- 備考: [詳細]
-
-ケース2: メールリンクでの認証完了
-- 結果: [成功/失敗]
-- 備考: [詳細]
-
-... (以下同様)
-```
-
-## 問題が発生した場合
-
-### ログの確認
+Use the smallest relevant command first, then broaden when needed:
 
 ```bash
-# ブラウザの開発者ツール
-console.log('認証エラー:', error)
-
-# Firebase コンソール
-# Authentication > Users でユーザー情報を確認
-# Firestore でデータの保存状況を確認
+pnpm -w run type-check
+pnpm -w run test
+pnpm -w run build
 ```
 
-### よくある問題と解決方法
+For root-level Playwright smoke tests:
 
-1. **メールが届かない**
-   - 迷惑メールフォルダを確認
-   - Firebase設定を確認
+```bash
+pnpm exec playwright test tests/home.spec.ts tests/navigation.spec.ts tests/game.spec.ts --project=chromium
+```
 
-2. **認証エラー**
-   - 環境変数の設定を確認
-   - Firebase設定を確認
+## Result Template
 
-3. **リダイレクトエラー**
-   - `NEXT_PUBLIC_APP_ORIGIN` の設定を確認
-   - 認証ドメインの設定を確認
+```text
+Test time: YYYY-MM-DD HH:MM JST
+Environment: local / production
+Commit: <sha>
+
+Home: pass / fail
+CPU match: pass / fail
+Friend match: pass / fail
+Legacy redirects: pass / fail
+Notes:
+```

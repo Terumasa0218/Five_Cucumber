@@ -1,5 +1,7 @@
 # Telemetry Specification
 
+Historical reference only. This document records an earlier analytics concept and has not been aligned with the current MVP routes. Treat `docs/product-spec.md` and `README.md` as authoritative for current routes.
+
 ## イベント設計
 
 ### Firebase Analytics Events

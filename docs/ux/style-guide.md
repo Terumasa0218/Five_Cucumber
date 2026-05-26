@@ -1,5 +1,7 @@
 # UX Style Guide - Table of Classics
 
+Historical reference only. This document preserves earlier UX ideas and old route sketches. Current product scope and routes are defined in `docs/product-spec.md` and `README.md`.
+
 ## Design Principles
 
 ### 可読性とアクセシビリティ

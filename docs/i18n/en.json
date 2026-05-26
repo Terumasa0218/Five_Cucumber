@@ -100,17 +100,17 @@
   "time.justNow": "Just now",
   
   "lobby.create.title": "Create Room",
-  "lobby.create.desc": "Generate a 5-digit code to invite friends",
-  "lobby.create.generate": "Generate 5-digit Code",
+  "lobby.create.desc": "Generate a 6-digit code to invite friends",
+  "lobby.create.generate": "Generate 6-digit Code",
   "lobby.create.code": "Your Room Code",
   "lobby.create.copy": "Copy",
   "lobby.create.wait": "Go to Waiting",
   "lobby.participants": "Participants",
   "lobby.start": "Start Game",
   "lobby.join.title": "Join Room",
-  "lobby.join.desc": "Enter the 5-digit code you received",
-  "lobby.join.placeholder": "e.g. 12345",
+  "lobby.join.desc": "Enter the 6-digit code you received",
+  "lobby.join.placeholder": "e.g. 123456",
   "lobby.join.submit": "Join",
   "common.back": "Back",
-  "validation.code": "Please enter 5 digits"
+  "validation.code": "Please enter 6 digits"
 }
