@@ -1,88 +1,45 @@
-# Firebase Email Link認証設定ガイド
+# Firebase Authentication Setup
 
-## 1. Firebaseコンソールでの設定
+The current MVP does not use an email-link login page. Browser clients use Firebase client configuration for anonymous authentication, and friend-room API routes verify Firebase ID tokens on the server when server synchronization is enabled.
 
-### Email Link認証を有効化
+## Firebase Console
 
-1. **Firebaseコンソール**にログイン
-2. 対象プロジェクトを選択
-3. 左メニューから **「Authentication」** → **「Sign-in method」**
-4. **「Email/Password」** を選択
-5. **「Email link (passwordless sign-in)」** を有効化
-6. **「Save」** で保存
+1. Open Firebase Console.
+2. Select the project used by the deployed app.
+3. Open Authentication > Sign-in method.
+4. Enable Anonymous sign-in.
+5. Add these authorized domains under Authentication > Settings:
+   - `localhost`
+   - the production Vercel domain
+   - any preview or custom domains used for testing
 
-### 認証ドメインの設定
+## Client Environment Variables
 
-1. **「Authentication」** → **「Settings」** → **「Authorized domains」**
-2. 以下のドメインを追加：
-   - `localhost` (開発用)
-   - `five-cucumber-hub.vercel.app` (本番用)
-   - その他必要なドメイン
-
-## 2. 環境変数の設定
-
-### ローカル環境 (.env.local)
+Set these for local and deployed environments:
 
 ```env
-NEXT_PUBLIC_APP_ORIGIN=http://localhost:3000
+NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
 ```
 
-### Vercel環境
+## Server Environment Variables
 
-1. Vercelダッシュボード → プロジェクト → **「Settings」**
-2. **「Environment Variables」** → **「Add New」**
-3. 以下を設定：
-   - **Name**: `NEXT_PUBLIC_APP_ORIGIN`
-   - **Value**: `https://five-cucumber-hub.vercel.app`
-   - **Environment**: `Production`
+Friend-room server sync requires Firebase Admin credentials so API routes can verify client tokens:
 
-## 3. 動作確認手順
-
-### ログイン機能のテスト
-
-1. `/auth/login` にアクセス
-2. **「新規作成」** タブを選択
-3. ユーザー名とメールアドレスを入力
-4. **「リンクを送信」** をクリック
-5. メール受信確認
-6. メール内のリンクをクリック
-7. `/auth/complete` で認証完了
-8. `/home` にリダイレクト確認
-
-### ログイン機能のテスト
-
-1. **「ログイン」** タブを選択
-2. メールアドレスを入力
-3. **「リンクを送信」** をクリック
-4. メール内のリンクで認証完了
-
-## 4. トラブルシューティング
-
-### よくある問題
-
-- **メールが届かない**: 迷惑メールフォルダを確認
-- **リンクが無効**: 同じブラウザで開く必要がある
-- **認証エラー**: Firebase設定と環境変数を再確認
-
-### ログ確認
-
-```bash
-# 開発環境でのログ確認
-pnpm -w dev
-
-# ブラウザの開発者ツールでコンソールエラーを確認
+```env
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-...
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
-## 5. セキュリティ考慮事項
+## Smoke Check
 
-- Email Link認証は一時的なリンク（有効期限あり）
-- 同じデバイス/ブラウザでのみ有効
-- 本番環境ではHTTPS必須
-- ユーザー名の重複チェック（現在は簡易実装）
+1. Open `/home`.
+2. Set a nickname through `/setup` if needed.
+3. Open `/friend/create`.
+4. Create a room.
+5. Confirm the server-backed flow succeeds when shared-store variables are present.
 
-## 6. 今後の改善点
-
-- [ ] Cloud Functions でのユーザー名排他制御
-- [ ] メールテンプレートのカスタマイズ
-- [ ] 認証状態の永続化
-- [ ] エラーハンドリングの強化
+If Firebase Admin credentials or shared-store variables are missing, the UI should show a backend requirement message instead of starting a broken multi-device match.

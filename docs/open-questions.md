@@ -25,7 +25,7 @@
 - [ ] プッシュ通知
 - [ ] 音声/効果音
 - [ ] Firebase Admin / KV 未設定時のローカル開発挙動
-- [ ] `/play/[gameId]` と `/lobby/[gameId]` の扱い
+- [x] `/play/[gameId]` と `/lobby/[gameId]` の扱い: 現行MVPルートへの互換リダイレクトとして維持
 
 ## 収益化/分析
 

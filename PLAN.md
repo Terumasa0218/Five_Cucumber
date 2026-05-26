@@ -55,12 +55,15 @@ See `docs/work-plan.md` for details.
 
 ## Near-Term Priority
 
-Finish Phase 3 Friend Match MVP, then stop for user review before starting Phase 4.
+Finish Phase 4 Route and Test Cleanup, then stop for user review before starting Phase 5.
 
 ## Open Decisions
 
 - Define the exact review checklist for "Web version complete."
-- Decide whether legacy generic `/play/[gameId]` and `/lobby/[gameId]` routes should be redirected, removed, or revived later.
 - Decide whether UI should formally adopt Tailwind or move away from Tailwind-style utility classes.
 - Decide whether future Blender use is asset-generation only or part of a larger 3D workflow.
 - Decide whether Unity is ever a separate edition, a prototype, or unnecessary.
+
+## Resolved Route Decision
+
+Legacy generic `/play/[gameId]` and `/lobby/[gameId]` routes are retained as compatibility redirects to the current MVP routes. They should not contain separate legacy UI or old room-code behavior.

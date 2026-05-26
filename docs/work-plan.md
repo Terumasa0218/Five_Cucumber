@@ -80,7 +80,7 @@ Goal: remove confusion from legacy paths and stale tests.
 
 Tasks:
 
-- Decide whether `/play/[gameId]` and `/lobby/[gameId]` should be removed, redirected, or revived later.
+- Retain `/play/[gameId]` and `/lobby/[gameId]` as compatibility redirects to current MVP routes.
 - Update root Playwright tests to current routes and current UI.
 - Remove references to nonexistent `/stats`, `/settings`, `/auth/login`, old modal behavior, and old 5-digit room codes from current docs.
 - Keep historical docs marked as reference only.

@@ -32,6 +32,7 @@ Unity and Blender are deferred. They should not be introduced into the repositor
 - Friend waiting room at `/friend/room/[roomId]`
 - Friend match play at `/friend/play/[roomCode]`
 - Rules pages at `/rules` and `/rules/cucumber5`
+- Compatibility redirects from legacy `/play/cucumber5` and `/lobby/cucumber5` routes to current MVP routes
 
 ### Deferred
 
@@ -81,7 +82,6 @@ The Web version can be considered complete when all of these are true:
 - Legacy docs and tests still mention old routes or old flow assumptions.
 - Public online mode is only a placeholder.
 - Friend match depends on authenticated API requests and shared store configuration.
-- Generic `/play/[gameId]` and `/lobby/[gameId]` routes are legacy paths, not the current MVP flow.
 - Some UI files still use Tailwind-style utility classes even though Tailwind is not configured as a project dependency.
 - Debug logs and diagnostic surfaces need cleanup before production polish.
 

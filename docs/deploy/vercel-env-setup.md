@@ -11,6 +11,14 @@
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `your-project.firebaseapp.com` | Firebase Auth Domain |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `your-project-id` | Firebase Project ID |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | `your-app-id` | Firebase App ID |
+| `FIREBASE_PROJECT_ID` | `your-project-id` | API token verification for server sync |
+| `FIREBASE_CLIENT_EMAIL` | `firebase-adminsdk-...` | API token verification for server sync |
+| `FIREBASE_PRIVATE_KEY` | `-----BEGIN PRIVATE KEY-----...` | API token verification for server sync |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Vercel KV or compatible values | Shared friend-room state |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis values | Shared friend-room state fallback |
+| `NEXT_PUBLIC_HAS_SHARED_STORE` | `true` | Enable server-backed friend-room flow |
+| `NEXT_PUBLIC_USE_SERVER` | `true` | Enable server-backed friend-room flow |
+| `ABLY_API_KEY` | Ably key | Optional room update acceleration |
 
 ## Vercelでの設定手順
 
@@ -72,11 +80,12 @@ pnpm -w dev
 console.log(process.env.NEXT_PUBLIC_APP_ORIGIN)
 ```
 
-### 2. 認証機能のテスト
+### 2. 現行MVPの動作確認
 
-1. `/auth/login` にアクセス
-2. メールリンク認証が正常に動作することを確認
-3. 認証後のリダイレクトが正しく動作することを確認
+1. `/home` にアクセス
+2. `/cucumber/cpu/settings` からCPU対戦を開始できることを確認
+3. `/friend/create` と `/friend/join` で6桁ルームコードの作成・参加導線を確認
+4. サーバー同期を使う場合、Firebase匿名認証と共有ストア設定が不足していないことを確認
 
 ## トラブルシューティング
 
