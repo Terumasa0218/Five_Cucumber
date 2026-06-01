@@ -6,8 +6,15 @@ Generated source assets for the antique cucumber table direction.
 
 - `wood-table.png` is production-ready and used as the battle background.
 - Files under `source/` are preserved source references from the May 27, 2026 generation batch.
-- The generated `source/` PNGs are RGB images with the checkerboard baked into the pixels. They are not true transparent PNGs yet.
+- The generated `source/` PNGs are RGB images with the checkerboard baked into the pixels.
+- Files under `processed/` are alpha-cleaned, cropped, and resized for Web UI use.
 
-## Follow-up
+## Processing
 
-Before using the table frame, seat frame, card frames, or icon directly in the UI, run an alpha-cleanup/cropping pass and export transparent PNG or WebP assets.
+Run this from the repository root to regenerate `processed/`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tooling\process-antique-assets.ps1
+```
+
+The cleanup script preserves `source/` and writes transparent PNGs into `processed/`.

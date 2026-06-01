@@ -713,13 +713,12 @@
   inset: clamp(8px, 1.3vw, 18px);
   border-radius: inherit;
   background:
+    url('/assets/ui/antique/processed/oval-table-wide.png') center / 100% 100% no-repeat,
     radial-gradient(circle at 50% 44%, rgba(92, 139, 59, 0.3), transparent 48%),
     radial-gradient(ellipse at center, #143e22 0%, #0f321b 58%, #071b10 100%);
-  border: clamp(8px, 1.1vw, 16px) solid #b98535;
+  border: 0;
   box-shadow:
-    inset 0 0 0 2px rgba(255, 226, 145, 0.55),
     inset 0 0 42px rgba(0, 0, 0, 0.55),
-    0 0 0 2px rgba(60, 34, 10, 0.8),
     0 18px 46px rgba(13, 6, 2, 0.62);
   overflow: hidden;
 }
@@ -790,6 +789,8 @@
 
 .player-info,
 #seats .seat .content {
+  position: relative;
+  isolation: isolate;
   min-width: clamp(116px, 12vw, 168px);
   border: 1px solid rgba(183, 130, 55, 0.82);
   border-radius: 10px;
@@ -836,12 +837,9 @@
   width: 15px;
   height: 22px;
   border-radius: 3px;
-  border: 1px solid rgba(221, 177, 80, 0.9);
-  background:
-    radial-gradient(circle at 50% 42%, rgba(132, 184, 71, 0.55), transparent 24%),
-    linear-gradient(135deg, #143d1f, #06170d);
+  border: 0;
+  background: url('/assets/ui/antique/processed/card-back.png') center / 100% 100% no-repeat;
   box-shadow:
-    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
     0 2px 5px rgba(0, 0, 0, 0.38);
 }
 
@@ -867,20 +865,18 @@
 
 .card.game-card {
   isolation: isolate;
-  border: 2px solid #b88639;
+  border: 0;
   border-radius: 8px;
   background:
-    linear-gradient(180deg, rgba(255, 251, 224, 0.96), rgba(236, 202, 130, 0.96));
+    url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
   color: #201407;
   box-shadow:
-    inset 0 0 0 2px rgba(47, 83, 30, 0.42),
-    inset 0 0 14px rgba(119, 74, 20, 0.16),
     0 5px 12px rgba(18, 8, 1, 0.42);
   text-shadow: 0 1px 0 rgba(255, 244, 192, 0.55);
 }
 
 .card.game-card::before {
-  content: '';
+  content: none;
   position: absolute;
   inset: 5px;
   border: 1px solid rgba(42, 89, 34, 0.5);
@@ -908,11 +904,9 @@
 
 .card.playable {
   background:
-    linear-gradient(180deg, rgba(255, 251, 224, 0.98), rgba(238, 204, 132, 0.98));
+    url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
   color: #201407;
-  border-color: #e1b964;
   box-shadow:
-    inset 0 0 0 2px rgba(47, 83, 30, 0.44),
     0 0 0 2px rgba(255, 222, 125, 0.3),
     0 9px 20px rgba(255, 211, 93, 0.22),
     0 5px 12px rgba(18, 8, 1, 0.42);
@@ -922,18 +916,17 @@
 .card:hover:not(.disabled) {
   transform: translateY(-8px) scale(1.04);
   box-shadow:
-    inset 0 0 0 2px rgba(47, 83, 30, 0.44),
     0 0 0 2px rgba(255, 228, 139, 0.42),
     0 13px 24px rgba(17, 8, 1, 0.5);
 }
 
 .card.discard {
   background:
-    linear-gradient(180deg, rgba(83, 37, 25, 0.96), rgba(36, 21, 12, 0.98));
+    linear-gradient(180deg, rgba(83, 37, 25, 0.38), rgba(36, 21, 12, 0.42)),
+    url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
   color: #ffe7ad;
-  border-color: #b7583c;
   box-shadow:
-    inset 0 0 0 2px rgba(216, 156, 75, 0.35),
+    0 0 0 2px rgba(183, 88, 60, 0.7),
     0 8px 18px rgba(89, 24, 18, 0.34);
 }
 
@@ -944,37 +937,31 @@
 
 .card.disabled {
   background:
-    linear-gradient(180deg, rgba(91, 78, 55, 0.74), rgba(44, 39, 31, 0.74));
+    url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
   color: rgba(229, 209, 164, 0.62);
-  border-color: rgba(132, 105, 61, 0.72);
   opacity: 0.58;
-  filter: grayscale(0.35);
+  filter: grayscale(0.4) brightness(0.82);
 }
 
 .card.current-card {
   background:
-    radial-gradient(circle at 50% 36%, rgba(255, 223, 115, 0.24), transparent 34%),
-    linear-gradient(180deg, #173e1f, #07170d);
-  color: #ffe8a6;
-  border: 2px solid #e1b964;
+    url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
+  color: #201407;
+  border: 0;
   box-shadow:
-    inset 0 0 0 2px rgba(255, 228, 139, 0.28),
-    0 0 0 2px rgba(70, 38, 10, 0.8),
+    0 0 0 2px rgba(255, 225, 125, 0.45),
     0 0 26px rgba(255, 214, 94, 0.48);
 }
 
 .card.current-card .card-number,
 .card.current-card .cucumber-icons {
-  color: #ffe8a6;
+  color: inherit;
 }
 
 .card.game-card[data-card='1'] {
   background:
-    radial-gradient(circle at 50% 42%, rgba(255, 255, 246, 0.84), transparent 48%),
-    linear-gradient(180deg, #fff7cf, #e6bd64);
-  border-color: #fff1a7;
+    url('/assets/ui/antique/processed/card-face-special-1.png') center / 100% 100% no-repeat;
   box-shadow:
-    inset 0 0 0 2px rgba(255, 243, 172, 0.6),
     0 0 0 2px rgba(229, 182, 72, 0.45),
     0 0 28px rgba(255, 239, 153, 0.65),
     0 6px 14px rgba(18, 8, 1, 0.4);
@@ -982,12 +969,15 @@
 
 .card.game-card[data-card='15'] {
   background:
-    linear-gradient(180deg, #123d21, #07170d);
-  border-color: #c67634;
+    url('/assets/ui/antique/processed/card-face-danger-15.png') center / 100% 100% no-repeat;
 }
 
 .card.game-card[data-card='15'] .card-number {
   color: #ff8846;
+}
+
+.card.game-card[data-card='15'] .cucumber-icons {
+  color: #ffb25e;
 }
 
 .discard-tag {

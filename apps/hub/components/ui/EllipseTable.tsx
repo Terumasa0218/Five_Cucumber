@@ -108,7 +108,10 @@ export function EllipseTable({
               <div className="showdown-cards-row" aria-live="polite">
                 {showdownCards.map((showdownCard, index) => (
                   <div key={`${showdownCard.player}-${showdownCard.timestamp}-${index}`} className="showdown-card-item">
-                    <div className="card game-card current-card showdown-card">
+                    <div
+                      className="card game-card current-card showdown-card"
+                      data-card={showdownCard.card}
+                    >
                       <div className="card-number">{showdownCard.card}</div>
                       <div className="cucumber-icons">{getCucumberIcons(showdownCard.card)}</div>
                     </div>
@@ -155,6 +158,7 @@ export function EllipseTable({
                         ]
                           .filter(Boolean)
                           .join(' ')}
+                        data-card={trickCard.card}
                       >
                         {isFinalTrickMode && !finalTrickOpenedPlayers.includes(trickCard.player) ? (
                           <div className="card-back">選択済み</div>
@@ -175,7 +179,7 @@ export function EllipseTable({
                 ) : null}
               </div>
             ) : state.fieldCard !== null ? (
-              <div className="card game-card current-card">
+              <div className="card game-card current-card" data-card={state.fieldCard}>
                 <div className="card-number">{state.fieldCard}</div>
                 <div className="cucumber-icons">{getCucumberIcons(state.fieldCard)}</div>
               </div>
