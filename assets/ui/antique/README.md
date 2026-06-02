@@ -11,6 +11,8 @@ Generated source assets for the antique cucumber table direction.
 
 ## Processing
 
+Asset requirements are defined in `asset-requirements.md`.
+
 Run this from the repository root to regenerate `processed/`:
 
 ```powershell
@@ -18,3 +20,9 @@ powershell -ExecutionPolicy Bypass -File tooling\process-antique-assets.ps1
 ```
 
 The cleanup script preserves `source/` and writes transparent PNGs into `processed/`.
+
+To validate current source and processed assets without rewriting files:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tooling\process-antique-assets.ps1 -ValidateOnly
+```
