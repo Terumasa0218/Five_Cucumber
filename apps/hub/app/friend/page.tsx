@@ -9,8 +9,7 @@ export default function FriendPage() {
   }, []);
 
   return (
-    <main className="friend-page bg-overlay-home">
-      <div className="friend-page__background" aria-hidden="true" />
+    <main className="friend-page">
       <div className="friend-page__container overlay-container">
         <header className="friend-page__header">
           <div className="friend-page__title-group">
@@ -54,12 +53,6 @@ export default function FriendPage() {
             </Link>
           </article>
         </section>
-      </div>
-
-      {/* 下段CTA（グリッド行3） */}
-      <div className="friend-page__cta">
-        <Link href="/friend/create" className="friend-cta__primary">ルームを作成</Link>
-        <Link href="/friend/join" className="friend-cta__secondary">ルームに参加</Link>
       </div>
     </main>
   );

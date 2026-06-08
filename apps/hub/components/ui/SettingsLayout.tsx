@@ -24,7 +24,7 @@ export function SettingsLayout({
 }: SettingsLayoutProps) {
   return (
     <BackgroundFrame
-      src={backgroundSrc ?? "/images/home1.png"}
+      src={backgroundSrc}
       objectPosition={objectPosition}
       priority
       className={className}

@@ -86,6 +86,18 @@ export default function FriendCreatePage() {
     return `作成に失敗しました${message ? ` (${message})` : ""}`;
   };
 
+  const canFallbackToLocalRoom = (err: unknown) => {
+    if (!(err instanceof ApiRequestError)) return true;
+    const body = err.response.data as (RoomResponse & { error?: string }) | undefined;
+    return (
+      err.response.status === 0 ||
+      err.response.status === 401 ||
+      err.response.status === 503 ||
+      body?.reason === "no-shared-store" ||
+      body?.reason === "kv-failed"
+    );
+  };
+
   const createLocalRoom = (nickname: string) => {
     const result = createRoom(
       Number(settings.roomSize),
@@ -149,9 +161,17 @@ export default function FriendCreatePage() {
         } catch {}
         router.push(`/friend/room/${data.roomId}`);
       } else {
+        if (data?.reason === "no-shared-store" || data?.reason === "kv-failed") {
+          createLocalRoom(nickname);
+          return;
+        }
         setError(roomFailureMessage(data?.reason, data?.detail));
       }
     } catch (e: unknown) {
+      if (canFallbackToLocalRoom(e)) {
+        createLocalRoom(nickname);
+        return;
+      }
       setError(backendFailureMessage(e));
     } finally {
       setIsCreating(false);

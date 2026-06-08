@@ -22,8 +22,6 @@ import {
 import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import PageBackground from '@/components/ui/PageBackground';
-import { BACKGROUNDS } from '@/lib/backgrounds';
 import './game.css';
 
 const DEBUG_CPU_GAME = process.env.NEXT_PUBLIC_DEBUG_GAME === '1';
@@ -820,12 +818,9 @@ function CpuPlayContent() {
 
   if (!gameState) {
     return (
-      <>
-        <PageBackground image={BACKGROUNDS.battle} />
-        <BattleLayout showOrientationHint>
-          <div className="grid place-items-center flex-1 text-white/80">Loading...</div>
-        </BattleLayout>
-      </>
+      <BattleLayout showOrientationHint>
+        <div className="grid place-items-center flex-1 text-white/80">Loading...</div>
+      </BattleLayout>
     );
   }
 
@@ -844,9 +839,7 @@ function CpuPlayContent() {
   const currentPlayerIndex = isAnimating || isFinalTrickPhase ? null : gameState.currentPlayer;
 
   return (
-    <>
-      <PageBackground image={BACKGROUNDS.battle} />
-      <BattleLayout showOrientationHint className="cpu-play-layout">
+    <BattleLayout showOrientationHint className="cpu-play-layout">
         <BattleHud
           round={displayRound}
           trick={displayTrick}
@@ -963,8 +956,7 @@ function CpuPlayContent() {
             </div>
           </div>
         ) : null}
-      </BattleLayout>
-    </>
+    </BattleLayout>
   );
 }
 
