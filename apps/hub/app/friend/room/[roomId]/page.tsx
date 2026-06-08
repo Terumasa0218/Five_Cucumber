@@ -97,7 +97,10 @@ export default function RoomWaitingPage() {
             debugWarn('Room fetch error:', err);
             if (err instanceof DOMException && err.name === 'AbortError') {
               setError('リクエストがタイムアウトしました。ネットワーク状況を確認してください。');
-            } else if (err instanceof ApiRequestError && err.response.status === 404) {
+            } else if (
+              err instanceof ApiRequestError &&
+              [401, 404, 503].includes(err.response.status)
+            ) {
               const local = getLocalRoom(roomId);
               if (local) {
                 setRoom(local);
@@ -107,7 +110,11 @@ export default function RoomWaitingPage() {
                 setIsLoading(false);
                 return;
               }
-              setError('ルームが見つかりません。ルームが削除されたか、ルーム番号が間違っている可能性があります。');
+              setError(
+                err.response.status === 404
+                  ? 'ルームが見つかりません。ルームが削除されたか、ルーム番号が間違っている可能性があります。'
+                  : 'サーバー同期の設定が不足しています。ローカル確認用ルームがない場合、別端末とのフレンド対戦は開始できません。'
+              );
             } else {
               setError('ネットワークエラーが発生しました');
             }

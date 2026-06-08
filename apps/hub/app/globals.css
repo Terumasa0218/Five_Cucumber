@@ -2281,6 +2281,354 @@ body[data-bg='battle']::before {
   }
 }
 
+/* === Clean UI pass: remove generated backgrounds and clarify navigation === */
+body {
+  background: #f7f4ec;
+  color: var(--antique-ink);
+}
+
+.home-shell {
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  background: #f7f4ec;
+  color: var(--antique-ink);
+  font-family: 'Noto Sans JP', sans-serif;
+  padding: clamp(16px, 3vw, 32px);
+}
+
+.home-shell__topbar {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.home-shell__nav,
+.home-shell__quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-shell__text-link,
+.home-shell__quick-links a,
+.home-shell__language,
+.home-shell__profile {
+  color: #25533e;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.home-shell__text-link,
+.home-shell__language,
+.home-shell__profile,
+.home-shell__quick-links a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 10px 16px;
+}
+
+.home-shell__text-link,
+.home-shell__language,
+.home-shell__quick-links a {
+  border: 1px solid #d8cfbc;
+  background: #fffaf0;
+}
+
+.home-shell__profile {
+  gap: 8px;
+  background: #25533e;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(37, 83, 62, 0.18);
+}
+
+.home-shell__profile-label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.home-shell__content {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: clamp(22px, 4vw, 36px);
+  text-align: center;
+  padding-block: clamp(48px, 10vh, 96px);
+}
+
+.home-shell__title-block {
+  display: grid;
+  gap: 12px;
+}
+
+.home-shell__eyebrow {
+  margin: 0;
+  color: var(--antique-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+
+.home-shell__title {
+  margin: 0;
+  color: #174329;
+  font-family: 'Shippori Mincho', serif;
+  font-size: clamp(44px, 8vw, 76px);
+  line-height: 1.08;
+}
+
+.home-shell__lead {
+  margin: 0;
+  color: #4b5563;
+  font-size: clamp(15px, 2vw, 18px);
+  line-height: 1.8;
+}
+
+.home-shell__primary-actions {
+  width: min(480px, 100%);
+  display: grid;
+  gap: 14px;
+}
+
+.home-shell__action {
+  min-height: 76px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: clamp(20px, 3vw, 26px);
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.12);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.home-shell__action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(17, 24, 39, 0.16);
+}
+
+.home-shell__action small {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.82;
+}
+
+.home-shell__action--primary {
+  background: #247a42;
+  color: #ffffff;
+}
+
+.home-shell__action--secondary {
+  background: #f59e3d;
+  color: #2d1a04;
+}
+
+.home-shell__quick-links {
+  justify-content: center;
+}
+
+.background-frame {
+  background: #f7f4ec;
+}
+
+.background-frame__image,
+.friend-page__background,
+.friend-room-page__background {
+  display: none;
+}
+
+.settings-layout,
+.friend-room,
+.friend-room-page__container {
+  color: var(--antique-ink);
+}
+
+.settings-layout {
+  width: min(960px, 100%);
+  padding: clamp(24px, 5vw, 56px) clamp(16px, 4vw, 24px);
+}
+
+.settings-layout__header,
+.friend-room__header,
+.friend-room__status-card,
+.room-summary-card {
+  background: #fffaf0;
+  border: 1px solid #ded4c0;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
+}
+
+.settings-layout section,
+.friend-room-card section {
+  color: var(--antique-ink);
+}
+
+.settings-layout p,
+.friend-room-card p {
+  color: #4b5563;
+}
+
+.settings-layout .text-white\/80,
+.settings-layout .text-white\/70,
+.friend-room-card .text-white\/80,
+.friend-room-card .text-white\/70 {
+  color: #4b5563 !important;
+}
+
+.friend-page,
+.friend-room-page {
+  background: #f7f4ec;
+  color: var(--antique-ink);
+}
+
+.friend-page {
+  padding: clamp(24px, 5vw, 56px) clamp(16px, 5vw, 48px);
+}
+
+.friend-page__container {
+  align-content: start;
+  gap: clamp(24px, 5vw, 40px);
+}
+
+.friend-page__header {
+  background: #fffaf0;
+  border: 1px solid #ded4c0;
+  border-radius: 16px;
+  padding: clamp(22px, 4vw, 36px);
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
+}
+
+.friend-page__eyebrow,
+.friend-room-page__eyebrow {
+  color: #6b7280;
+}
+
+.friend-page__title,
+.friend-room-page__title,
+.friend-page__lead,
+.friend-room-page__lead,
+.overlay-title,
+.overlay-lead {
+  color: var(--antique-ink);
+  text-shadow: none;
+}
+
+.friend-page__rules {
+  background: #ffffff;
+  border-color: #d8cfbc;
+  color: #25533e;
+}
+
+.friend-actions {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.friend-action-card,
+.friend-room-card {
+  background: #ffffff;
+  color: var(--antique-ink);
+  border: 1px solid #ded4c0;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.08);
+}
+
+.friend-action-card__title,
+.friend-action-card__text {
+  color: var(--antique-ink);
+}
+
+.friend-action-card__text {
+  color: #4b5563;
+}
+
+.friend-action-card__button,
+.friend-room-card__submit,
+.friend-room-card__secondary,
+.friend-room-card__link,
+.btn-primary,
+.btn-secondary,
+.fc-button {
+  border-radius: 10px;
+  text-decoration: none;
+}
+
+.friend-action-card__button--primary,
+.friend-room-card__submit,
+.btn-primary,
+.fc-button--primary {
+  background: #247a42;
+  color: #ffffff;
+  border-color: #247a42;
+  box-shadow: 0 8px 18px rgba(36, 122, 66, 0.2);
+}
+
+.friend-action-card__button--secondary,
+.friend-room-card__secondary,
+.btn-secondary,
+.fc-button--secondary {
+  background: #fffaf0;
+  color: #25533e;
+  border: 1px solid #d8cfbc;
+  box-shadow: none;
+}
+
+.friend-room-card__input {
+  background: #fffaf0;
+  color: var(--antique-ink);
+  border-color: #d8cfbc;
+}
+
+.friend-room-card__hint,
+.friend-room-card__link {
+  color: #4b5563;
+}
+
+.friend-room-card__error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+
+.friend-page__cta,
+.friend-sticky-bar {
+  display: none;
+}
+
+.battle-layout {
+  background: #173823;
+}
+
+.battle-layout__stage {
+  background: #1f4b31;
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: none;
+}
+
+@media (max-width: 720px) {
+  .home-shell__topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .home-shell__nav,
+  .home-shell__quick-links {
+    justify-content: center;
+  }
+
+  .home-shell__profile {
+    justify-content: center;
+  }
+}
+
 /* === ホームランディング（画像デザイン準拠） === */
 .home-landing {
   min-height: 100svh;

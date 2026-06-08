@@ -55,6 +55,17 @@ export default function FriendJoinPage() {
     return `ネットワークエラーが発生しました${message ? ` (${message})` : ''}`;
   };
 
+  const canFallbackToLocalJoin = (err: unknown) => {
+    if (!(err instanceof ApiRequestError)) return true;
+    const body = err.response.data as RoomResponse | { reason?: string } | undefined;
+    return (
+      err.response.status === 0 ||
+      err.response.status === 401 ||
+      err.response.status === 503 ||
+      body?.reason === 'no-shared-store'
+    );
+  };
+
   const joinLocalRoom = (trimmedRoomCode: string, nickname: string) => {
     const result = joinRoom(trimmedRoomCode, nickname);
     if (!result.success || !result.roomId) {
@@ -128,6 +139,10 @@ export default function FriendJoinPage() {
         setError(joinFailureMessage(data.reason));
       }
     } catch (err) {
+      if (canFallbackToLocalJoin(err)) {
+        joinLocalRoom(trimmedRoomCode, nickname);
+        return;
+      }
       setError(backendFailureMessage(err));
     } finally {
       setIsJoining(false);

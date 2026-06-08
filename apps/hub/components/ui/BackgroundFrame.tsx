@@ -4,7 +4,7 @@ import Image from "next/image";
 import React from "react";
 
 export type BackgroundFrameProps = {
-  src: string;
+  src?: string | null;
   priority?: boolean;
   objectPosition?: string;
   children: React.ReactNode;
@@ -24,16 +24,18 @@ export function BackgroundFrame({
 }: BackgroundFrameProps) {
   return (
     <div className={mergeClassNames("background-frame", className)}>
-      <div className="background-frame__image">
-        <Image
-          src={src}
-          alt=""
-          fill
-          sizes="100vw"
-          priority={priority}
-          style={{ objectFit: "cover", objectPosition }}
-        />
-      </div>
+      {src ? (
+        <div className="background-frame__image">
+          <Image
+            src={src}
+            alt=""
+            fill
+            sizes="100vw"
+            priority={priority}
+            style={{ objectFit: "cover", objectPosition }}
+          />
+        </div>
+      ) : null}
 
       {children}
     </div>
