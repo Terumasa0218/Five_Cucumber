@@ -16,15 +16,15 @@ export type CardPose = {
 const PI = Math.PI;
 
 export const cameraConfig = {
-  fov: 42,
-  position: [0, 6.3, 7.55] as Vec3,
-  target: [0, 0.08, 0.02] as Vec3,
+  fov: 40,
+  position: [0, 7.15, 7.2] as Vec3,
+  target: [0, 0.1, -0.04] as Vec3,
 };
 
 export const sceneConfig = {
-  position: [0, -0.08, -0.28] as Vec3,
+  position: [0, -0.08, -0.36] as Vec3,
   rotation: [0, 0, 0] as Euler3,
-  scale: 1.02,
+  scale: 1.05,
 };
 
 export const animationConfig = {
@@ -34,9 +34,9 @@ export const animationConfig = {
 };
 
 export const cardGeometry = {
-  width: 0.62,
-  height: 0.9,
-  thickness: 0.012,
+  width: 0.66,
+  height: 0.94,
+  thickness: 0.008,
 };
 
 export const pilePositions = {
@@ -45,10 +45,11 @@ export const pilePositions = {
   graveyard: [1.12, 0.26, 0.08] as Vec3,
 };
 
-export const playerHandOrigin = [0, 0.32, 1.78] as Vec3;
+export const playerHandOrigin = [0, 0.54, 2.34] as Vec3;
+export const screenFacingRotation = [0.72, 0, 0] as Euler3;
 
-const seatRadiusX = 4.5;
-const seatRadiusZ = 2.76;
+const seatRadiusX = 5.16;
+const seatRadiusZ = 2.54;
 
 function degToRad(value: number): number {
   return (value / 180) * PI;
@@ -114,28 +115,24 @@ export function clampHandCount(count: number): number {
 export function getHandCardPose(index: number, count: number, selected: boolean): CardPose {
   const mid = (count - 1) / 2;
   const compact = Math.max(0, count - 7);
-  const spacing = Math.max(0.27, 0.51 - compact * 0.022);
-  const arcDepth = Math.min(0.44, count * 0.018);
-  const fan = Math.min(0.5, count * 0.026);
+  const spacing = Math.max(0.5, 0.74 - compact * 0.026);
   const offset = index - mid;
-  const normalized = count <= 1 ? 0 : offset / mid;
-  const z = selected ? 0.25 : -Math.abs(normalized) * arcDepth;
 
   return {
-    position: [offset * spacing, selected ? 0.34 : 0.08, z],
-    rotation: [0, -normalized * fan, 0],
-    scale: selected ? 1.04 : Math.max(0.72, 0.91 - compact * 0.014),
+    position: [offset * spacing, selected ? 0.18 : 0.02, selected ? -0.04 : 0],
+    rotation: [0, 0, 0],
+    scale: selected ? 1.04 : Math.max(0.74, 0.96 - compact * 0.018),
   };
 }
 
 export function getOpponentCardPose(index: number, count: number): CardPose {
   const mid = (count - 1) / 2;
-  const spacing = Math.max(0.17, 0.26 - Math.max(0, count - 7) * 0.006);
+  const spacing = Math.max(0.18, 0.29 - Math.max(0, count - 7) * 0.006);
   const fan = count <= 1 ? 0 : (index - mid) * 0.018;
   return {
     position: [(index - mid) * spacing, 0.04, -Math.abs(index - mid) * 0.006],
     rotation: [0, fan, 0],
-    scale: 0.62,
+    scale: 0.64,
   };
 }
 

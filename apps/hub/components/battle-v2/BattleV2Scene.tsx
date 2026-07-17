@@ -17,6 +17,7 @@ import {
   pilePositions,
   playerHandOrigin,
   sceneConfig,
+  screenFacingRotation,
   seatLayouts,
   type CardPose,
   type Euler3,
@@ -118,8 +119,8 @@ function RoundedCardBody({ color }: { color: string }) {
       depth: cardGeometry.thickness,
       bevelEnabled: true,
       bevelSegments: 3,
-      bevelSize: 0.012,
-      bevelThickness: 0.004,
+      bevelSize: 0.007,
+      bevelThickness: 0.002,
     }),
     []
   );
@@ -132,7 +133,7 @@ function RoundedCardBody({ color }: { color: string }) {
       rotation={[Math.PI / 2, 0, 0]}
     >
       <extrudeGeometry args={[shape, extrudeSettings]} />
-      <meshStandardMaterial color={color} roughness={0.76} metalness={0.01} />
+      <meshStandardMaterial color={color} roughness={0.84} metalness={0} />
     </mesh>
   );
 }
@@ -378,23 +379,23 @@ function AnimatedCard({
 function Table3D() {
   return (
     <group>
-      <mesh castShadow receiveShadow position={[0, -0.05, 0]} scale={[1.64, 0.1, 1.08]}>
+      <mesh castShadow receiveShadow position={[0, -0.05, 0]} scale={[1.92, 0.08, 1.02]}>
         <cylinderGeometry args={[3.35, 3.55, 0.28, 96]} />
         <TextureMaterial slot={battleV2Assets.tableRim} />
       </mesh>
-      <mesh receiveShadow position={[0, 0.17, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.64, 0.98, 1]}>
+      <mesh receiveShadow position={[0, 0.17, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.9, 0.9, 1]}>
         <circleGeometry args={[3.12, 96]} />
         <meshStandardMaterial color={battleV2Assets.table.color} roughness={0.92} metalness={0} />
       </mesh>
-      <mesh receiveShadow position={[0, 0.182, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.58, 0.94, 1]}>
+      <mesh receiveShadow position={[0, 0.182, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.82, 0.85, 1]}>
         <ringGeometry args={[2.92, 3.02, 128]} />
         <meshBasicMaterial color="#d1a354" transparent opacity={0.36} depthWrite={false} />
       </mesh>
-      <mesh receiveShadow position={[0, 0.105, 0]} scale={[1.56, 0.04, 0.98]}>
+      <mesh receiveShadow position={[0, 0.105, 0]} scale={[1.82, 0.035, 0.9]}>
         <cylinderGeometry args={[3.18, 3.18, 0.08, 96]} />
         <TextureMaterial slot={battleV2Assets.table} />
       </mesh>
-      <mesh receiveShadow position={[0, -0.22, 0]} scale={[1.84, 0.04, 1.16]}>
+      <mesh receiveShadow position={[0, -0.2, 0]} scale={[2.08, 0.035, 1.08]}>
         <cylinderGeometry args={[3.5, 3.7, 0.08, 96]} />
         <meshStandardMaterial color="#11120f" roughness={0.9} metalness={0} />
       </mesh>
@@ -603,7 +604,7 @@ function PlayerHand({
   };
 
   return (
-    <group position={playerHandOrigin}>
+    <group position={playerHandOrigin} rotation={screenFacingRotation}>
       {cards.map((card, index) => {
         if (card.id === movingCardId) return null;
         const pose = getHandCardPose(index, cards.length, selectedCardId === card.id);
@@ -691,9 +692,9 @@ function BattleSceneContents({
               : offsetFromTableCenter(seat.position, -0.34);
             const namePose: CardPose = {
               position: isSelf
-                ? [seat.position[0], seat.position[1] + 0.02, seat.position[2] + 0.55]
-                : offsetFromTableCenter(seat.position, 0.38, 0.03),
-              rotation: seat.rotation,
+                ? [seat.position[0], seat.position[1] + 0.08, seat.position[2] + 0.52]
+                : offsetFromTableCenter(seat.position, 0.42, 0.12),
+              rotation: screenFacingRotation,
               scale: isSelf ? 1.15 : 0.85,
             };
 
