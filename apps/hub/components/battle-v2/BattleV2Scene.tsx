@@ -29,6 +29,7 @@ export type BattleV2CardView = {
 export type BattleV2MovingCard = {
   id: string;
   value: number;
+  actorLabel?: string;
   from: CardPose;
   to: CardPose;
 };
@@ -263,12 +264,17 @@ function CenterPiles({
   playedCards,
   graveyard,
   fieldCard,
+  hiddenPlayedMoveKey,
 }: {
   playedCards: Move[];
   graveyard: number[];
   fieldCard: number | null;
+  hiddenPlayedMoveKey?: string | null;
 }) {
-  const lastFieldCard = playedCards[playedCards.length - 1]?.card ?? fieldCard ?? 9;
+  const visiblePlayedCards = hiddenPlayedMoveKey
+    ? playedCards.filter(move => `${move.player}-${move.timestamp}` !== hiddenPlayedMoveKey)
+    : playedCards;
+  const lastFieldCard = visiblePlayedCards[visiblePlayedCards.length - 1]?.card ?? fieldCard ?? 9;
   const lastGraveCard = graveyard[graveyard.length - 1] ?? 5;
 
   return (
@@ -282,8 +288,8 @@ function CenterPiles({
       </group>
 
       <group position={pilePositions.field}>
-        {playedCards.length > 0 ? (
-          playedCards.slice(-5).map((move, index) => (
+        {visiblePlayedCards.length > 0 ? (
+          visiblePlayedCards.slice(-5).map((move, index) => (
             <group
               key={`${move.player}-${move.timestamp}-${index}`}
               position={[index * 0.025, index * 0.02, index * -0.018]}
@@ -404,6 +410,7 @@ function BattleSceneContents({
   selectedCardId,
   movingCard,
   playedCards,
+  hiddenPlayedMoveKey,
   onSelectCard,
   onMoveComplete,
 }: {
@@ -412,6 +419,7 @@ function BattleSceneContents({
   selectedCardId: string | null;
   movingCard: BattleV2MovingCard | null;
   playedCards: Move[];
+  hiddenPlayedMoveKey: string | null;
   onSelectCard: (card: BattleV2CardView) => void;
   onMoveComplete: () => void;
 }) {
@@ -439,6 +447,7 @@ function BattleSceneContents({
             playedCards={playedCards}
             graveyard={state.sharedGraveyard}
             fieldCard={state.fieldCard}
+            hiddenPlayedMoveKey={hiddenPlayedMoveKey}
           />
 
           {state.players.map((player, index) => {
@@ -490,6 +499,7 @@ export function BattleV2Scene({
   selectedCardId = null,
   movingCard = null,
   playedCards,
+  hiddenPlayedMoveKey = null,
   onSelectCard,
   onMoveComplete = () => {},
 }: {
@@ -498,6 +508,7 @@ export function BattleV2Scene({
   selectedCardId?: string | null;
   movingCard?: BattleV2MovingCard | null;
   playedCards: Move[];
+  hiddenPlayedMoveKey?: string | null;
   onSelectCard: (card: BattleV2CardView) => void;
   onMoveComplete?: () => void;
 }) {
@@ -523,6 +534,7 @@ export function BattleV2Scene({
         selectedCardId={selectedCardId}
         movingCard={movingCard}
         playedCards={playedCards}
+        hiddenPlayedMoveKey={hiddenPlayedMoveKey}
         onSelectCard={onSelectCard}
         onMoveComplete={onMoveComplete}
       />

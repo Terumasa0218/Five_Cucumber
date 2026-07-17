@@ -3,9 +3,19 @@
 import BattleLayout from '@/components/BattleLayout';
 import { BattleHud, EllipseTable, Timer } from '@/components/ui';
 import dynamic from 'next/dynamic';
-import type { BattleV2CardView } from '@/components/battle-v2/BattleV2Scene';
+import type { BattleV2CardView, BattleV2MovingCard } from '@/components/battle-v2/BattleV2Scene';
 import { HumanController } from '@/lib/controllers/human';
 import { delay, runAnimation } from '@/lib/animQueue';
+import {
+  clampPlayers,
+  getHandCardPose,
+  getOpponentCardPose,
+  pilePositions,
+  seatLayouts,
+  type CardPose,
+  type Euler3,
+  type Vec3,
+} from '@/lib/battle-v2/layout';
 import {
   applyMove,
   calculateFinalTrickPenalty,
@@ -46,6 +56,80 @@ function debugGameLog(...args: unknown[]): void {
   }
 }
 
+function addVec3(a: Vec3, b: Vec3): Vec3 {
+  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+}
+
+function rotateVec3Y(position: Vec3, radians: number): Vec3 {
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return [
+    position[0] * cos - position[2] * sin,
+    position[1],
+    position[0] * sin + position[2] * cos,
+  ];
+}
+
+function combinePose(parentPosition: Vec3, parentRotation: Euler3, childPose: CardPose): CardPose {
+  return {
+    position: addVec3(parentPosition, rotateVec3Y(childPose.position, parentRotation[1])),
+    rotation: [
+      parentRotation[0] + childPose.rotation[0],
+      parentRotation[1] + childPose.rotation[1],
+      parentRotation[2] + childPose.rotation[2],
+    ],
+    scale: childPose.scale,
+  };
+}
+
+function createBattleV2MoveAnimation(
+  state: GameState,
+  player: number,
+  card: number,
+  isDiscardMove: boolean,
+  timestamp: number
+): BattleV2MovingCard | null {
+  const playerState = state.players[player];
+  if (!playerState) return null;
+
+  const cardIndex = playerState.hand.indexOf(card);
+  if (cardIndex < 0) return null;
+
+  const from =
+    player === 0
+      ? combinePose(
+          [0, 0.24, 2.58],
+          [0, 0, 0],
+          getHandCardPose(cardIndex, playerState.hand.length, true)
+        )
+      : (() => {
+          const layout = seatLayouts[clampPlayers(state.players.length)];
+          const seat = layout[player];
+          if (!seat) return null;
+          return combinePose(
+            seat.position,
+            seat.rotation,
+            getOpponentCardPose(cardIndex, playerState.hand.length)
+          );
+        })();
+
+  if (!from) return null;
+
+  return {
+    id: `${player}-${card}-${timestamp}`,
+    value: card,
+    actorLabel: player === 0 ? 'あなた' : `CPU ${player}`,
+    from,
+    to: {
+      position: isDiscardMove
+        ? [pilePositions.graveyard[0], pilePositions.graveyard[1] + 0.12, pilePositions.graveyard[2]]
+        : [pilePositions.field[0], pilePositions.field[1] + 0.14, pilePositions.field[2]],
+      rotation: [0, isDiscardMove ? 0.16 : 0.28, 0],
+      scale: 1,
+    },
+  };
+}
+
 function CpuPlayContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -65,6 +149,8 @@ function CpuPlayContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lockedCardId, setLockedCardId] = useState<number | null>(null);
   const [tableTrickCards, setTableTrickCards] = useState<Move[]>([]);
+  const [battleV2MovingCard, setBattleV2MovingCard] = useState<BattleV2MovingCard | null>(null);
+  const [battleV2HiddenMoveKey, setBattleV2HiddenMoveKey] = useState<string | null>(null);
   const [latestPlayedKey, setLatestPlayedKey] = useState<string | null>(null);
   const [trickWinner, setTrickWinner] = useState<number | null>(null);
   const [trickWinnerText, setTrickWinnerText] = useState<string | null>(null);
@@ -165,6 +251,8 @@ function CpuPlayContent() {
       setGameOver(false);
       setGameResults([]);
       setTableTrickCards([]);
+      setBattleV2MovingCard(null);
+      setBattleV2HiddenMoveKey(null);
       setLatestPlayedKey(null);
       setTrickWinner(null);
       setTrickWinnerText(null);
@@ -268,6 +356,8 @@ function CpuPlayContent() {
               setGameOver(parsed.gameOver || false);
               setGameResults(parsed.gameResults || []);
               setTableTrickCards(state.trickCards || []);
+              setBattleV2MovingCard(null);
+              setBattleV2HiddenMoveKey(null);
               setLatestPlayedKey(null);
               setTrickWinner(null);
               setTrickWinnerText(null);
@@ -380,6 +470,8 @@ function CpuPlayContent() {
         setGameState(state);
         gameRef.current!.state = state;
         setTableTrickCards([]);
+        setBattleV2MovingCard(null);
+        setBattleV2HiddenMoveKey(null);
         setLatestPlayedKey(null);
         setTrickWinner(null);
         setTrickWinnerText(null);
@@ -423,6 +515,8 @@ function CpuPlayContent() {
         setIsSubmitting(false);
         setIsCardLocked(false);
         setLockedCardId(null);
+        setBattleV2MovingCard(null);
+        setBattleV2HiddenMoveKey(null);
         setOverlayText(null);
         return;
       }
@@ -453,7 +547,13 @@ function CpuPlayContent() {
         }
 
         const isDiscardMove = state.fieldCard !== null && card < state.fieldCard;
-        const move: Move = { player, card, timestamp: Date.now(), isDiscard: isDiscardMove };
+        const moveTimestamp = Date.now();
+        const move: Move = { player, card, timestamp: moveTimestamp, isDiscard: isDiscardMove };
+        const moveKey = `${player}-${moveTimestamp}`;
+        const v2MovingCard =
+          searchParams.get('view') === 'v2' || searchParams.get('ui') === 'v2'
+            ? createBattleV2MoveAnimation(state, player, card, isDiscardMove, moveTimestamp)
+            : null;
         const trickCardsAfterPlay = isDiscardMove
           ? [...state.trickCards]
           : [...state.trickCards, move];
@@ -495,7 +595,9 @@ function CpuPlayContent() {
         gameRef.current.state = previewState;
         setGameState(previewState);
         setTableTrickCards(trickCardsAfterPlay);
-        setLatestPlayedKey(`${player}-${move.timestamp}`);
+        setLatestPlayedKey(moveKey);
+        setBattleV2MovingCard(v2MovingCard);
+        setBattleV2HiddenMoveKey(v2MovingCard && !isDiscardMove ? moveKey : null);
         setTrickWinner(null);
         setTrickWinnerText(null);
 
@@ -898,13 +1000,24 @@ function CpuPlayContent() {
               state={gameState}
               names={displayNames}
               playedCards={tableTrickCards}
+              movingCard={battleV2MovingCard}
+              hiddenPlayedMoveKey={battleV2HiddenMoveKey}
+              onMoveComplete={() => {
+                setBattleV2MovingCard(null);
+                setBattleV2HiddenMoveKey(null);
+              }}
               onSelectCard={(card: BattleV2CardView) => {
                 if (!battleV2LegalMoves.includes(card.value)) return;
                 void handleCardClick(card.value);
               }}
             />
             <div className="cpu-play-v2-badge" aria-live="polite">
-              V2試験表示 / 合法手: {battleV2LegalMoves.join(', ') || '-'}
+              V2試験表示 /{' '}
+              {battleV2MovingCard
+                ? `${battleV2MovingCard.actorLabel ?? 'プレイヤー'}: ${
+                    battleV2MovingCard.value
+                  } を移動中`
+                : `合法手: ${battleV2LegalMoves.join(', ') || '-'}`}
             </div>
           </div>
         ) : (
