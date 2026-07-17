@@ -786,6 +786,10 @@ function CpuPlayContent() {
     if (!gameState.isFinalTrick || gameState.phase !== 'AwaitMove') return;
     if (finalTrickStarted || isAnimating || isProcessingRef.current) return;
 
+    const useBattleV2 = shouldUseBattleV2(searchParams);
+    const resultDelayMs = useBattleV2 ? 1800 : 5000;
+    const nextRoundDelayMs = useBattleV2 ? 5200 : 10000;
+
     const runFinalTrickShowdown = () => {
       if (!gameRef.current) return;
       const { state, config, rng } = gameRef.current;
@@ -794,6 +798,11 @@ function CpuPlayContent() {
       debugGameLog('[Showdown] === SHOWDOWN STARTING ===');
       let currentState = state;
       const showdownTrickCards: Move[] = [...state.trickCards];
+      const displayPlayers = state.players.map(player => ({
+        ...player,
+        hand: [...player.hand],
+        graveyard: [...player.graveyard],
+      }));
       const selectedPlayers: number[] = [];
       const playerOrder = Array.from(
         { length: config.players },
@@ -812,6 +821,10 @@ function CpuPlayContent() {
         };
         showdownTrickCards.push(move);
         debugGameLog('[Showdown] Player', playerIndex, 'card:', selectedCard, 'isDiscard:', false);
+        const displayCardIndex = displayPlayers[playerIndex]?.hand.indexOf(selectedCard) ?? -1;
+        if (displayCardIndex >= 0) {
+          displayPlayers[playerIndex].hand.splice(displayCardIndex, 1);
+        }
         const result = applyMove(currentState, move, config, rng);
         debugGameLog('[Showdown] applyMove result:', result.success, result.message);
         if (!result.success) {
@@ -828,22 +841,29 @@ function CpuPlayContent() {
 
       debugGameLog('[Showdown] Final trickCards:', showdownTrickCards);
 
+      const resolvedState = currentState;
+      const lastShowdownCard =
+        showdownTrickCards[showdownTrickCards.length - 1]?.card ?? state.fieldCard;
       const openedPlayers = showdownTrickCards.map(move => move.player);
       const winner = determineTrickWinner(showdownTrickCards);
+      const showdownDisplayState: GameState = {
+        ...state,
+        players: displayPlayers,
+        currentPlayer: -1,
+        fieldCard: lastShowdownCard,
+        trickCards: showdownTrickCards,
+        actionCount: showdownTrickCards.length,
+        phase: 'ResolvingTrick',
+        isFinalTrick: true,
+      };
 
       setFinalTrickSelectedPlayers(selectedPlayers);
       setFinalTrickOpenedPlayers(openedPlayers);
       setTableTrickCards(showdownTrickCards);
       setLatestPlayedKey(null);
       debugGameLog('[Showdown] Setting state with', showdownTrickCards.length, 'cards');
-      setGameState({
-        ...currentState,
-        trickCards: showdownTrickCards,
-      });
-      gameRef.current.state = {
-        ...currentState,
-        trickCards: showdownTrickCards,
-      };
+      setGameState(showdownDisplayState);
+      gameRef.current.state = showdownDisplayState;
       setIsAnimating(true);
       setIsShowdownMode(true);
       setTrickWinner(winner);
@@ -872,7 +892,7 @@ function CpuPlayContent() {
           );
           setOverlayText(`${winnerName}が${penaltyResult.penalty}本のきゅうりを獲得！`);
         }
-      }, 5000);
+      }, resultDelayMs);
 
       const nextRoundTimer = setTimeout(() => {
         setTableTrickCards([]);
@@ -885,8 +905,8 @@ function CpuPlayContent() {
         setFinalTrickStatusText(null);
         setOverlayText(null);
         setIsShowdownMode(false);
-        checkGameOver(currentState);
-      }, 10000);
+        checkGameOver(resolvedState);
+      }, nextRoundDelayMs);
 
       finalTrickTimeoutsRef.current.push(showResultTimer, nextRoundTimer);
     };
@@ -897,16 +917,18 @@ function CpuPlayContent() {
     setFinalTrickStatusText(null);
     setFinalTrickSelectedPlayers([]);
     setFinalTrickOpenedPlayers([]);
-    setOverlayText('最終トリック');
+    setOverlayText(useBattleV2 ? null : '最終トリック');
 
     const showdownTimer = setTimeout(() => {
-      setOverlayText('Showdown!');
+      if (!useBattleV2) {
+        setOverlayText('Showdown!');
+      }
       const openTimer = setTimeout(() => {
         setOverlayText(null);
         runFinalTrickShowdown();
-      }, 1500);
+      }, useBattleV2 ? 0 : 1500);
       finalTrickTimeoutsRef.current.push(openTimer);
-    }, 2000);
+    }, useBattleV2 ? 700 : 2000);
 
     finalTrickTimeoutsRef.current.push(showdownTimer);
   }, [
@@ -916,6 +938,7 @@ function CpuPlayContent() {
     gameState,
     finalTrickStarted,
     isAnimating,
+    searchParams,
   ]);
 
   useEffect(() => {
@@ -1031,6 +1054,8 @@ function CpuPlayContent() {
               movingCard={battleV2MovingCard}
               hiddenPlayedMoveKey={battleV2HiddenMoveKey}
               legalMoves={battleV2LegalMoves}
+              showdownMode={isShowdownMode}
+              trickWinner={trickWinner}
               onMoveComplete={() => {
                 setBattleV2MovingCard(null);
                 setBattleV2HiddenMoveKey(null);

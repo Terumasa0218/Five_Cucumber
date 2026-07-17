@@ -3,7 +3,7 @@
 import { Text } from '@react-three/drei';
 import { Canvas, ThreeEvent, useFrame, useLoader, useThree } from '@react-three/fiber';
 import { Suspense, useLayoutEffect, useMemo, useRef } from 'react';
-import { TextureLoader, Vector3 } from 'three';
+import { Shape, TextureLoader, Vector3 } from 'three';
 import type { Group } from 'three';
 import type { GameState, Move } from '@/lib/game-core';
 import { battleV2Assets, type BattleV2AssetSlot } from '@/lib/battle-v2/assets';
@@ -90,6 +90,89 @@ function TextureMaterialWithMap({ slot, url }: { slot: BattleV2AssetSlot; url: s
   );
 }
 
+function createRoundedRectShape(width: number, height: number, radius: number): Shape {
+  const x = -width / 2;
+  const y = -height / 2;
+  const shape = new Shape();
+
+  shape.moveTo(x + radius, y);
+  shape.lineTo(x + width - radius, y);
+  shape.quadraticCurveTo(x + width, y, x + width, y + radius);
+  shape.lineTo(x + width, y + height - radius);
+  shape.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  shape.lineTo(x + radius, y + height);
+  shape.quadraticCurveTo(x, y + height, x, y + height - radius);
+  shape.lineTo(x, y + radius);
+  shape.quadraticCurveTo(x, y, x + radius, y);
+
+  return shape;
+}
+
+function RoundedCardBody({ color }: { color: string }) {
+  const shape = useMemo(
+    () => createRoundedRectShape(cardGeometry.width, cardGeometry.height, 0.055),
+    []
+  );
+  const extrudeSettings = useMemo(
+    () => ({
+      depth: cardGeometry.thickness,
+      bevelEnabled: true,
+      bevelSegments: 3,
+      bevelSize: 0.012,
+      bevelThickness: 0.004,
+    }),
+    []
+  );
+
+  return (
+    <mesh
+      castShadow
+      receiveShadow
+      position={[0, cardGeometry.thickness + 0.002, 0]}
+      rotation={[Math.PI / 2, 0, 0]}
+    >
+      <extrudeGeometry args={[shape, extrudeSettings]} />
+      <meshStandardMaterial color={color} roughness={0.76} metalness={0.01} />
+    </mesh>
+  );
+}
+
+function RoundedCardSurface({ slot }: { slot: BattleV2AssetSlot }) {
+  const shape = useMemo(
+    () => createRoundedRectShape(cardGeometry.width * 0.94, cardGeometry.height * 0.94, 0.046),
+    []
+  );
+
+  return (
+    <mesh
+      castShadow
+      receiveShadow
+      position={[0, cardGeometry.thickness + 0.008, 0]}
+      rotation={[-Math.PI / 2, 0, 0]}
+    >
+      <shapeGeometry args={[shape]} />
+      <TextureMaterial slot={slot} />
+    </mesh>
+  );
+}
+
+function RoundedCardOverlay({ color, opacity }: { color: string; opacity: number }) {
+  const shape = useMemo(
+    () => createRoundedRectShape(cardGeometry.width * 0.94, cardGeometry.height * 0.94, 0.046),
+    []
+  );
+
+  return (
+    <mesh
+      position={[0, cardGeometry.thickness + 0.02, 0]}
+      rotation={[-Math.PI / 2, 0, 0]}
+    >
+      <shapeGeometry args={[shape]} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+    </mesh>
+  );
+}
+
 function CameraRig() {
   const { camera } = useThree();
   const target = useMemo(() => new Vector3(...cameraConfig.target), []);
@@ -167,24 +250,8 @@ function Card3D({
 
   return (
     <group onPointerDown={handlePointerDown}>
-      <mesh castShadow receiveShadow position={[0, cardGeometry.thickness / 2, 0]}>
-        <boxGeometry args={[cardGeometry.width, cardGeometry.thickness, cardGeometry.height]} />
-        <meshStandardMaterial
-          color={sideColor}
-          roughness={0.58}
-          metalness={0.03}
-        />
-      </mesh>
-
-      <mesh
-        castShadow
-        receiveShadow
-        position={[0, cardGeometry.thickness + 0.004, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <planeGeometry args={[cardGeometry.width * 0.94, cardGeometry.height * 0.94]} />
-        <TextureMaterial slot={faceUp ? battleV2Assets.cardFace : battleV2Assets.cardBack} />
-      </mesh>
+      <RoundedCardBody color={sideColor} />
+      <RoundedCardSurface slot={faceUp ? battleV2Assets.cardFace : battleV2Assets.cardBack} />
 
       {faceUp ? (
         <Suspense fallback={null}>
@@ -232,13 +299,7 @@ function Card3D({
       ) : null}
 
       {isDisabled ? (
-        <mesh
-          position={[0, cardGeometry.thickness + 0.018, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-        >
-          <planeGeometry args={[cardGeometry.width * 0.94, cardGeometry.height * 0.94]} />
-          <meshBasicMaterial color="#6c7168" transparent opacity={0.58} depthWrite={false} />
-        </mesh>
+        <RoundedCardOverlay color="#6c7168" opacity={0.58} />
       ) : null}
 
       {selected ? (
@@ -317,19 +378,23 @@ function AnimatedCard({
 function Table3D() {
   return (
     <group>
-      <mesh castShadow receiveShadow position={[0, -0.05, 0]} scale={[1.52, 0.1, 1]}>
+      <mesh castShadow receiveShadow position={[0, -0.05, 0]} scale={[1.64, 0.1, 1.08]}>
         <cylinderGeometry args={[3.35, 3.55, 0.28, 96]} />
         <TextureMaterial slot={battleV2Assets.tableRim} />
       </mesh>
-      <mesh receiveShadow position={[0, 0.17, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.52, 0.92, 1]}>
+      <mesh receiveShadow position={[0, 0.17, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.64, 0.98, 1]}>
         <circleGeometry args={[3.12, 96]} />
-        <meshBasicMaterial color={battleV2Assets.table.color} />
+        <meshStandardMaterial color={battleV2Assets.table.color} roughness={0.92} metalness={0} />
       </mesh>
-      <mesh receiveShadow position={[0, 0.105, 0]} scale={[1.46, 0.045, 0.92]}>
+      <mesh receiveShadow position={[0, 0.182, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.58, 0.94, 1]}>
+        <ringGeometry args={[2.92, 3.02, 128]} />
+        <meshBasicMaterial color="#d1a354" transparent opacity={0.36} depthWrite={false} />
+      </mesh>
+      <mesh receiveShadow position={[0, 0.105, 0]} scale={[1.56, 0.04, 0.98]}>
         <cylinderGeometry args={[3.18, 3.18, 0.08, 96]} />
         <TextureMaterial slot={battleV2Assets.table} />
       </mesh>
-      <mesh receiveShadow position={[0, -0.22, 0]} scale={[1.72, 0.04, 1.08]}>
+      <mesh receiveShadow position={[0, -0.22, 0]} scale={[1.84, 0.04, 1.16]}>
         <cylinderGeometry args={[3.5, 3.7, 0.08, 96]} />
         <meshStandardMaterial color="#11120f" roughness={0.9} metalness={0} />
       </mesh>
@@ -342,17 +407,56 @@ function CenterPiles({
   graveyard,
   fieldCard,
   hiddenPlayedMoveKey,
+  showdownMode,
+  layout,
+  trickWinner,
 }: {
   playedCards: Move[];
   graveyard: number[];
   fieldCard: number | null;
   hiddenPlayedMoveKey?: string | null;
+  showdownMode: boolean;
+  layout: typeof seatLayouts[2];
+  trickWinner: number | null;
 }) {
   const visiblePlayedCards = hiddenPlayedMoveKey
     ? playedCards.filter(move => `${move.player}-${move.timestamp}` !== hiddenPlayedMoveKey)
     : playedCards;
   const lastFieldCard = visiblePlayedCards[visiblePlayedCards.length - 1]?.card ?? fieldCard ?? 9;
   const lastGraveCard = graveyard[graveyard.length - 1] ?? 5;
+
+  if (showdownMode && visiblePlayedCards.length > 0) {
+    return (
+      <group>
+        {visiblePlayedCards.map((move, index) => {
+          const seat = layout[move.player];
+          const fallbackAngle = (index / Math.max(1, visiblePlayedCards.length)) * Math.PI * 2;
+          const seatPosition = seat?.position ?? [Math.sin(fallbackAngle), 0, Math.cos(fallbackAngle)];
+          const position: Vec3 = [
+            seatPosition[0] * 0.34,
+            pilePositions.field[1] + index * 0.012,
+            seatPosition[2] * 0.34,
+          ];
+          const rotation: Euler3 = [0, seat?.rotation[1] ?? fallbackAngle, 0];
+
+          return (
+            <group
+              key={`showdown-${move.player}-${move.timestamp}-${index}`}
+              position={position}
+              rotation={rotation}
+              scale={move.player === trickWinner ? 1.08 : 1}
+            >
+              <Card3D
+                value={move.card}
+                faceUp
+                status={move.player === trickWinner ? 'playable' : 'normal'}
+              />
+            </group>
+          );
+        })}
+      </group>
+    );
+  }
 
   return (
     <group>
@@ -411,25 +515,25 @@ function PlayerName3D({
       <Suspense fallback={null}>
         {active ? (
           <mesh position={[0, 0.032, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[1.72, 0.5]} />
-            <meshBasicMaterial color="#f5ce62" transparent opacity={0.26} depthWrite={false} />
+            <planeGeometry args={[1.82, 0.56]} />
+            <meshBasicMaterial color="#f1c84b" transparent opacity={0.78} depthWrite={false} />
           </mesh>
         ) : null}
         <mesh position={[0, 0.038, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[1.52, 0.34]} />
           <meshStandardMaterial
-            color={active ? '#213820' : '#152119'}
-            emissive={active ? '#b58b2c' : '#000000'}
-            emissiveIntensity={active ? 0.72 : 0}
-            roughness={0.62}
-            metalness={0.03}
+            color={active ? '#f4d66d' : '#152119'}
+            emissive={active ? '#d7a71f' : '#000000'}
+            emissiveIntensity={active ? 0.28 : 0}
+            roughness={0.7}
+            metalness={0.01}
           />
         </mesh>
         <Text
           position={[0, 0.07, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
           fontSize={0.13}
-          color={active ? '#fff2a6' : '#e7dcc6'}
+          color={active ? '#11130c' : '#e7dcc6'}
           anchorX="center"
           anchorY="middle"
         >
@@ -528,6 +632,8 @@ function BattleSceneContents({
   playedCards,
   hiddenPlayedMoveKey,
   legalMoves,
+  showdownMode,
+  trickWinner,
   onSelectCard,
   onMoveComplete,
 }: {
@@ -538,6 +644,8 @@ function BattleSceneContents({
   playedCards: Move[];
   hiddenPlayedMoveKey: string | null;
   legalMoves: number[];
+  showdownMode: boolean;
+  trickWinner: number | null;
   onSelectCard: (card: BattleV2CardView) => void;
   onMoveComplete: () => void;
 }) {
@@ -570,6 +678,9 @@ function BattleSceneContents({
             graveyard={state.sharedGraveyard}
             fieldCard={state.fieldCard}
             hiddenPlayedMoveKey={hiddenPlayedMoveKey}
+            showdownMode={showdownMode}
+            layout={layout}
+            trickWinner={trickWinner}
           />
 
           {state.players.map((player, index) => {
@@ -631,6 +742,8 @@ export function BattleV2Scene({
   playedCards,
   hiddenPlayedMoveKey = null,
   legalMoves = [],
+  showdownMode = false,
+  trickWinner = null,
   onSelectCard,
   onMoveComplete = () => {},
 }: {
@@ -641,6 +754,8 @@ export function BattleV2Scene({
   playedCards: Move[];
   hiddenPlayedMoveKey?: string | null;
   legalMoves?: number[];
+  showdownMode?: boolean;
+  trickWinner?: number | null;
   onSelectCard: (card: BattleV2CardView) => void;
   onMoveComplete?: () => void;
 }) {
@@ -668,6 +783,8 @@ export function BattleV2Scene({
         playedCards={playedCards}
         hiddenPlayedMoveKey={hiddenPlayedMoveKey}
         legalMoves={legalMoves}
+        showdownMode={showdownMode}
+        trickWinner={trickWinner}
         onSelectCard={onSelectCard}
         onMoveComplete={onMoveComplete}
       />
