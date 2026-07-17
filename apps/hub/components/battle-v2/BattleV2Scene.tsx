@@ -108,6 +108,34 @@ function CameraRig() {
   return null;
 }
 
+function CardStatusOutline({ color, opacity }: { color: string; opacity: number }) {
+  const y = cardGeometry.thickness + 0.018;
+  const width = cardGeometry.width * 0.99;
+  const height = cardGeometry.height * 0.99;
+  const strip = 0.024;
+
+  return (
+    <group>
+      <mesh position={[0, y, -height / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[width, strip]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, y, height / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[width, strip]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+      </mesh>
+      <mesh position={[-width / 2, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[strip, height]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+      </mesh>
+      <mesh position={[width / 2, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[strip, height]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
 function Card3D({
   value,
   faceUp,
@@ -126,25 +154,19 @@ function Card3D({
     onSelect?.();
   };
   const isDisabled = status === 'disabled';
-  const glowColor =
-    status === 'playable' ? '#34a8ff' : status === 'discard' ? '#ff4b58' : selected ? '#f3d36a' : null;
+  const outlineColor =
+    status === 'playable'
+      ? '#42a8ff'
+      : status === 'discard'
+        ? '#ff3647'
+        : selected
+          ? '#f3d36a'
+          : null;
   const faceTextColor = isDisabled ? '#7e827b' : value === 15 ? '#b03a2e' : '#1f1b13';
-  const sideColor = isDisabled ? '#5b5e56' : battleV2Assets.cardSide.color;
+  const sideColor = isDisabled ? '#555a51' : battleV2Assets.cardSide.color;
 
   return (
     <group onPointerDown={handlePointerDown}>
-      {glowColor ? (
-        <mesh position={[0, 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[cardGeometry.width * 1.28, cardGeometry.height * 1.22]} />
-          <meshBasicMaterial
-            color={glowColor}
-            transparent
-            opacity={status === 'discard' ? 0.44 : 0.36}
-            depthWrite={false}
-          />
-        </mesh>
-      ) : null}
-
       <mesh castShadow receiveShadow position={[0, cardGeometry.thickness / 2, 0]}>
         <boxGeometry args={[cardGeometry.width, cardGeometry.thickness, cardGeometry.height]} />
         <meshStandardMaterial
@@ -202,13 +224,20 @@ function Card3D({
         </Suspense>
       )}
 
+      {outlineColor ? (
+        <CardStatusOutline
+          color={outlineColor}
+          opacity={status === 'discard' ? 0.96 : 0.82}
+        />
+      ) : null}
+
       {isDisabled ? (
         <mesh
           position={[0, cardGeometry.thickness + 0.018, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
         >
-          <planeGeometry args={[cardGeometry.width * 0.96, cardGeometry.height * 0.96]} />
-          <meshBasicMaterial color="#777b73" transparent opacity={0.42} depthWrite={false} />
+          <planeGeometry args={[cardGeometry.width * 0.94, cardGeometry.height * 0.94]} />
+          <meshBasicMaterial color="#6c7168" transparent opacity={0.58} depthWrite={false} />
         </mesh>
       ) : null}
 
@@ -462,10 +491,10 @@ function PlayerHand({
 
   const getStatus = (card: BattleV2CardView): CardVisualStatus => {
     if (!isPlayerTurn) return 'disabled';
+    const isDiscardCandidate =
+      fieldCard !== null && minCard !== null && card.value === minCard && card.value < fieldCard;
+    if (isDiscardCandidate && legalMoveValues.has(card.value)) return 'discard';
     if (!legalMoveValues.has(card.value)) return 'disabled';
-    if (fieldCard !== null && minCard !== null && card.value === minCard && card.value < fieldCard) {
-      return 'discard';
-    }
     return 'playable';
   };
 

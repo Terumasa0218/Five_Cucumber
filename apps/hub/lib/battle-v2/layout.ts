@@ -36,7 +36,7 @@ export const animationConfig = {
 export const cardGeometry = {
   width: 0.56,
   height: 0.82,
-  thickness: 0.045,
+  thickness: 0.02,
 };
 
 export const pilePositions = {
