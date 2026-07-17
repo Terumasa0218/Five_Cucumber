@@ -16,9 +16,15 @@ export type CardPose = {
 const PI = Math.PI;
 
 export const cameraConfig = {
-  fov: 38,
-  position: [0, 0, 8.6] as Vec3,
-  target: [0, -0.1, 0] as Vec3,
+  fov: 40,
+  position: [0, 5.35, 6.75] as Vec3,
+  target: [0, 0.06, 0.08] as Vec3,
+};
+
+export const sceneConfig = {
+  position: [0, -0.08, 0] as Vec3,
+  rotation: [0, 0, 0] as Euler3,
+  scale: 0.98,
 };
 
 export const animationConfig = {
@@ -34,41 +40,43 @@ export const cardGeometry = {
 };
 
 export const pilePositions = {
-  deck: [-0.9, 0.18, 0] as Vec3,
-  field: [0, 0.22, 0] as Vec3,
-  graveyard: [0.9, 0.18, 0] as Vec3,
+  deck: [-0.95, 0.26, 0.02] as Vec3,
+  field: [0.08, 0.3, -0.08] as Vec3,
+  graveyard: [1.12, 0.26, 0.08] as Vec3,
 };
+
+export const playerHandOrigin = [0, 0.32, 1.78] as Vec3;
 
 export const seatLayouts: Record<2 | 3 | 4 | 5 | 6, SeatPose[]> = {
   2: [
-    { position: [0, 0.18, 3.15], rotation: [0, 0, 0], labelAnchor: 'front' },
-    { position: [0, 0.18, -2.85], rotation: [0, PI, 0], labelAnchor: 'back' },
+    { position: [0, 0.26, 3.3], rotation: [0, 0, 0], labelAnchor: 'front' },
+    { position: [0, 0.26, -2.85], rotation: [0, PI, 0], labelAnchor: 'back' },
   ],
   3: [
-    { position: [0, 0.18, 3.15], rotation: [0, 0, 0], labelAnchor: 'front' },
-    { position: [-2.85, 0.18, -1.45], rotation: [0, PI * 0.72, 0], labelAnchor: 'left' },
-    { position: [2.85, 0.18, -1.45], rotation: [0, -PI * 0.72, 0], labelAnchor: 'right' },
+    { position: [0, 0.26, 3.3], rotation: [0, 0, 0], labelAnchor: 'front' },
+    { position: [-3.35, 0.26, -1.28], rotation: [0, PI * 0.68, 0], labelAnchor: 'left' },
+    { position: [3.35, 0.26, -1.28], rotation: [0, -PI * 0.68, 0], labelAnchor: 'right' },
   ],
   4: [
-    { position: [0, 0.18, 3.15], rotation: [0, 0, 0], labelAnchor: 'front' },
-    { position: [-3.05, 0.18, 0], rotation: [0, PI / 2, 0], labelAnchor: 'left' },
-    { position: [0, 0.18, -2.85], rotation: [0, PI, 0], labelAnchor: 'back' },
-    { position: [3.05, 0.18, 0], rotation: [0, -PI / 2, 0], labelAnchor: 'right' },
+    { position: [0, 0.26, 3.3], rotation: [0, 0, 0], labelAnchor: 'front' },
+    { position: [-3.75, 0.26, 0.1], rotation: [0, PI / 2, 0], labelAnchor: 'left' },
+    { position: [0, 0.26, -2.86], rotation: [0, PI, 0], labelAnchor: 'back' },
+    { position: [3.75, 0.26, 0.1], rotation: [0, -PI / 2, 0], labelAnchor: 'right' },
   ],
   5: [
-    { position: [0, 0.18, 3.15], rotation: [0, 0, 0], labelAnchor: 'front' },
-    { position: [-3.05, 0.18, 1.0], rotation: [0, PI * 0.38, 0], labelAnchor: 'left' },
-    { position: [-1.85, 0.18, -2.25], rotation: [0, PI * 0.78, 0], labelAnchor: 'back' },
-    { position: [1.85, 0.18, -2.25], rotation: [0, -PI * 0.78, 0], labelAnchor: 'back' },
-    { position: [3.05, 0.18, 1.0], rotation: [0, -PI * 0.38, 0], labelAnchor: 'right' },
+    { position: [0, 0.26, 3.3], rotation: [0, 0, 0], labelAnchor: 'front' },
+    { position: [-3.78, 0.26, 1.02], rotation: [0, PI * 0.38, 0], labelAnchor: 'left' },
+    { position: [-2.05, 0.26, -2.35], rotation: [0, PI * 0.78, 0], labelAnchor: 'back' },
+    { position: [2.05, 0.26, -2.35], rotation: [0, -PI * 0.78, 0], labelAnchor: 'back' },
+    { position: [3.78, 0.26, 1.02], rotation: [0, -PI * 0.38, 0], labelAnchor: 'right' },
   ],
   6: [
-    { position: [0, 0.18, 3.15], rotation: [0, 0, 0], labelAnchor: 'front' },
-    { position: [-3.05, 0.18, 1.25], rotation: [0, PI * 0.35, 0], labelAnchor: 'left' },
-    { position: [-3.05, 0.18, -1.25], rotation: [0, PI * 0.65, 0], labelAnchor: 'left' },
-    { position: [0, 0.18, -2.85], rotation: [0, PI, 0], labelAnchor: 'back' },
-    { position: [3.05, 0.18, -1.25], rotation: [0, -PI * 0.65, 0], labelAnchor: 'right' },
-    { position: [3.05, 0.18, 1.25], rotation: [0, -PI * 0.35, 0], labelAnchor: 'right' },
+    { position: [0, 0.26, 3.3], rotation: [0, 0, 0], labelAnchor: 'front' },
+    { position: [-3.82, 0.26, 1.35], rotation: [0, PI * 0.35, 0], labelAnchor: 'left' },
+    { position: [-3.68, 0.26, -1.12], rotation: [0, PI * 0.65, 0], labelAnchor: 'left' },
+    { position: [0, 0.26, -2.86], rotation: [0, PI, 0], labelAnchor: 'back' },
+    { position: [3.68, 0.26, -1.12], rotation: [0, -PI * 0.65, 0], labelAnchor: 'right' },
+    { position: [3.82, 0.26, 1.35], rotation: [0, -PI * 0.35, 0], labelAnchor: 'right' },
   ],
 };
 
@@ -86,17 +94,17 @@ export function clampHandCount(count: number): number {
 export function getHandCardPose(index: number, count: number, selected: boolean): CardPose {
   const mid = (count - 1) / 2;
   const compact = Math.max(0, count - 7);
-  const spacing = Math.max(0.23, 0.46 - compact * 0.018);
-  const arcDepth = Math.min(0.34, count * 0.014);
-  const fan = Math.min(0.42, count * 0.022);
+  const spacing = Math.max(0.25, 0.48 - compact * 0.02);
+  const arcDepth = Math.min(0.44, count * 0.018);
+  const fan = Math.min(0.5, count * 0.026);
   const offset = index - mid;
   const normalized = count <= 1 ? 0 : offset / mid;
-  const z = selected ? 0.2 : -Math.abs(normalized) * arcDepth;
+  const z = selected ? 0.25 : -Math.abs(normalized) * arcDepth;
 
   return {
-    position: [offset * spacing, selected ? 0.28 : 0.06, z + (selected ? 0.12 : 0)],
+    position: [offset * spacing, selected ? 0.34 : 0.08, z],
     rotation: [0, -normalized * fan, 0],
-    scale: selected ? 1.1 : Math.max(0.78, 1 - compact * 0.018),
+    scale: selected ? 1.02 : Math.max(0.72, 0.88 - compact * 0.014),
   };
 }
 

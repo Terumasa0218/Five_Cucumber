@@ -15,6 +15,8 @@ import {
   getHandCardPose,
   getOpponentCardPose,
   pilePositions,
+  playerHandOrigin,
+  sceneConfig,
   seatLayouts,
   type CardPose,
   type Euler3,
@@ -70,21 +72,7 @@ function CameraRig() {
 
   useLayoutEffect(() => {
     applyCameraPose();
-  });
-
-  useFrame(() => {
-    applyCameraPose();
-  });
-
-  return null;
-}
-
-function SceneRenderLoop() {
-  const { gl, scene, camera } = useThree();
-
-  useFrame(() => {
-    gl.render(scene, camera);
-  }, 1);
+  }, [camera, target]);
 
   return null;
 }
@@ -385,7 +373,7 @@ function PlayerHand({
   onSelectCard: (card: BattleV2CardView) => void;
 }) {
   return (
-    <group position={[0, 0.24, 2.58]}>
+    <group position={playerHandOrigin}>
       {cards.map((card, index) => {
         if (card.id === movingCardId) return null;
         const pose = getHandCardPose(index, cards.length, selectedCardId === card.id);
@@ -430,7 +418,6 @@ function BattleSceneContents({
   return (
     <>
       <CameraRig />
-      <SceneRenderLoop />
       <ambientLight intensity={0.38} />
       <directionalLight
         castShadow
@@ -440,7 +427,11 @@ function BattleSceneContents({
         shadow-mapSize-height={1536}
       />
       <pointLight position={[-2, 2.5, 3]} intensity={0.85} color="#ffe5b3" />
-      <group rotation={[Math.PI * 0.36, 0, 0]} position={[0, -0.38, 0]} scale={0.56}>
+      <group
+        rotation={sceneConfig.rotation}
+        position={sceneConfig.position}
+        scale={sceneConfig.scale}
+      >
         <Table3D />
         <Suspense fallback={null}>
           <CenterPiles

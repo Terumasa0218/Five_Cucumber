@@ -27,7 +27,11 @@ export default function Header(){
     };
   }, [pathname]);
 
-  if (pathname?.startsWith('/home')) {
+  if (
+    pathname?.startsWith('/home') ||
+    pathname?.startsWith('/cucumber/cpu/play') ||
+    pathname?.startsWith('/friend/play')
+  ) {
     return null;
   }
 

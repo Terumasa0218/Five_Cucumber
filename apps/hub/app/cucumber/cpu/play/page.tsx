@@ -11,6 +11,7 @@ import {
   getHandCardPose,
   getOpponentCardPose,
   pilePositions,
+  playerHandOrigin,
   seatLayouts,
   type CardPose,
   type Euler3,
@@ -98,7 +99,7 @@ function createBattleV2MoveAnimation(
   const from =
     player === 0
       ? combinePose(
-          [0, 0.24, 2.58],
+          playerHandOrigin,
           [0, 0, 0],
           getHandCardPose(cardIndex, playerState.hand.length, true)
         )
@@ -959,36 +960,47 @@ function CpuPlayContent() {
     gameState.isFinalTrick || displayTrick === (gameRef.current?.config?.initialCards || 7);
   const currentPlayerIndex = isAnimating || isFinalTrickPhase ? null : gameState.currentPlayer;
 
-  return (
-    <BattleLayout showOrientationHint className="cpu-play-layout">
-        <BattleHud
-          round={displayRound}
-          trick={displayTrick}
-          timer={
-            <Timer
-              turnSeconds={
-                gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null
-              }
-              isActive={gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove'}
-              onTimeout={handleTimeout}
-            />
-          }
-          onExit={handleBackToHome}
-        />
+  const timer = (
+    <Timer
+      turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
+      isActive={gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove'}
+      onTimeout={handleTimeout}
+    />
+  );
 
-        {isFinalTrickPhase ? (
+  return (
+    <BattleLayout
+      showOrientationHint
+      className={['cpu-play-layout', useBattleV2 ? 'cpu-play-layout--v2' : '']
+        .filter(Boolean)
+        .join(' ')}
+    >
+        {useBattleV2 ? (
+          <div className="cpu-play-v2-timer-sentinel" aria-hidden="true">
+            {timer}
+          </div>
+        ) : (
+          <BattleHud
+            round={displayRound}
+            trick={displayTrick}
+            timer={timer}
+            onExit={handleBackToHome}
+          />
+        )}
+
+        {!useBattleV2 && isFinalTrickPhase ? (
           <div className="final-trick-notice" role="status" aria-live="polite">
             最終トリック
           </div>
         ) : null}
 
-        {shouldDiscardMinCard ? (
+        {!useBattleV2 && shouldDiscardMinCard ? (
           <div className="discard-notice" role="status" aria-live="polite">
             出せるカードがありません。最小のカードを捨てます。
           </div>
         ) : null}
 
-        {turnNotice ? (
+        {!useBattleV2 && turnNotice ? (
           <div className="discard-result-notice" role="status" aria-live="polite">
             {turnNotice}
           </div>
@@ -1011,14 +1023,6 @@ function CpuPlayContent() {
                 void handleCardClick(card.value);
               }}
             />
-            <div className="cpu-play-v2-badge" aria-live="polite">
-              V2試験表示 /{' '}
-              {battleV2MovingCard
-                ? `${battleV2MovingCard.actorLabel ?? 'プレイヤー'}: ${
-                    battleV2MovingCard.value
-                  } を移動中`
-                : `合法手: ${battleV2LegalMoves.join(', ') || '-'}`}
-            </div>
           </div>
         ) : (
           <EllipseTable

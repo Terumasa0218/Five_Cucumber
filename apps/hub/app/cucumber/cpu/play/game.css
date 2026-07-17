@@ -86,6 +86,53 @@
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
 }
 
+body:has(.cpu-play-layout--v2) {
+  overflow: hidden;
+  background: #101712;
+}
+
+body:has(.cpu-play-layout--v2) [data-build-badge] {
+  display: none !important;
+}
+
+.cpu-play-layout.cpu-play-layout--v2 {
+  min-height: 100svh;
+  background: #101712;
+}
+
+.cpu-play-layout.cpu-play-layout--v2 .battle-layout__stage {
+  width: 100%;
+  max-width: none;
+  height: 100svh;
+  min-height: 100svh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  gap: 0;
+  overflow: hidden;
+  background: #101712 !important;
+  box-shadow: none;
+}
+
+.cpu-play-layout--v2 .cpu-play-v2-scene {
+  min-height: 100svh;
+  border: 0;
+  border-radius: 0;
+  background: #101712;
+  box-shadow: none;
+}
+
+.cpu-play-v2-timer-sentinel {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .ellipse-table-inner {
   position: absolute;
   inset: 0;
