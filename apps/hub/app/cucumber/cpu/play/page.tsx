@@ -2,6 +2,8 @@
 
 import BattleLayout from '@/components/BattleLayout';
 import { BattleHud, EllipseTable, Timer } from '@/components/ui';
+import dynamic from 'next/dynamic';
+import type { BattleV2CardView } from '@/components/battle-v2/BattleV2Scene';
 import { HumanController } from '@/lib/controllers/human';
 import { delay, runAnimation } from '@/lib/animQueue';
 import {
@@ -23,6 +25,18 @@ import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import './game.css';
+
+const BattleV2Scene = dynamic(
+  () => import('@/components/battle-v2/BattleV2Scene').then(mod => mod.BattleV2Scene),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="cpu-play-v2-loading" role="status">
+        V2表示を読み込み中...
+      </div>
+    ),
+  }
+);
 
 const DEBUG_CPU_GAME = process.env.NEXT_PUBLIC_DEBUG_GAME === '1';
 
@@ -834,6 +848,11 @@ function CpuPlayContent() {
 
   const displayRound = gameRef.current?.state.currentRound ?? gameState.currentRound;
   const displayTrick = gameRef.current?.state.currentTrick ?? gameState.currentTrick;
+  const useBattleV2 = searchParams.get('view') === 'v2' || searchParams.get('ui') === 'v2';
+  const battleV2LegalMoves =
+    gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove' && !isAnimating
+      ? getLegalMoves(gameState, 0)
+      : [];
   const isFinalTrickPhase =
     gameState.isFinalTrick || displayTrick === (gameRef.current?.config?.initialCards || 7);
   const currentPlayerIndex = isAnimating || isFinalTrickPhase ? null : gameState.currentPlayer;
@@ -873,37 +892,54 @@ function CpuPlayContent() {
           </div>
         ) : null}
 
-        <EllipseTable
-          state={gameState}
-          config={
-            gameRef.current?.config ||
-            ({
-              players: 4,
-              turnSeconds: 15,
-              maxCucumbers: 6,
-              initialCards: 7,
-              cpuLevel: 'normal',
-            } as GameConfig)
-          }
-          currentPlayerIndex={currentPlayerIndex}
-          onCardClick={(card: number) => handleCardClick(Number(card))}
-          className={['cpu-play-table', isCardLocked ? 'cards-locked' : '']
-            .filter(Boolean)
-            .join(' ')}
-          isSubmitting={isSubmitting}
-          lockedCardId={lockedCardId}
-          names={displayNames}
-          mySeatIndex={0}
-          trickCards={tableTrickCards}
-          latestPlayedCardKey={latestPlayedKey}
-          trickWinner={trickWinner}
-          trickWinnerText={trickWinnerText}
-          isFinalTrickMode={isFinalTrickPhase}
-          finalTrickSelectedPlayers={finalTrickSelectedPlayers}
-          finalTrickOpenedPlayers={finalTrickOpenedPlayers}
-          finalTrickStatusText={finalTrickStatusText}
-          showdownMode={isShowdownMode}
-        />
+        {useBattleV2 ? (
+          <div className="cpu-play-v2-scene" aria-label="CPU対局 V2試験表示">
+            <BattleV2Scene
+              state={gameState}
+              names={displayNames}
+              playedCards={tableTrickCards}
+              onSelectCard={(card: BattleV2CardView) => {
+                if (!battleV2LegalMoves.includes(card.value)) return;
+                void handleCardClick(card.value);
+              }}
+            />
+            <div className="cpu-play-v2-badge" aria-live="polite">
+              V2試験表示 / 合法手: {battleV2LegalMoves.join(', ') || '-'}
+            </div>
+          </div>
+        ) : (
+          <EllipseTable
+            state={gameState}
+            config={
+              gameRef.current?.config ||
+              ({
+                players: 4,
+                turnSeconds: 15,
+                maxCucumbers: 6,
+                initialCards: 7,
+                cpuLevel: 'normal',
+              } as GameConfig)
+            }
+            currentPlayerIndex={currentPlayerIndex}
+            onCardClick={(card: number) => handleCardClick(Number(card))}
+            className={['cpu-play-table', isCardLocked ? 'cards-locked' : '']
+              .filter(Boolean)
+              .join(' ')}
+            isSubmitting={isSubmitting}
+            lockedCardId={lockedCardId}
+            names={displayNames}
+            mySeatIndex={0}
+            trickCards={tableTrickCards}
+            latestPlayedCardKey={latestPlayedKey}
+            trickWinner={trickWinner}
+            trickWinnerText={trickWinnerText}
+            isFinalTrickMode={isFinalTrickPhase}
+            finalTrickSelectedPlayers={finalTrickSelectedPlayers}
+            finalTrickOpenedPlayers={finalTrickOpenedPlayers}
+            finalTrickStatusText={finalTrickStatusText}
+            showdownMode={isShowdownMode}
+          />
+        )}
 
         {overlayText ? (
           <div className="final-trick-overlay" role="status" aria-live="assertive">
