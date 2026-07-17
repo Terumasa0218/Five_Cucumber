@@ -16,21 +16,21 @@ export type CardPose = {
 const PI = Math.PI;
 
 export const cameraConfig = {
-  fov: 40,
-  position: [0, 5.35, 6.75] as Vec3,
-  target: [0, 0.06, 0.08] as Vec3,
+  fov: 42,
+  position: [0, 6.3, 7.55] as Vec3,
+  target: [0, 0.08, 0.02] as Vec3,
 };
 
 export const sceneConfig = {
-  position: [0, -0.08, 0] as Vec3,
+  position: [0, -0.08, -0.28] as Vec3,
   rotation: [0, 0, 0] as Euler3,
-  scale: 0.98,
+  scale: 1.02,
 };
 
 export const animationConfig = {
-  playDurationMs: 860,
-  liftHeight: 1.15,
-  spinRadians: PI * 0.42,
+  playDurationMs: 620,
+  liftHeight: 0.08,
+  spinRadians: PI * 0.06,
 };
 
 export const cardGeometry = {
@@ -47,36 +47,56 @@ export const pilePositions = {
 
 export const playerHandOrigin = [0, 0.32, 1.78] as Vec3;
 
+const seatRadiusX = 4.16;
+const seatRadiusZ = 2.58;
+
+function degToRad(value: number): number {
+  return (value / 180) * PI;
+}
+
+function createSeat(angleDegrees: number, labelAnchor: SeatPose['labelAnchor']): SeatPose {
+  const angle = degToRad(angleDegrees);
+  const x = seatRadiusX * Math.sin(angle);
+  const z = seatRadiusZ * Math.cos(angle);
+  const tangentYaw = Math.atan2(seatRadiusZ * Math.sin(angle), seatRadiusX * Math.cos(angle));
+
+  return {
+    position: [x, 0.26, z],
+    rotation: [0, tangentYaw, 0],
+    labelAnchor,
+  };
+}
+
 export const seatLayouts: Record<2 | 3 | 4 | 5 | 6, SeatPose[]> = {
   2: [
-    { position: [0, 0.26, 3.3], rotation: [0, 0, 0], labelAnchor: 'front' },
-    { position: [0, 0.26, -2.85], rotation: [0, PI, 0], labelAnchor: 'back' },
+    createSeat(0, 'front'),
+    createSeat(180, 'back'),
   ],
   3: [
-    { position: [0, 0.26, 3.3], rotation: [0, 0, 0], labelAnchor: 'front' },
-    { position: [-3.35, 0.26, -1.28], rotation: [0, PI * 0.68, 0], labelAnchor: 'left' },
-    { position: [3.35, 0.26, -1.28], rotation: [0, -PI * 0.68, 0], labelAnchor: 'right' },
+    createSeat(0, 'front'),
+    createSeat(-126, 'left'),
+    createSeat(126, 'right'),
   ],
   4: [
-    { position: [0, 0.26, 3.3], rotation: [0, 0, 0], labelAnchor: 'front' },
-    { position: [-3.75, 0.26, 0.1], rotation: [0, PI / 2, 0], labelAnchor: 'left' },
-    { position: [0, 0.26, -2.86], rotation: [0, PI, 0], labelAnchor: 'back' },
-    { position: [3.75, 0.26, 0.1], rotation: [0, -PI / 2, 0], labelAnchor: 'right' },
+    createSeat(0, 'front'),
+    createSeat(-92, 'left'),
+    createSeat(180, 'back'),
+    createSeat(92, 'right'),
   ],
   5: [
-    { position: [0, 0.26, 3.3], rotation: [0, 0, 0], labelAnchor: 'front' },
-    { position: [-3.78, 0.26, 1.02], rotation: [0, PI * 0.38, 0], labelAnchor: 'left' },
-    { position: [-2.05, 0.26, -2.35], rotation: [0, PI * 0.78, 0], labelAnchor: 'back' },
-    { position: [2.05, 0.26, -2.35], rotation: [0, -PI * 0.78, 0], labelAnchor: 'back' },
-    { position: [3.78, 0.26, 1.02], rotation: [0, -PI * 0.38, 0], labelAnchor: 'right' },
+    createSeat(0, 'front'),
+    createSeat(-64, 'left'),
+    createSeat(-138, 'back'),
+    createSeat(138, 'back'),
+    createSeat(64, 'right'),
   ],
   6: [
-    { position: [0, 0.26, 3.3], rotation: [0, 0, 0], labelAnchor: 'front' },
-    { position: [-3.82, 0.26, 1.35], rotation: [0, PI * 0.35, 0], labelAnchor: 'left' },
-    { position: [-3.68, 0.26, -1.12], rotation: [0, PI * 0.65, 0], labelAnchor: 'left' },
-    { position: [0, 0.26, -2.86], rotation: [0, PI, 0], labelAnchor: 'back' },
-    { position: [3.68, 0.26, -1.12], rotation: [0, -PI * 0.65, 0], labelAnchor: 'right' },
-    { position: [3.82, 0.26, 1.35], rotation: [0, -PI * 0.35, 0], labelAnchor: 'right' },
+    createSeat(0, 'front'),
+    createSeat(-54, 'left'),
+    createSeat(-116, 'left'),
+    createSeat(180, 'back'),
+    createSeat(116, 'right'),
+    createSeat(54, 'right'),
   ],
 };
 
@@ -110,11 +130,12 @@ export function getHandCardPose(index: number, count: number, selected: boolean)
 
 export function getOpponentCardPose(index: number, count: number): CardPose {
   const mid = (count - 1) / 2;
-  const spacing = Math.max(0.14, 0.25 - Math.max(0, count - 7) * 0.008);
+  const spacing = Math.max(0.16, 0.24 - Math.max(0, count - 7) * 0.006);
+  const fan = count <= 1 ? 0 : (index - mid) * 0.018;
   return {
-    position: [(index - mid) * spacing, 0.04, 0],
-    rotation: [0, 0, 0],
-    scale: 0.55,
+    position: [(index - mid) * spacing, 0.04, -Math.abs(index - mid) * 0.006],
+    rotation: [0, fan, 0],
+    scale: 0.58,
   };
 }
 

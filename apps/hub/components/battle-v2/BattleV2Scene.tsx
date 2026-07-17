@@ -36,8 +36,39 @@ export type BattleV2MovingCard = {
   to: CardPose;
 };
 
+type CardVisualStatus = 'normal' | 'playable' | 'discard' | 'disabled';
+
 export function toBattleV2CardViews(hand: number[]): BattleV2CardView[] {
   return hand.map((value, index) => ({ id: `${value}-${index}`, value }));
+}
+
+function mixNumber(from: number, to: number, t: number): number {
+  return from + (to - from) * t;
+}
+
+function mixVec3(from: Vec3, to: Vec3, t: number): Vec3 {
+  return [
+    mixNumber(from[0], to[0], t),
+    mixNumber(from[1], to[1], t),
+    mixNumber(from[2], to[2], t),
+  ];
+}
+
+function mixEuler(from: Euler3, to: Euler3, t: number): Euler3 {
+  return [
+    mixNumber(from[0], to[0], t),
+    mixNumber(from[1], to[1], t),
+    mixNumber(from[2], to[2], t),
+  ];
+}
+
+function offsetFromTableCenter(position: Vec3, distance: number, yOffset = 0): Vec3 {
+  const length = Math.hypot(position[0], position[2]) || 1;
+  return [
+    position[0] + (position[0] / length) * distance,
+    position[1] + yOffset,
+    position[2] + (position[2] / length) * distance,
+  ];
 }
 
 function TextureMaterial({ slot }: { slot: BattleV2AssetSlot }) {
@@ -81,24 +112,43 @@ function Card3D({
   value,
   faceUp,
   selected,
+  status = 'normal',
   onSelect,
 }: {
   value: number;
   faceUp: boolean;
   selected?: boolean;
+  status?: CardVisualStatus;
   onSelect?: () => void;
 }) {
   const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
     onSelect?.();
   };
+  const isDisabled = status === 'disabled';
+  const glowColor =
+    status === 'playable' ? '#34a8ff' : status === 'discard' ? '#ff4b58' : selected ? '#f3d36a' : null;
+  const faceTextColor = isDisabled ? '#7e827b' : value === 15 ? '#b03a2e' : '#1f1b13';
+  const sideColor = isDisabled ? '#5b5e56' : battleV2Assets.cardSide.color;
 
   return (
     <group onPointerDown={handlePointerDown}>
+      {glowColor ? (
+        <mesh position={[0, 0.006, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[cardGeometry.width * 1.28, cardGeometry.height * 1.22]} />
+          <meshBasicMaterial
+            color={glowColor}
+            transparent
+            opacity={status === 'discard' ? 0.44 : 0.36}
+            depthWrite={false}
+          />
+        </mesh>
+      ) : null}
+
       <mesh castShadow receiveShadow position={[0, cardGeometry.thickness / 2, 0]}>
         <boxGeometry args={[cardGeometry.width, cardGeometry.thickness, cardGeometry.height]} />
         <meshStandardMaterial
-          color={battleV2Assets.cardSide.color}
+          color={sideColor}
           roughness={0.58}
           metalness={0.03}
         />
@@ -120,7 +170,7 @@ function Card3D({
             position={[0, cardGeometry.thickness + 0.011, -0.08]}
             rotation={[-Math.PI / 2, 0, 0]}
             fontSize={0.24}
-            color={value === 15 ? '#b03a2e' : '#1f1b13'}
+            color={faceTextColor}
             anchorX="center"
             anchorY="middle"
           >
@@ -130,7 +180,7 @@ function Card3D({
             position={[0, cardGeometry.thickness + 0.012, 0.22]}
             rotation={[-Math.PI / 2, 0, 0]}
             fontSize={0.08}
-            color="#267842"
+            color={isDisabled ? '#8a8d83' : '#267842'}
             anchorX="center"
             anchorY="middle"
           >
@@ -152,6 +202,16 @@ function Card3D({
         </Suspense>
       )}
 
+      {isDisabled ? (
+        <mesh
+          position={[0, cardGeometry.thickness + 0.018, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        >
+          <planeGeometry args={[cardGeometry.width * 0.96, cardGeometry.height * 0.96]} />
+          <meshBasicMaterial color="#777b73" transparent opacity={0.42} depthWrite={false} />
+        </mesh>
+      ) : null}
+
       {selected ? (
         <mesh position={[0, 0.008, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.48, 0.54, 48]} />
@@ -167,17 +227,25 @@ function PosedCard({
   card,
   faceUp,
   selected,
+  status,
   onSelect,
 }: {
   pose: CardPose;
   card: BattleV2CardView;
   faceUp: boolean;
   selected?: boolean;
+  status?: CardVisualStatus;
   onSelect?: () => void;
 }) {
   return (
     <group position={pose.position} rotation={pose.rotation} scale={pose.scale}>
-      <Card3D value={card.value} faceUp={faceUp} selected={selected} onSelect={onSelect} />
+      <Card3D
+        value={card.value}
+        faceUp={faceUp}
+        selected={selected}
+        status={status}
+        onSelect={onSelect}
+      />
     </group>
   );
 }
@@ -197,20 +265,12 @@ function AnimatedCard({
     if (!groupRef.current || completedRef.current) return;
     elapsedRef.current += delta * 1000;
     const t = Math.min(1, elapsedRef.current / animationConfig.playDurationMs);
-    const eased = 1 - Math.pow(1 - t, 3);
-    const arc = Math.sin(Math.PI * eased) * animationConfig.liftHeight;
-    const from = movingCard.from.position;
-    const to = movingCard.to.position;
-    const x = from[0] + (to[0] - from[0]) * eased;
-    const y = from[1] + (to[1] - from[1]) * eased + arc;
-    const z = from[2] + (to[2] - from[2]) * eased;
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const position = mixVec3(movingCard.from.position, movingCard.to.position, eased);
+    const rotation = mixEuler(movingCard.from.rotation, movingCard.to.rotation, eased);
 
-    groupRef.current.position.set(x, y, z);
-    groupRef.current.rotation.set(
-      movingCard.from.rotation[0],
-      movingCard.from.rotation[1] + animationConfig.spinRadians * eased,
-      movingCard.from.rotation[2],
-    );
+    groupRef.current.position.set(...position);
+    groupRef.current.rotation.set(...rotation);
 
     if (t >= 1) {
       completedRef.current = true;
@@ -320,8 +380,24 @@ function PlayerName3D({
   return (
     <group position={pose.position} rotation={pose.rotation} scale={pose.scale}>
       <Suspense fallback={null}>
+        {active ? (
+          <mesh position={[0, 0.032, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[1.72, 0.5]} />
+            <meshBasicMaterial color="#f5ce62" transparent opacity={0.26} depthWrite={false} />
+          </mesh>
+        ) : null}
+        <mesh position={[0, 0.038, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={[1.52, 0.34]} />
+          <meshStandardMaterial
+            color={active ? '#213820' : '#152119'}
+            emissive={active ? '#b58b2c' : '#000000'}
+            emissiveIntensity={active ? 0.72 : 0}
+            roughness={0.62}
+            metalness={0.03}
+          />
+        </mesh>
         <Text
-          position={[0, 0.06, 0]}
+          position={[0, 0.07, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
           fontSize={0.13}
           color={active ? '#fff2a6' : '#e7dcc6'}
@@ -365,18 +441,40 @@ function PlayerHand({
   cards,
   selectedCardId,
   movingCardId,
+  legalMoves,
+  isPlayerTurn,
+  fieldCard,
   onSelectCard,
 }: {
   cards: BattleV2CardView[];
   selectedCardId: string | null;
   movingCardId: string | null;
+  legalMoves: number[];
+  isPlayerTurn: boolean;
+  fieldCard: number | null;
   onSelectCard: (card: BattleV2CardView) => void;
 }) {
+  const legalMoveValues = useMemo(() => new Set(legalMoves), [legalMoves]);
+  const minCard = useMemo(
+    () => (cards.length > 0 ? Math.min(...cards.map(card => card.value)) : null),
+    [cards]
+  );
+
+  const getStatus = (card: BattleV2CardView): CardVisualStatus => {
+    if (!isPlayerTurn) return 'disabled';
+    if (!legalMoveValues.has(card.value)) return 'disabled';
+    if (fieldCard !== null && minCard !== null && card.value === minCard && card.value < fieldCard) {
+      return 'discard';
+    }
+    return 'playable';
+  };
+
   return (
     <group position={playerHandOrigin}>
       {cards.map((card, index) => {
         if (card.id === movingCardId) return null;
         const pose = getHandCardPose(index, cards.length, selectedCardId === card.id);
+        const status = getStatus(card);
         return (
           <PosedCard
             key={card.id}
@@ -384,7 +482,8 @@ function PlayerHand({
             card={card}
             faceUp
             selected={selectedCardId === card.id}
-            onSelect={() => onSelectCard(card)}
+            status={status}
+            onSelect={status === 'disabled' ? undefined : () => onSelectCard(card)}
           />
         );
       })}
@@ -399,6 +498,7 @@ function BattleSceneContents({
   movingCard,
   playedCards,
   hiddenPlayedMoveKey,
+  legalMoves,
   onSelectCard,
   onMoveComplete,
 }: {
@@ -408,12 +508,14 @@ function BattleSceneContents({
   movingCard: BattleV2MovingCard | null;
   playedCards: Move[];
   hiddenPlayedMoveKey: string | null;
+  legalMoves: number[];
   onSelectCard: (card: BattleV2CardView) => void;
   onMoveComplete: () => void;
 }) {
   const players = clampPlayers(state.players.length);
   const layout = seatLayouts[players];
   const playerCards = toBattleV2CardViews(state.players[0]?.hand ?? []);
+  const isPlayerTurn = state.currentPlayer === 0 && state.phase === 'AwaitMove';
 
   return (
     <>
@@ -444,12 +546,13 @@ function BattleSceneContents({
           {state.players.map((player, index) => {
             const seat = layout[index];
             const isSelf = index === 0;
+            const opponentHandPosition = isSelf
+              ? seat.position
+              : offsetFromTableCenter(seat.position, -0.34);
             const namePose: CardPose = {
-              position: [
-                seat.position[0],
-                seat.position[1] + 0.02,
-                seat.position[2] + (isSelf ? 0.55 : 0),
-              ],
+              position: isSelf
+                ? [seat.position[0], seat.position[1] + 0.02, seat.position[2] + 0.55]
+                : offsetFromTableCenter(seat.position, 0.38, 0.03),
               rotation: seat.rotation,
               scale: isSelf ? 1.15 : 0.85,
             };
@@ -461,10 +564,14 @@ function BattleSceneContents({
                   pose={namePose}
                   cucumbers={player.cucumbers}
                   cards={player.hand.length}
-                  active={state.currentPlayer === index}
+                  active={state.phase === 'AwaitMove' && state.currentPlayer === index}
                 />
                 {!isSelf ? (
-                  <OpponentHand cards={player.hand} position={seat.position} rotation={seat.rotation} />
+                  <OpponentHand
+                    cards={player.hand}
+                    position={opponentHandPosition}
+                    rotation={seat.rotation}
+                  />
                 ) : null}
               </group>
             );
@@ -474,6 +581,9 @@ function BattleSceneContents({
             cards={playerCards}
             selectedCardId={selectedCardId}
             movingCardId={movingCard?.id ?? null}
+            legalMoves={legalMoves}
+            isPlayerTurn={isPlayerTurn}
+            fieldCard={state.fieldCard}
             onSelectCard={onSelectCard}
           />
 
@@ -491,6 +601,7 @@ export function BattleV2Scene({
   movingCard = null,
   playedCards,
   hiddenPlayedMoveKey = null,
+  legalMoves = [],
   onSelectCard,
   onMoveComplete = () => {},
 }: {
@@ -500,6 +611,7 @@ export function BattleV2Scene({
   movingCard?: BattleV2MovingCard | null;
   playedCards: Move[];
   hiddenPlayedMoveKey?: string | null;
+  legalMoves?: number[];
   onSelectCard: (card: BattleV2CardView) => void;
   onMoveComplete?: () => void;
 }) {
@@ -526,6 +638,7 @@ export function BattleV2Scene({
         movingCard={movingCard}
         playedCards={playedCards}
         hiddenPlayedMoveKey={hiddenPlayedMoveKey}
+        legalMoves={legalMoves}
         onSelectCard={onSelectCard}
         onMoveComplete={onMoveComplete}
       />

@@ -957,12 +957,21 @@ function CpuPlayContent() {
   const displayRound = gameRef.current?.state.currentRound ?? gameState.currentRound;
   const displayTrick = gameRef.current?.state.currentTrick ?? gameState.currentTrick;
   const useBattleV2 = shouldUseBattleV2(searchParams);
-  const battleV2LegalMoves =
-    gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove' && !isAnimating
-      ? getLegalMoves(gameState, 0)
-      : [];
   const isFinalTrickPhase =
     gameState.isFinalTrick || displayTrick === (gameRef.current?.config?.initialCards || 7);
+  const battleV2LegalMoves =
+    gameState.currentPlayer === 0 &&
+    gameState.phase === 'AwaitMove' &&
+    !isAnimating &&
+    !isFinalTrickPhase
+      ? getLegalMoves(gameState, 0)
+      : [];
+  const showBattleV2Timer =
+    useBattleV2 &&
+    gameState.currentPlayer === 0 &&
+    gameState.phase === 'AwaitMove' &&
+    !isAnimating &&
+    !isFinalTrickPhase;
   const currentPlayerIndex = isAnimating || isFinalTrickPhase ? null : gameState.currentPlayer;
 
   const timer = (
@@ -980,11 +989,7 @@ function CpuPlayContent() {
         .filter(Boolean)
         .join(' ')}
     >
-        {useBattleV2 ? (
-          <div className="cpu-play-v2-timer-sentinel" aria-hidden="true">
-            {timer}
-          </div>
-        ) : (
+        {useBattleV2 ? null : (
           <BattleHud
             round={displayRound}
             trick={displayTrick}
@@ -1013,12 +1018,19 @@ function CpuPlayContent() {
 
         {useBattleV2 ? (
           <div className="cpu-play-v2-scene" aria-label="CPU対局">
+            <div className="cpu-play-v2-hud" aria-label="対局情報">
+              <div className="cpu-play-v2-round">
+                第{displayRound}回戦 / 第{displayTrick}トリック
+              </div>
+              {showBattleV2Timer ? <div className="cpu-play-v2-timer">{timer}</div> : null}
+            </div>
             <BattleV2Scene
               state={gameState}
               names={displayNames}
               playedCards={tableTrickCards}
               movingCard={battleV2MovingCard}
               hiddenPlayedMoveKey={battleV2HiddenMoveKey}
+              legalMoves={battleV2LegalMoves}
               onMoveComplete={() => {
                 setBattleV2MovingCard(null);
                 setBattleV2HiddenMoveKey(null);
