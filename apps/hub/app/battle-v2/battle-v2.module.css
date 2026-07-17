@@ -1,7 +1,9 @@
 .page {
+  --battle-v2-header-offset: 71px;
+
   position: relative;
-  height: 100svh;
-  min-height: 100svh;
+  height: calc(100svh - var(--battle-v2-header-offset));
+  min-height: min(720px, calc(100svh - var(--battle-v2-header-offset)));
   overflow: hidden;
   background: var(--battle-v2-bg-color);
   color: #f7f1df;
@@ -54,7 +56,7 @@
 .topHud h1 {
   margin: 0;
   color: #f4ecd5;
-  font-size: clamp(24px, 4vw, 44px);
+  font-size: clamp(22px, 3.2vw, 38px);
   line-height: 1.08;
   letter-spacing: 0;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
@@ -94,37 +96,51 @@
   pointer-events: auto;
   position: absolute;
   left: clamp(14px, 2.4vw, 28px);
-  bottom: clamp(78px, 10vw, 110px);
-  width: min(420px, calc(100vw - 28px));
+  bottom: clamp(58px, 7vw, 82px);
+  width: min(360px, calc(100vw - 28px));
   display: grid;
-  gap: 14px;
-  padding: 16px;
+  gap: 10px;
+  padding: 14px;
   border: 1px solid rgba(238, 214, 151, 0.34);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #18221c;
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
 }
 
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #f2e8cb;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.panelHeader strong {
+  color: #9bd28d;
+}
+
 .controlGroup {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   color: #e5dac0;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 700;
 }
 
 .segmented {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .segmented button,
 .primaryAction,
 .secondaryAction {
-  min-height: 40px;
+  min-height: 36px;
   border-radius: 999px;
-  padding: 8px 14px;
+  padding: 7px 12px;
   cursor: pointer;
 }
 
@@ -139,24 +155,51 @@
 
 .actionRow {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .primaryAction {
-  min-width: 112px;
+  min-width: 96px;
   background: #2f7c49 !important;
 }
 
 .secondaryAction {
-  min-width: 112px;
+  min-width: 96px;
   background: #3b3326 !important;
+}
+
+.primaryAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  filter: saturate(0.7);
+}
+
+.debugGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(238, 214, 151, 0.2);
+  border-radius: 8px;
+  background: #111a15;
+  color: #cfc4a6;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.debugGrid strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #f2e8cb;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .statusText {
   margin: 0;
   color: #cfc4a6;
-  line-height: 1.6;
-  font-size: 0.9rem;
+  line-height: 1.45;
+  font-size: 0.82rem;
 }
 
 .bottomHud {
@@ -197,7 +240,7 @@
   .controlPanel {
     left: 12px;
     right: 12px;
-    bottom: 82px;
+    bottom: 70px;
     width: auto;
     grid-template-columns: 1fr;
     padding: 12px;
@@ -211,5 +254,50 @@
     min-width: auto;
     flex: 1 1 94px;
     padding: 8px 10px;
+  }
+}
+
+@media (max-height: 720px) and (orientation: landscape) {
+  .page {
+    --battle-v2-header-offset: 71px;
+  }
+
+  .topHud {
+    top: 10px;
+  }
+
+  .topHud h1 {
+    font-size: clamp(20px, 3vw, 30px);
+  }
+
+  .eyebrow {
+    margin-bottom: 4px;
+  }
+
+  .controlPanel {
+    bottom: 48px;
+    width: min(430px, calc(100vw - 24px));
+    max-width: none;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .panelHeader,
+  .debugGrid {
+    grid-column: 1 / -1;
+  }
+
+  .debugGrid {
+    grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto auto;
+  }
+
+  .statusText {
+    display: none;
+  }
+
+  .bottomHud {
+    bottom: 8px;
   }
 }

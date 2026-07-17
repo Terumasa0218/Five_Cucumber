@@ -469,7 +469,7 @@ function BattleSceneV2({
         shadow-mapSize-height={1536}
       />
       <pointLight position={[-2, 2.5, 3]} intensity={0.85} color="#ffe5b3" />
-      <group rotation={[Math.PI * 0.36, 0, 0]} position={[0, -0.5, 0]} scale={0.62}>
+      <group rotation={[Math.PI * 0.36, 0, 0]} position={[0, -0.38, 0]} scale={0.56}>
         <Table3D />
         <Suspense fallback={null}>
           <CenterPiles playedCards={playedCards} graveyard={state.sharedGraveyard} />
@@ -538,6 +538,7 @@ export default function BattleV2Page() {
     !movingCard &&
     selectedCard !== null &&
     legalMoves.includes(selectedCard.value);
+  const selectedCardText = selectedCard ? `${selectedCard.value}` : '未選択';
 
   const resetDemo = (nextPlayers = players, nextHandCount = handCount) => {
     const nextConfig = createDemoConfig(nextPlayers, nextHandCount);
@@ -682,7 +683,12 @@ export default function BattleV2Page() {
           </nav>
         </header>
 
-        <aside className={styles.controlPanel}>
+        <aside className={styles.controlPanel} aria-label="V2検証コントロール">
+          <div className={styles.panelHeader}>
+            <span>V2検証</span>
+            <strong>{players}人 / 初期{handCount}枚</strong>
+          </div>
+
           <div className={styles.controlGroup}>
             <span>人数</span>
             <div className={styles.segmented}>
@@ -700,7 +706,7 @@ export default function BattleV2Page() {
           </div>
 
           <label className={styles.controlGroup}>
-            <span>自分の手札 {handCount}枚</span>
+            <span>初期手札 {handCount}枚</span>
             <input
               type="range"
               min="1"
@@ -711,7 +717,12 @@ export default function BattleV2Page() {
           </label>
 
           <div className={styles.actionRow}>
-            <button type="button" className={styles.primaryAction} onClick={handlePlaySelectedCard}>
+            <button
+              type="button"
+              className={styles.primaryAction}
+              onClick={handlePlaySelectedCard}
+              disabled={!canPlay}
+            >
               出す
             </button>
             <button type="button" className={styles.secondaryAction} onClick={() => resetDemo()}>
@@ -719,7 +730,16 @@ export default function BattleV2Page() {
             </button>
           </div>
 
-          <p className={styles.statusText}>{status}</p>
+          <div className={styles.debugGrid} aria-label="V2表示状態">
+            <span>選択</span>
+            <strong>{selectedCardText}</strong>
+            <span>合法手</span>
+            <strong>{legalMoves.join(', ') || '-'}</strong>
+            <span>場札</span>
+            <strong>{playedCards.length}枚</strong>
+          </div>
+
+          <p className={styles.statusText} aria-live="polite">{status}</p>
         </aside>
 
         <footer className={styles.bottomHud}>
