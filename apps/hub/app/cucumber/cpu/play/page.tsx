@@ -57,6 +57,11 @@ function debugGameLog(...args: unknown[]): void {
   }
 }
 
+function shouldUseBattleV2(params: { get(name: string): string | null }): boolean {
+  const requestedView = (params.get('view') ?? params.get('ui') ?? '').toLowerCase();
+  return requestedView !== 'classic' && requestedView !== 'legacy' && requestedView !== '2d';
+}
+
 function addVec3(a: Vec3, b: Vec3): Vec3 {
   return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 }
@@ -552,7 +557,7 @@ function CpuPlayContent() {
         const move: Move = { player, card, timestamp: moveTimestamp, isDiscard: isDiscardMove };
         const moveKey = `${player}-${moveTimestamp}`;
         const v2MovingCard =
-          searchParams.get('view') === 'v2' || searchParams.get('ui') === 'v2'
+          shouldUseBattleV2(searchParams)
             ? createBattleV2MoveAnimation(state, player, card, isDiscardMove, moveTimestamp)
             : null;
         const trickCardsAfterPlay = isDiscardMove
@@ -951,7 +956,7 @@ function CpuPlayContent() {
 
   const displayRound = gameRef.current?.state.currentRound ?? gameState.currentRound;
   const displayTrick = gameRef.current?.state.currentTrick ?? gameState.currentTrick;
-  const useBattleV2 = searchParams.get('view') === 'v2' || searchParams.get('ui') === 'v2';
+  const useBattleV2 = shouldUseBattleV2(searchParams);
   const battleV2LegalMoves =
     gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove' && !isAnimating
       ? getLegalMoves(gameState, 0)
@@ -1007,7 +1012,7 @@ function CpuPlayContent() {
         ) : null}
 
         {useBattleV2 ? (
-          <div className="cpu-play-v2-scene" aria-label="CPU対局 V2試験表示">
+          <div className="cpu-play-v2-scene" aria-label="CPU対局">
             <BattleV2Scene
               state={gameState}
               names={displayNames}
