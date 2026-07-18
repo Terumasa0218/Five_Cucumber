@@ -40,11 +40,13 @@ export const cardGeometry = {
 };
 
 export const pilePositions = {
-  deck: [-0.95, 0.26, 0.02] as Vec3,
-  field: [0.08, 0.3, -0.08] as Vec3,
-  graveyard: [1.12, 0.26, 0.08] as Vec3,
+  deck: [-1.08, 0.2, 0.02] as Vec3,
+  field: [0.05, 0.21, -0.08] as Vec3,
+  graveyard: [1.24, 0.2, 0.08] as Vec3,
 };
 
+export const centerPileScale = 1.16;
+export const tableCardY = 0.18;
 export const playerHandOrigin = [0, 0.54, 2.34] as Vec3;
 export const screenFacingRotation = [0.72, 0, 0] as Euler3;
 
@@ -130,7 +132,7 @@ export function getOpponentCardPose(index: number, count: number): CardPose {
   const spacing = Math.max(0.18, 0.29 - Math.max(0, count - 7) * 0.006);
   const fan = count <= 1 ? 0 : (index - mid) * 0.018;
   return {
-    position: [(index - mid) * spacing, 0.04, -Math.abs(index - mid) * 0.006],
+    position: [(index - mid) * spacing, 0.012, -Math.abs(index - mid) * 0.006],
     rotation: [0, fan, 0],
     scale: 0.64,
   };

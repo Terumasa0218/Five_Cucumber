@@ -11,6 +11,7 @@ import {
   animationConfig,
   cameraConfig,
   cardGeometry,
+  centerPileScale,
   clampPlayers,
   getHandCardPose,
   getOpponentCardPose,
@@ -19,6 +20,7 @@ import {
   sceneConfig,
   screenFacingRotation,
   seatLayouts,
+  tableCardY,
   type CardPose,
   type Euler3,
   type Vec3,
@@ -70,6 +72,10 @@ function offsetFromTableCenter(position: Vec3, distance: number, yOffset = 0): V
     position[1] + yOffset,
     position[2] + (position[2] / length) * distance,
   ];
+}
+
+function withY(position: Vec3, y: number): Vec3 {
+  return [position[0], y, position[2]];
 }
 
 function TextureMaterial({ slot }: { slot: BattleV2AssetSlot }) {
@@ -423,8 +429,7 @@ function CenterPiles({
   const visiblePlayedCards = hiddenPlayedMoveKey
     ? playedCards.filter(move => `${move.player}-${move.timestamp}` !== hiddenPlayedMoveKey)
     : playedCards;
-  const lastFieldCard = visiblePlayedCards[visiblePlayedCards.length - 1]?.card ?? fieldCard ?? 9;
-  const lastGraveCard = graveyard[graveyard.length - 1] ?? 5;
+  const lastGraveCard = graveyard[graveyard.length - 1] ?? null;
 
   if (showdownMode && visiblePlayedCards.length > 0) {
     return (
@@ -461,7 +466,7 @@ function CenterPiles({
 
   return (
     <group>
-      <group position={pilePositions.deck} rotation={[0, -0.12, 0]}>
+      <group position={pilePositions.deck} rotation={[0, -0.12, 0]} scale={centerPileScale}>
         {[0, 1, 2, 3, 4].map((cardIndex) => (
           <group key={cardIndex} position={[0, cardIndex * 0.018, cardIndex * -0.006]}>
             <Card3D value={0} faceUp={false} />
@@ -469,31 +474,33 @@ function CenterPiles({
         ))}
       </group>
 
-      <group position={pilePositions.field}>
-        {visiblePlayedCards.length > 0 ? (
-          visiblePlayedCards.slice(-5).map((move, index) => (
-            <group
-              key={`${move.player}-${move.timestamp}-${index}`}
-              position={[index * 0.025, index * 0.02, index * -0.018]}
-              rotation={[0, index * 0.045, 0]}
-            >
-              <Card3D value={move.card} faceUp />
-            </group>
-          ))
-        ) : fieldCard !== null ? (
-          <Card3D value={fieldCard} faceUp />
-        ) : (
-          <Card3D value={lastFieldCard} faceUp />
-        )}
-      </group>
+      {visiblePlayedCards.length > 0 || fieldCard !== null ? (
+        <group position={pilePositions.field} scale={centerPileScale}>
+          {visiblePlayedCards.length > 0 ? (
+            visiblePlayedCards.slice(-5).map((move, index) => (
+              <group
+                key={`${move.player}-${move.timestamp}-${index}`}
+                position={[index * 0.025, index * 0.02, index * -0.018]}
+                rotation={[0, index * 0.045, 0]}
+              >
+                <Card3D value={move.card} faceUp />
+              </group>
+            ))
+          ) : fieldCard !== null ? (
+            <Card3D value={fieldCard} faceUp />
+          ) : null}
+        </group>
+      ) : null}
 
-      <group position={pilePositions.graveyard} rotation={[0, 0.16, 0]}>
-        {[0, 1, 2].map((cardIndex) => (
-          <group key={cardIndex} position={[0, cardIndex * 0.018, cardIndex * 0.01]}>
-            <Card3D value={cardIndex === 2 ? lastGraveCard : 0} faceUp={cardIndex === 2} />
-          </group>
-        ))}
-      </group>
+      {lastGraveCard !== null ? (
+        <group position={pilePositions.graveyard} rotation={[0, 0.16, 0]} scale={centerPileScale}>
+          {[0, 1, 2].map((cardIndex) => (
+            <group key={cardIndex} position={[0, cardIndex * 0.018, cardIndex * 0.01]}>
+              <Card3D value={cardIndex === 2 ? lastGraveCard : 0} faceUp={cardIndex === 2} />
+            </group>
+          ))}
+        </group>
+      ) : null}
     </group>
   );
 }
@@ -504,39 +511,56 @@ function PlayerName3D({
   cucumbers,
   cards,
   active,
+  compact = false,
 }: {
   name: string;
   pose: CardPose;
   cucumbers: number;
   cards: number;
   active: boolean;
+  compact?: boolean;
 }) {
+  const activeSize: [number, number] = compact ? [1.28, 0.38] : [1.74, 0.5];
+  const panelSize: [number, number] = compact ? [1.12, 0.26] : [1.5, 0.32];
+  const fontSize = compact ? 0.105 : 0.13;
+
   return (
     <group position={pose.position} rotation={pose.rotation} scale={pose.scale}>
-      <Suspense fallback={null}>
-        {active ? (
-          <mesh position={[0, 0.032, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[1.82, 0.56]} />
-            <meshBasicMaterial color="#f1c84b" transparent opacity={0.78} depthWrite={false} />
-          </mesh>
-        ) : null}
-        <mesh position={[0, 0.038, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[1.52, 0.34]} />
-          <meshStandardMaterial
-            color={active ? '#f4d66d' : '#152119'}
-            emissive={active ? '#d7a71f' : '#000000'}
-            emissiveIntensity={active ? 0.28 : 0}
-            roughness={0.7}
-            metalness={0.01}
+      {active ? (
+        <mesh renderOrder={42} position={[0, 0.032, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <planeGeometry args={activeSize} />
+          <meshBasicMaterial
+            color="#f1c84b"
+            transparent
+            opacity={0.86}
+            depthTest={false}
+            depthWrite={false}
           />
         </mesh>
+      ) : null}
+      <mesh renderOrder={43} position={[0, 0.038, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={panelSize} />
+        <meshStandardMaterial
+          color={active ? '#f4d66d' : '#152119'}
+          emissive={active ? '#d7a71f' : '#000000'}
+          emissiveIntensity={active ? 0.28 : 0}
+          depthTest={false}
+          depthWrite={false}
+          roughness={0.7}
+          metalness={0.01}
+        />
+      </mesh>
+      <Suspense fallback={null}>
         <Text
+          renderOrder={44}
           position={[0, 0.07, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
-          fontSize={0.13}
+          fontSize={fontSize}
           color={active ? '#11130c' : '#e7dcc6'}
           anchorX="center"
           anchorY="middle"
+          material-depthTest={false}
+          material-depthWrite={false}
         >
           {`${name}  C:${cucumbers}  ${cards}枚`}
         </Text>
@@ -689,13 +713,15 @@ function BattleSceneContents({
             const isSelf = index === 0;
             const opponentHandPosition = isSelf
               ? seat.position
-              : offsetFromTableCenter(seat.position, -0.34);
+              : withY(offsetFromTableCenter(seat.position, -0.42), tableCardY);
+            const opponentNameDistance =
+              seat.labelAnchor === 'left' || seat.labelAnchor === 'right' ? 0.54 : 0.82;
             const namePose: CardPose = {
               position: isSelf
-                ? [seat.position[0], seat.position[1] + 0.08, seat.position[2] + 0.52]
-                : offsetFromTableCenter(seat.position, 0.42, 0.12),
+                ? [seat.position[0], seat.position[1] + 0.04, seat.position[2] + 0.9]
+                : offsetFromTableCenter(seat.position, opponentNameDistance, 0.1),
               rotation: screenFacingRotation,
-              scale: isSelf ? 1.15 : 0.85,
+              scale: isSelf ? 1.02 : 0.82,
             };
 
             return (
@@ -706,6 +732,7 @@ function BattleSceneContents({
                   cucumbers={player.cucumbers}
                   cards={player.hand.length}
                   active={state.phase === 'AwaitMove' && state.currentPlayer === index}
+                  compact={!isSelf}
                 />
                 {!isSelf ? (
                   <OpponentHand

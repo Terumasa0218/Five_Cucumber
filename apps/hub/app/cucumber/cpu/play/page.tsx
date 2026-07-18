@@ -12,6 +12,7 @@ import {
   getOpponentCardPose,
   pilePositions,
   playerHandOrigin,
+  screenFacingRotation,
   seatLayouts,
   type CardPose,
   type Euler3,
@@ -105,7 +106,7 @@ function createBattleV2MoveAnimation(
     player === 0
       ? combinePose(
           playerHandOrigin,
-          [0, 0, 0],
+          screenFacingRotation,
           getHandCardPose(cardIndex, playerState.hand.length, true)
         )
       : (() => {
@@ -469,33 +470,34 @@ function CpuPlayContent() {
 
   const startNextRound = useCallback((state: GameState) => {
     const nextRound = state.currentRound;
-    const startTimer = setTimeout(() => {
-      setOverlayText(`第${nextRound}ラウンド 開始！`);
-      const openTimer = setTimeout(() => {
-        setOverlayText(null);
-        setGameState(state);
-        gameRef.current!.state = state;
-        setTableTrickCards([]);
-        setBattleV2MovingCard(null);
-        setBattleV2HiddenMoveKey(null);
-        setLatestPlayedKey(null);
-        setTrickWinner(null);
-        setTrickWinnerText(null);
-        setTurnNotice(null);
-        setFinalTrickSelectedPlayers([]);
-        setFinalTrickOpenedPlayers([]);
-        setFinalTrickStatusText(null);
-        setFinalTrickStarted(false);
-        setIsShowdownMode(false);
-        setIsAnimating(false);
+    setGameState(state);
+    if (gameRef.current) {
+      gameRef.current.state = state;
+    }
+    setTableTrickCards([]);
+    setBattleV2MovingCard(null);
+    setBattleV2HiddenMoveKey(null);
+    setLatestPlayedKey(null);
+    setTrickWinner(null);
+    setTrickWinnerText(null);
+    setTurnNotice(null);
+    setFinalTrickSelectedPlayers([]);
+    setFinalTrickOpenedPlayers([]);
+    setFinalTrickStatusText(null);
+    setFinalTrickStarted(false);
+    setIsShowdownMode(false);
+    setIsAnimating(true);
+    setOverlayText(`第${nextRound}回戦 開始！`);
 
-        if (scheduleCpuTurnRef.current && state.currentPlayer !== 0) {
-          scheduleCpuTurnRef.current();
-        }
-      }, 2000);
-      finalTrickTimeoutsRef.current.push(openTimer);
-    }, 3000);
-    finalTrickTimeoutsRef.current.push(startTimer);
+    const openTimer = setTimeout(() => {
+      setOverlayText(null);
+      setIsAnimating(false);
+
+      if (scheduleCpuTurnRef.current && state.currentPlayer !== 0) {
+        scheduleCpuTurnRef.current();
+      }
+    }, 1600);
+    finalTrickTimeoutsRef.current.push(openTimer);
   }, []);
 
   const checkGameOver = useCallback(
@@ -787,8 +789,8 @@ function CpuPlayContent() {
     if (finalTrickStarted || isAnimating || isProcessingRef.current) return;
 
     const useBattleV2 = shouldUseBattleV2(searchParams);
-    const resultDelayMs = useBattleV2 ? 1800 : 5000;
-    const nextRoundDelayMs = useBattleV2 ? 5200 : 10000;
+    const resultDelayMs = useBattleV2 ? 2000 : 5000;
+    const nextRoundDelayMs = useBattleV2 ? 5600 : 10000;
 
     const runFinalTrickShowdown = () => {
       if (!gameRef.current) return;
@@ -917,7 +919,7 @@ function CpuPlayContent() {
     setFinalTrickStatusText(null);
     setFinalTrickSelectedPlayers([]);
     setFinalTrickOpenedPlayers([]);
-    setOverlayText(useBattleV2 ? null : '最終トリック');
+    setOverlayText(useBattleV2 ? '最終カード\nShowDown' : '最終トリック');
 
     const showdownTimer = setTimeout(() => {
       if (!useBattleV2) {
@@ -928,7 +930,7 @@ function CpuPlayContent() {
         runFinalTrickShowdown();
       }, useBattleV2 ? 0 : 1500);
       finalTrickTimeoutsRef.current.push(openTimer);
-    }, useBattleV2 ? 700 : 2000);
+    }, useBattleV2 ? 1300 : 2000);
 
     finalTrickTimeoutsRef.current.push(showdownTimer);
   }, [

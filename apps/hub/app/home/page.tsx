@@ -23,7 +23,7 @@ export default function Home() {
   }, [t]);
 
   return (
-    <main className="min-h-screen w-full">
+    <main className="home-page">
       <DesktopHero username={nickname || t("nicknameUnset")} />
     </main>
   );

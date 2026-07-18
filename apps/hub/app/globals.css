@@ -2288,13 +2288,16 @@ body {
 }
 
 .home-shell {
-  min-height: 100svh;
+  height: 100svh;
+  min-height: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   background: #f7f4ec;
   color: var(--antique-ink);
   font-family: 'Noto Sans JP', sans-serif;
-  padding: clamp(16px, 3vw, 32px);
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: clamp(12px, 2.4vw, 26px);
 }
 
 .home-shell__topbar {
@@ -2357,11 +2360,12 @@ body {
   width: min(760px, 100%);
   margin: 0 auto;
   display: grid;
+  min-height: 0;
   align-content: center;
   justify-items: center;
-  gap: clamp(22px, 4vw, 36px);
+  gap: clamp(14px, 3vh, 28px);
   text-align: center;
-  padding-block: clamp(48px, 10vh, 96px);
+  padding-block: clamp(18px, 5vh, 58px);
 }
 
 .home-shell__title-block {
@@ -2381,15 +2385,15 @@ body {
   margin: 0;
   color: #174329;
   font-family: 'Shippori Mincho', serif;
-  font-size: clamp(44px, 8vw, 76px);
+  font-size: clamp(38px, 7vw, 68px);
   line-height: 1.08;
 }
 
 .home-shell__lead {
   margin: 0;
   color: #4b5563;
-  font-size: clamp(15px, 2vw, 18px);
-  line-height: 1.8;
+  font-size: clamp(14px, 1.8vw, 17px);
+  line-height: 1.65;
 }
 
 .home-shell__primary-actions {
@@ -2399,7 +2403,7 @@ body {
 }
 
 .home-shell__action {
-  min-height: 76px;
+  min-height: clamp(58px, 9vh, 72px);
   border-radius: 14px;
   display: grid;
   place-items: center;
@@ -2417,7 +2421,7 @@ body {
 }
 
 .home-shell__action small {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   opacity: 0.82;
 }
@@ -2434,6 +2438,57 @@ body {
 
 .home-shell__quick-links {
   justify-content: center;
+}
+
+@media (max-height: 720px) {
+  .home-shell {
+    padding: 10px 16px;
+  }
+
+  .home-shell__text-link,
+  .home-shell__language,
+  .home-shell__profile,
+  .home-shell__quick-links a {
+    min-height: 36px;
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+
+  .home-shell__content {
+    gap: 10px;
+    padding-block: 10px;
+  }
+
+  .home-shell__title-block {
+    gap: 6px;
+  }
+
+  .home-shell__eyebrow {
+    font-size: 10px;
+  }
+
+  .home-shell__title {
+    font-size: clamp(32px, 6vw, 54px);
+  }
+
+  .home-shell__lead {
+    max-width: 620px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .home-shell__primary-actions {
+    gap: 10px;
+  }
+
+  .home-shell__action {
+    min-height: 54px;
+    font-size: clamp(18px, 2.5vw, 22px);
+  }
+
+  .home-shell__action small {
+    font-size: 11px;
+  }
 }
 
 .background-frame {
@@ -2742,9 +2797,10 @@ body {
 
 /* === ホームページ専用スタイル === */
 .home-page {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(24px, 4vw, 48px);
+  height: 100svh;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
   color: var(--antique-ink);
 }
 

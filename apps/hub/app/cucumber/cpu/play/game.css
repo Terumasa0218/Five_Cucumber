@@ -322,6 +322,9 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
   font-size: clamp(2.25rem, 8vw, 4rem);
   font-weight: 800;
   color: white;
+  text-align: center;
+  white-space: pre-line;
+  line-height: 1.22;
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
   animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -626,14 +629,19 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: clamp(0.75rem, 2.2vh, 1.25rem);
+  box-sizing: border-box;
+  padding: clamp(12px, 3vh, 28px);
+  overflow-y: auto;
   background-color: rgba(0, 0, 0, 0.8);
 }
 
 .game-over-overlay__title {
-  font-size: clamp(2rem, 6vw, 3rem);
+  font-size: clamp(1.55rem, 5vw, 2.8rem);
   font-weight: 800;
   color: #ff6b6b;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
+  text-align: center;
   text-shadow: 0 0 20px rgba(255, 107, 107, 0.8);
   animation: scaleIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -641,24 +649,27 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 .game-over-overlay__result {
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  padding: 2rem;
-  margin-top: 2rem;
+  padding: clamp(1rem, 3vh, 1.6rem);
+  margin-top: 0;
   min-width: 300px;
+  max-height: min(54svh, 360px);
+  overflow-y: auto;
 }
 
 .game-over-overlay__result h2 {
   color: white;
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
+  font-size: clamp(1.1rem, 3vw, 1.35rem);
+  margin-bottom: 0.65rem;
   text-align: center;
 }
 
 .game-over-overlay__rank {
   display: flex;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  gap: 1.25rem;
+  padding: 0.55rem 0.85rem;
   color: white;
-  font-size: 1.2rem;
+  font-size: clamp(0.95rem, 2.6vw, 1.1rem);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -671,12 +682,12 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
   flex-wrap: wrap;
   justify-content: center;
   gap: 1rem;
-  margin-top: 2rem;
+  margin-top: 0;
 }
 
 .game-over-overlay__home {
-  padding: 1rem 3rem;
-  font-size: 1.2rem;
+  padding: 0.8rem 2.3rem;
+  font-size: 1rem;
   font-weight: 700;
   color: white;
   background: linear-gradient(to bottom, #4ade80, #16a34a);
@@ -690,6 +701,22 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 .game-over-overlay__home--secondary {
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.38);
+}
+
+@media (max-height: 720px) {
+  .game-over-overlay {
+    justify-content: flex-start;
+    padding-block: 12px;
+  }
+
+  .game-over-overlay__result {
+    max-height: min(48svh, 310px);
+    padding: 0.9rem;
+  }
+
+  .game-over-overlay__rank {
+    padding-block: 0.42rem;
+  }
 }
 
 /* --- カードアニメーション --- */
