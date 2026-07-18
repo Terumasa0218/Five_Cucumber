@@ -78,6 +78,19 @@ function withY(position: Vec3, y: number): Vec3 {
   return [position[0], y, position[2]];
 }
 
+function clampViewerIndex(viewerIndex: number, players: number): number {
+  if (!Number.isFinite(viewerIndex)) return 0;
+  return Math.min(Math.max(0, Math.round(viewerIndex)), Math.max(0, players - 1));
+}
+
+function getLogicalIndex(visualIndex: number, viewerIndex: number, players: number): number {
+  return (viewerIndex + visualIndex) % players;
+}
+
+function getVisualIndex(logicalIndex: number, viewerIndex: number, players: number): number {
+  return (logicalIndex - viewerIndex + players) % players;
+}
+
 function TextureMaterial({ slot }: { slot: BattleV2AssetSlot }) {
   if (!slot.textureUrl) {
     return <meshStandardMaterial color={slot.color} roughness={0.68} metalness={0.05} />;
@@ -416,6 +429,7 @@ function CenterPiles({
   hiddenPlayedMoveKey,
   showdownMode,
   layout,
+  viewerIndex,
   trickWinner,
 }: {
   playedCards: Move[];
@@ -424,6 +438,7 @@ function CenterPiles({
   hiddenPlayedMoveKey?: string | null;
   showdownMode: boolean;
   layout: typeof seatLayouts[2];
+  viewerIndex: number;
   trickWinner: number | null;
 }) {
   const visiblePlayedCards = hiddenPlayedMoveKey
@@ -435,7 +450,8 @@ function CenterPiles({
     return (
       <group>
         {visiblePlayedCards.map((move, index) => {
-          const seat = layout[move.player];
+          const playerCount = layout.length;
+          const seat = layout[getVisualIndex(move.player, viewerIndex, playerCount)];
           const fallbackAngle = (index / Math.max(1, visiblePlayedCards.length)) * Math.PI * 2;
           const seatPosition = seat?.position ?? [Math.sin(fallbackAngle), 0, Math.cos(fallbackAngle)];
           const position: Vec3 = [
@@ -652,6 +668,7 @@ function PlayerHand({
 function BattleSceneContents({
   state,
   names,
+  viewerIndex,
   selectedCardId,
   movingCard,
   playedCards,
@@ -664,6 +681,7 @@ function BattleSceneContents({
 }: {
   state: GameState;
   names: string[];
+  viewerIndex: number;
   selectedCardId: string | null;
   movingCard: BattleV2MovingCard | null;
   playedCards: Move[];
@@ -676,8 +694,10 @@ function BattleSceneContents({
 }) {
   const players = clampPlayers(state.players.length);
   const layout = seatLayouts[players];
-  const playerCards = toBattleV2CardViews(state.players[0]?.hand ?? []);
-  const isPlayerTurn = state.currentPlayer === 0 && state.phase === 'AwaitMove';
+  const logicalPlayerCount = Math.max(1, state.players.length);
+  const safeViewerIndex = clampViewerIndex(viewerIndex, logicalPlayerCount);
+  const playerCards = toBattleV2CardViews(state.players[safeViewerIndex]?.hand ?? []);
+  const isPlayerTurn = state.currentPlayer === safeViewerIndex && state.phase === 'AwaitMove';
 
   return (
     <>
@@ -705,12 +725,15 @@ function BattleSceneContents({
             hiddenPlayedMoveKey={hiddenPlayedMoveKey}
             showdownMode={showdownMode}
             layout={layout}
+            viewerIndex={safeViewerIndex}
             trickWinner={trickWinner}
           />
 
-          {state.players.map((player, index) => {
-            const seat = layout[index];
-            const isSelf = index === 0;
+          {layout.map((seat, visualIndex) => {
+            const logicalIndex = getLogicalIndex(visualIndex, safeViewerIndex, logicalPlayerCount);
+            const player = state.players[logicalIndex];
+            if (!player) return null;
+            const isSelf = logicalIndex === safeViewerIndex;
             const opponentHandPosition = isSelf
               ? seat.position
               : withY(offsetFromTableCenter(seat.position, -0.42), tableCardY);
@@ -725,13 +748,13 @@ function BattleSceneContents({
             };
 
             return (
-              <group key={index}>
+              <group key={logicalIndex}>
                 <PlayerName3D
-                  name={names[index] ?? (isSelf ? 'あなた' : `CPU ${index}`)}
+                  name={names[logicalIndex] ?? (isSelf ? 'あなた' : `P${logicalIndex + 1}`)}
                   pose={namePose}
                   cucumbers={player.cucumbers}
                   cards={player.hand.length}
-                  active={state.phase === 'AwaitMove' && state.currentPlayer === index}
+                  active={state.phase === 'AwaitMove' && state.currentPlayer === logicalIndex}
                   compact={!isSelf}
                 />
                 {!isSelf ? (
@@ -765,6 +788,7 @@ function BattleSceneContents({
 export function BattleV2Scene({
   state,
   names,
+  viewerIndex = 0,
   selectedCardId = null,
   movingCard = null,
   playedCards,
@@ -777,6 +801,7 @@ export function BattleV2Scene({
 }: {
   state: GameState;
   names: string[];
+  viewerIndex?: number;
   selectedCardId?: string | null;
   movingCard?: BattleV2MovingCard | null;
   playedCards: Move[];
@@ -806,6 +831,7 @@ export function BattleV2Scene({
       <BattleSceneContents
         state={state}
         names={names}
+        viewerIndex={viewerIndex}
         selectedCardId={selectedCardId}
         movingCard={movingCard}
         playedCards={playedCards}

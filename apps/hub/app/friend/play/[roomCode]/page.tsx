@@ -1,7 +1,8 @@
 'use client';
 
 import BattleLayout from '@/components/BattleLayout';
-import { BattleHud, EllipseTable, Timer } from '@/components/ui';
+import type { BattleV2CardView } from '@/components/battle-v2/BattleV2Scene';
+import { Timer } from '@/components/ui';
 import PageBackground from '@/components/ui/PageBackground';
 import { BACKGROUNDS } from '@/lib/backgrounds';
 import { apiJson, apiRequest } from '@/lib/api';
@@ -20,9 +21,22 @@ import { USE_SERVER_SYNC } from '@/lib/serverSync';
 import { getRoom as getLocalRoom } from '@/lib/roomSystemUnified';
 import type { GameSnapshot } from '@/lib/friendGameStore';
 import type { Room, RoomResponse, RoomSeat } from '@/types/room';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import '../../../cucumber/cpu/play/game.css';
+
+const BattleV2Scene = dynamic(
+  () => import('@/components/battle-v2/BattleV2Scene').then(mod => mod.BattleV2Scene),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="cpu-play-v2-loading" role="status">
+        V2表示を読み込み中...
+      </div>
+    ),
+  }
+);
 
 function FriendPlayContent() {
   const params = useParams();
@@ -36,9 +50,8 @@ function FriendPlayContent() {
   >([]);
   const [isCardLocked, setIsCardLocked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lockedCardId, setLockedCardId] = useState<number | null>(null);
+  const [selectedBattleV2CardId, setSelectedBattleV2CardId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [isGameInitialized, setIsGameInitialized] = useState(false);
   const [roomConfig, setRoomConfig] = useState<Room | null>(null);
   const useServer = USE_SERVER_SYNC;
   const [mySeatIndex, setMySeatIndex] = useState<number>(0);
@@ -208,7 +221,6 @@ function FriendPlayContent() {
         setGameState(state);
         setGameOver(false);
         setGameResults([]);
-        setIsGameInitialized(true);
         try {
           const data = await apiJson<FriendGameResponse>(`/api/friend/game/${roomCode}`, {
             method: 'POST',
@@ -238,7 +250,6 @@ function FriendPlayContent() {
                 setGameState(data.snapshot.state);
                 setGameOver(false);
                 setGameResults([]);
-                setIsGameInitialized(true);
                 lastVersionRef.current = data.snapshot.version ?? 1;
                 break;
               }
@@ -306,7 +317,6 @@ function FriendPlayContent() {
 
     setIsSubmitting(true);
     setIsCardLocked(true);
-    setLockedCardId(card);
 
     try {
       const isDiscardMove =
@@ -339,7 +349,7 @@ function FriendPlayContent() {
     } finally {
       setIsSubmitting(false);
       setIsCardLocked(false);
-      setLockedCardId(null);
+      setSelectedBattleV2CardId(null);
     }
   };
 
@@ -418,38 +428,45 @@ function FriendPlayContent() {
 
   const displayNames = roomConfig?.seats.map((seat, idx) =>
     idx === mySeatIndex ? 'あなた' : (seat?.nickname ?? `P${idx + 1}`),
+  ) ?? gameState.players.map((_, idx) => (idx === mySeatIndex ? 'あなた' : `P${idx + 1}`));
+  const isMyTurn =
+    !gameOver && gameState.currentPlayer === mySeatIndex && gameState.phase === 'AwaitMove';
+  const battleV2LegalMoves =
+    isMyTurn && !isSubmitting && !isCardLocked ? getLegalMoves(gameState, mySeatIndex) : [];
+  const battleV2Timer = (
+    <Timer
+      turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
+      isActive={isMyTurn}
+      onTimeout={handleTimeout}
+    />
   );
 
   return (
-    <>
-      <PageBackground image={BACKGROUNDS.battle} />
-      <BattleLayout showOrientationHint className="cpu-play-layout">
-        <BattleHud
-          round={gameState.currentRound}
-          trick={gameState.currentTrick}
-          timer={
-            <Timer
-              turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
-              isActive={
-                gameState.currentPlayer === mySeatIndex && gameState.phase === 'AwaitMove'
-              }
-              onTimeout={handleTimeout}
-            />
-          }
-          onExit={handleBackToHome}
-        />
-
-        <EllipseTable
-          state={gameState}
-          config={gameRef.current?.config || ({} as GameConfig)}
-          currentPlayerIndex={gameOver ? null : gameState.currentPlayer}
-          onCardClick={handleCardClick}
-          className={isCardLocked ? 'cards-locked' : ''}
-          isSubmitting={isSubmitting}
-          lockedCardId={lockedCardId}
-          names={displayNames}
-          mySeatIndex={mySeatIndex}
-        />
+    <BattleLayout
+      showOrientationHint
+      className="cpu-play-layout cpu-play-layout--v2"
+    >
+        <div className="cpu-play-v2-scene" aria-label="フレンド対局">
+          <div className="cpu-play-v2-hud" aria-label="対局情報">
+            <div className="cpu-play-v2-round">
+              第{gameState.currentRound}回戦 / 第{gameState.currentTrick}トリック
+            </div>
+            {isMyTurn ? <div className="cpu-play-v2-timer">{battleV2Timer}</div> : null}
+          </div>
+          <BattleV2Scene
+            state={gameState}
+            names={displayNames}
+            viewerIndex={mySeatIndex}
+            selectedCardId={selectedBattleV2CardId}
+            playedCards={gameState.trickCards}
+            legalMoves={battleV2LegalMoves}
+            onSelectCard={(card: BattleV2CardView) => {
+              if (!battleV2LegalMoves.includes(card.value)) return;
+              setSelectedBattleV2CardId(card.id);
+              void handleCardClick(card.value);
+            }}
+          />
+        </div>
 
         {toast && (
           <div className="toast" role="status" aria-live="polite">
@@ -489,8 +506,7 @@ function FriendPlayContent() {
             </a>
           </div>
         )}
-      </BattleLayout>
-    </>
+    </BattleLayout>
   );
 }
 
