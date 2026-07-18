@@ -38,7 +38,11 @@ Real friend matches require:
 
 - Firebase client configuration for anonymous sign-in.
 - Firebase Admin configuration for API token verification.
-- KV shared-store credentials.
+- KV shared-store credentials. Supported pairs are:
+  - `KV_REST_API_URL` + `KV_REST_API_TOKEN`
+  - `UPSTASH_KV_REST_URL` + `UPSTASH_KV_REST_TOKEN`
+  - `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`
+  - `VERCEL_REDIS_URL` + `VERCEL_REDIS_TOKEN`
 - `NEXT_PUBLIC_HAS_SHARED_STORE=true` or `NEXT_PUBLIC_USE_SERVER=true` when the client should use server synchronization.
 - `ABLY_API_KEY` only when realtime room update events are desired.
 

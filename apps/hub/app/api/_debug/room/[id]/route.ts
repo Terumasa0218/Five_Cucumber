@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import { kvGetJSON } from '@/lib/kv';
 import { verifyAuth } from '@/lib/auth';
 
 const keyOf = (id: string) => `friend:room:${id}`;
@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const id = String(params.id);
   try {
-    const data = await kv.get(keyOf(id));
+    const data = await kvGetJSON(keyOf(id));
     console.log('[debug.room.exists]', { id, exists: !!data });
     return NextResponse.json({ ok: true, exists: !!data });
   } catch (e: unknown) {

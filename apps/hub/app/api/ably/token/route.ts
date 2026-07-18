@@ -1,5 +1,5 @@
 import Ably from 'ably/promises';
-import { kv } from '@vercel/kv';
+import { kvGetJSON } from '@/lib/kv';
 import { verifyAuth } from '@/lib/auth';
 import { json } from '@/lib/http';
 import type { Room } from '@/types/room';
@@ -20,7 +20,7 @@ function parseUserChannel(channelRaw: string | null): { roomId: string; particip
 }
 
 async function checkUserInRoom(roomId: string, authUid: string, participant: string): Promise<boolean> {
-  const room = await kv.get<Room>(`friend:room:${roomId}`);
+  const room = await kvGetJSON<Room>(`friend:room:${roomId}`);
   if (!room) return false;
 
   return room.seats.some((seat) => {

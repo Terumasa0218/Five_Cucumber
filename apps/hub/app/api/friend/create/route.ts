@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-import { kvExists, kvSaveJSON, roomTTL } from '@/lib/kv';
+import { hasSharedStoreConfig, kvExists, kvSaveJSON, roomTTL } from '@/lib/kv';
 import {
   createFriendRoom,
   normalizeFriendRoomSettings,
@@ -72,8 +72,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // 共有ストレージが無い環境では原則ブロックするが、開発用メモリフォールバックが許可される場合は通す
-    const hasKvConfig = !!process.env.KV_REST_API_URL && !!process.env.KV_REST_API_TOKEN;
-    if (!hasKvConfig) {
+    if (!hasSharedStoreConfig()) {
       console.warn('[API] KV not configured; rejecting room creation.');
       return NextResponse.json(
         { ok: false, reason: 'no-shared-store' },

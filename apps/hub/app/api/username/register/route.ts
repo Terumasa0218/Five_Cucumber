@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { kv } from '@vercel/kv';
+import { kv } from '@/lib/kv';
 import crypto from 'node:crypto';
 import { verifyAuth } from '@/lib/auth';
 

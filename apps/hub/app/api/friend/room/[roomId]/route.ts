@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-import { kv, roomTTL } from '@/lib/kv';
+import { kvExpire, kvGetJSON, roomTTL } from '@/lib/kv';
 import { NextResponse } from 'next/server';
 import type { Room } from '@/types/room';
 import { verifyAuth } from '@/lib/auth';
@@ -20,13 +20,13 @@ export async function GET(req: Request, { params }: { params: { roomId: string }
     return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400, headers: noStore });
   }
   try {
-    const room = await kv.get<Room>(keyOf(id));
+    const room = await kvGetJSON<Room>(keyOf(id));
     if (!room) {
       console.warn('[room.lookup.not-found]', { id });
       return NextResponse.json({ ok: false, reason: 'not-found' }, { status: 404, headers: noStore });
     }
 
-    await kv.expire(keyOf(id), roomTTL).catch(() => {});
+    await kvExpire(keyOf(id), roomTTL).catch(() => {});
 
     return NextResponse.json({ ok: true, room }, { headers: noStore });
   } catch (error) {

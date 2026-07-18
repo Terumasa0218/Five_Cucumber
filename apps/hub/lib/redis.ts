@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { hasSharedStoreConfig, kv } from './kv';
 
 export const redis = kv;
 const DEBUG_ROOMS = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
@@ -6,11 +6,9 @@ const DEBUG_ROOMS = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
 // Vercel KVが利用できない場合のフォールバック
 export const isRedisAvailable = () => {
   if (typeof process === 'undefined') return false;
-  const hasUrl = !!process.env.KV_REST_API_URL || !!process.env.VERCEL_REDIS_URL;
-  const hasToken = !!process.env.KV_REST_API_TOKEN || !!process.env.VERCEL_REDIS_TOKEN;
-  const enabled = hasUrl && hasToken;
+  const enabled = hasSharedStoreConfig();
   if (DEBUG_ROOMS) {
-    console.log('[Redis] KV availability:', { hasUrl, hasToken, enabled, nodeEnv: process.env.NODE_ENV });
+    console.log('[Redis] KV availability:', { enabled, nodeEnv: process.env.NODE_ENV });
   }
   return enabled;
 };

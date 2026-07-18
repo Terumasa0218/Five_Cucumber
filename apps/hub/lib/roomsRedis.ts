@@ -1,7 +1,7 @@
 import type { Room, RoomGameSnapshot } from '@/types/room';
 import { isRedisAvailable, redis } from './redis';
 
-const key = (id: string) => `room:${id}`;
+const key = (id: string) => `friend:room:${id}`;
 const DEBUG_ROOMS = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
 const debugLog = (...args: unknown[]) => {
   if (DEBUG_ROOMS) console.log(...args);
@@ -67,7 +67,8 @@ export async function getRoomGameSnapshotRedis(roomId: string): Promise<RoomGame
 }
 
 export async function saveRoomGameSnapshotRedis(roomId: string, snapshot: RoomGameSnapshot): Promise<void> {
-  await updateRoomRedis(roomId, { gameSnapshot: snapshot });
+  const updated = await updateRoomRedis(roomId, { gameSnapshot: snapshot });
+  if (!updated) throw new Error('room-not-found');
 }
 
 

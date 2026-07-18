@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import { hasSharedStoreConfig, kvGetJSON, kvSaveJSON } from '@/lib/kv';
 import { verifyAuth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 export async function GET(req: Request) {
   const auth = await verifyAuth(req);
   if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const hasKV = Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+  const hasKV = hasSharedStoreConfig();
   const hasVercelRedisRest = Boolean(process.env.VERCEL_REDIS_URL && process.env.VERCEL_REDIS_TOKEN);
 
   let canPersist = false;
@@ -15,8 +15,8 @@ export async function GET(req: Request) {
 
   try {
     if (hasKV || hasVercelRedisRest) {
-      await kv.set('diag:ping', Date.now(), { ex: 60 });
-      const v = await kv.get('diag:ping');
+      await kvSaveJSON('diag:ping', Date.now(), 60);
+      const v = await kvGetJSON('diag:ping');
       canPersist = v != null;
     }
   } catch (e: unknown) {
