@@ -101,19 +101,10 @@ export default function RoomWaitingPage() {
               err instanceof ApiRequestError &&
               [401, 404, 503].includes(err.response.status)
             ) {
-              const local = getLocalRoom(roomId);
-              if (local) {
-                setRoom(local);
-                const isParticipatingLocal = local.seats.some((seat) => seat?.nickname === currentNickname);
-                setIsInRoom(isParticipatingLocal);
-                setError(null);
-                setIsLoading(false);
-                return;
-              }
               setError(
                 err.response.status === 404
                   ? 'ルームが見つかりません。ルームが削除されたか、ルーム番号が間違っている可能性があります。'
-                  : 'サーバー同期の設定が不足しています。ローカル確認用ルームがない場合、別端末とのフレンド対戦は開始できません。'
+                  : 'サーバー同期の設定が不足しています。別端末とのフレンド対戦にはFirebase Adminと共有ストアの設定が必要です。'
               );
             } else {
               setError('ネットワークエラーが発生しました');

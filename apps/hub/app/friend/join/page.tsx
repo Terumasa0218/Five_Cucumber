@@ -56,6 +56,7 @@ export default function FriendJoinPage() {
   };
 
   const canFallbackToLocalJoin = (err: unknown) => {
+    if (serverSyncEnabled) return false;
     if (!(err instanceof ApiRequestError)) return true;
     const body = err.response.data as RoomResponse | { reason?: string } | undefined;
     return (

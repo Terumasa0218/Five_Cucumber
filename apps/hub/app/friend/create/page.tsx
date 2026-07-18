@@ -87,6 +87,7 @@ export default function FriendCreatePage() {
   };
 
   const canFallbackToLocalRoom = (err: unknown) => {
+    if (serverSyncEnabled) return false;
     if (!(err instanceof ApiRequestError)) return true;
     const body = err.response.data as (RoomResponse & { error?: string }) | undefined;
     return (
@@ -162,7 +163,7 @@ export default function FriendCreatePage() {
         router.push(`/friend/room/${data.roomId}`);
       } else {
         if (data?.reason === "no-shared-store" || data?.reason === "kv-failed") {
-          createLocalRoom(nickname);
+          setError(roomFailureMessage(data.reason, data.detail));
           return;
         }
         setError(roomFailureMessage(data?.reason, data?.detail));
