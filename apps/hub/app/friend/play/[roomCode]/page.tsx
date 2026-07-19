@@ -1,6 +1,7 @@
 'use client';
 
 import BattleLayout from '@/components/BattleLayout';
+import BattleV2Scene from '@/components/battle-v2/LazyBattleV2Scene';
 import type { BattleV2CardView } from '@/components/battle-v2/BattleV2Scene';
 import { Timer } from '@/components/ui';
 import PageBackground from '@/components/ui/PageBackground';
@@ -21,22 +22,9 @@ import { USE_SERVER_SYNC } from '@/lib/serverSync';
 import { getRoom as getLocalRoom } from '@/lib/roomSystemUnified';
 import type { GameSnapshot } from '@/lib/friendGameStore';
 import type { Room, RoomResponse, RoomSeat } from '@/types/room';
-import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import '../../../cucumber/cpu/play/game.css';
-
-const BattleV2Scene = dynamic(
-  () => import('@/components/battle-v2/BattleV2Scene').then(mod => mod.BattleV2Scene),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="cpu-play-v2-loading" role="status">
-        V2表示を読み込み中...
-      </div>
-    ),
-  }
-);
 
 function FriendPlayContent() {
   const params = useParams();

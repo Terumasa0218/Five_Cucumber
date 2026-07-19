@@ -785,6 +785,21 @@ function BattleSceneContents({
   );
 }
 
+export type BattleV2SceneProps = {
+  state: GameState;
+  names: string[];
+  viewerIndex?: number;
+  selectedCardId?: string | null;
+  movingCard?: BattleV2MovingCard | null;
+  playedCards: Move[];
+  hiddenPlayedMoveKey?: string | null;
+  legalMoves?: number[];
+  showdownMode?: boolean;
+  trickWinner?: number | null;
+  onSelectCard: (card: BattleV2CardView) => void;
+  onMoveComplete?: () => void;
+};
+
 export function BattleV2Scene({
   state,
   names,
@@ -798,20 +813,7 @@ export function BattleV2Scene({
   trickWinner = null,
   onSelectCard,
   onMoveComplete = () => {},
-}: {
-  state: GameState;
-  names: string[];
-  viewerIndex?: number;
-  selectedCardId?: string | null;
-  movingCard?: BattleV2MovingCard | null;
-  playedCards: Move[];
-  hiddenPlayedMoveKey?: string | null;
-  legalMoves?: number[];
-  showdownMode?: boolean;
-  trickWinner?: number | null;
-  onSelectCard: (card: BattleV2CardView) => void;
-  onMoveComplete?: () => void;
-}) {
+}: BattleV2SceneProps) {
   return (
     <Canvas
       shadows

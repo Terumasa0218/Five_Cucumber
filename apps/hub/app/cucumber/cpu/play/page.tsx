@@ -1,8 +1,8 @@
 'use client';
 
 import BattleLayout from '@/components/BattleLayout';
+import BattleV2Scene from '@/components/battle-v2/LazyBattleV2Scene';
 import { BattleHud, EllipseTable, Timer } from '@/components/ui';
-import dynamic from 'next/dynamic';
 import type { BattleV2CardView, BattleV2MovingCard } from '@/components/battle-v2/BattleV2Scene';
 import { HumanController } from '@/lib/controllers/human';
 import { delay, runAnimation } from '@/lib/animQueue';
@@ -49,18 +49,6 @@ import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import './game.css';
-
-const BattleV2Scene = dynamic(
-  () => import('@/components/battle-v2/BattleV2Scene').then(mod => mod.BattleV2Scene),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="cpu-play-v2-loading" role="status">
-        V2表示を読み込み中...
-      </div>
-    ),
-  }
-);
 
 const DEBUG_CPU_GAME = process.env.NEXT_PUBLIC_DEBUG_GAME === '1';
 

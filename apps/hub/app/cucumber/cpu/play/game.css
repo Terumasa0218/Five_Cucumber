@@ -126,6 +126,59 @@
   font-weight: 800;
 }
 
+.cpu-play-v2-load-failed {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  padding: 24px;
+  color: #f5e7bf;
+  text-align: center;
+  background: #101712;
+}
+
+.cpu-play-v2-load-failed h2,
+.cpu-play-v2-load-failed p {
+  margin: 0;
+}
+
+.cpu-play-v2-load-failed h2 {
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.cpu-play-v2-load-failed p {
+  max-width: 520px;
+  color: rgba(245, 231, 191, 0.82);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.cpu-play-v2-load-failed__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.cpu-play-v2-load-failed__actions button {
+  border: 1px solid rgba(226, 203, 134, 0.5);
+  border-radius: 999px;
+  padding: 9px 16px;
+  color: #f7edcd;
+  background: #223325;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.cpu-play-v2-load-failed__actions button:first-child {
+  color: #17331b;
+  background: #e4ca72;
+}
+
 .cpu-play-v2-badge {
   position: absolute;
   left: clamp(12px, 2vw, 20px);
