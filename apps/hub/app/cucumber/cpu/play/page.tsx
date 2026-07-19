@@ -31,7 +31,19 @@ import {
   Move,
   PlayerController,
   RngState,
+  RuleSetId,
   SeededRng,
+  applyCompletedMarketToGameState,
+  chooseMarketBidForHand,
+  chooseMarketCardForHand,
+  createMarketStateFromGameState,
+  getCurrentMarketPlayer,
+  revealMarketBids,
+  submitMarketBid,
+  takeMarketCard,
+  type MarketBidDecision,
+  type MarketState,
+  type MarketTakeDecision,
 } from '@/lib/game-core';
 import { createCpuTableFromUrlParams } from '@/lib/modes';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -61,6 +73,21 @@ function debugGameLog(...args: unknown[]): void {
 function shouldUseBattleV2(params: { get(name: string): string | null }): boolean {
   const requestedView = (params.get('view') ?? params.get('ui') ?? '').toLowerCase();
   return requestedView !== 'classic' && requestedView !== 'legacy' && requestedView !== '2d';
+}
+
+type MarketUiSession = {
+  state: MarketState;
+  bidDecisions: MarketBidDecision[];
+  takeDecisions: MarketTakeDecision[];
+  message: string;
+};
+
+function isMarketRuleSet(ruleSet?: RuleSetId): boolean {
+  return ruleSet === 'market';
+}
+
+function getPlayerLabel(player: number): string {
+  return player === 0 ? 'あなた' : `CPU ${player}`;
 }
 
 function addVec3(a: Vec3, b: Vec3): Vec3 {
@@ -129,7 +156,11 @@ function createBattleV2MoveAnimation(
     from,
     to: {
       position: isDiscardMove
-        ? [pilePositions.graveyard[0], pilePositions.graveyard[1] + 0.12, pilePositions.graveyard[2]]
+        ? [
+            pilePositions.graveyard[0],
+            pilePositions.graveyard[1] + 0.12,
+            pilePositions.graveyard[2],
+          ]
         : [pilePositions.field[0], pilePositions.field[1] + 0.14, pilePositions.field[2]],
       rotation: [0, isDiscardMove ? 0.16 : 0.28, 0],
       scale: 1,
@@ -166,6 +197,8 @@ function CpuPlayContent() {
   const [finalTrickOpenedPlayers, setFinalTrickOpenedPlayers] = useState<number[]>([]);
   const [finalTrickStatusText, setFinalTrickStatusText] = useState<string | null>(null);
   const [overlayText, setOverlayText] = useState<string | null>(null);
+  const [marketSession, setMarketSession] = useState<MarketUiSession | null>(null);
+  const [selectedMarketBid, setSelectedMarketBid] = useState<number | null>(null);
   const [finalTrickStarted, setFinalTrickStarted] = useState(false);
   const [isShowdownMode, setIsShowdownMode] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -188,7 +221,8 @@ function CpuPlayContent() {
     const turnSeconds = params.get('turnSeconds') || '15';
     const maxCucumbers = params.get('maxCucumbers') || '6';
     const cpuLevel = params.get('cpuLevel') || 'normal';
-    return `cpu-game-state-${players}-${turnSeconds}-${maxCucumbers}-${cpuLevel}`;
+    const ruleSet = params.get('ruleSet') || 'classic';
+    return `cpu-game-state-${players}-${turnSeconds}-${maxCucumbers}-${cpuLevel}-${ruleSet}`;
   }, []);
 
   // CPU対戦のセーブデータをクリア（新規開始用）
@@ -206,6 +240,7 @@ function CpuPlayContent() {
     if (
       !gameRef.current ||
       !gameState ||
+      marketSession ||
       isProcessingRef.current ||
       isAnimating ||
       finalTrickStarted
@@ -239,12 +274,256 @@ function CpuPlayContent() {
         void playCpuTurnRef.current();
       }
     }, thinkingTime);
-  }, [finalTrickStarted, gameState, gameOver, isAnimating]);
+  }, [finalTrickStarted, gameState, gameOver, isAnimating, marketSession]);
 
   // refを更新
   useEffect(() => {
     scheduleCpuTurnRef.current = scheduleCpuTurn;
   }, [scheduleCpuTurn]);
+
+  const resetRoundVisualState = useCallback(() => {
+    setTableTrickCards([]);
+    setBattleV2MovingCard(null);
+    setBattleV2HiddenMoveKey(null);
+    setLatestPlayedKey(null);
+    setTrickWinner(null);
+    setTrickWinnerText(null);
+    setTurnNotice(null);
+    setFinalTrickSelectedPlayers([]);
+    setFinalTrickOpenedPlayers([]);
+    setFinalTrickStatusText(null);
+    setFinalTrickStarted(false);
+    setIsShowdownMode(false);
+  }, []);
+
+  const finishMarketPhase = useCallback(
+    (marketState: MarketState, takeDecisions: MarketTakeDecision[]) => {
+      if (!gameRef.current) return;
+
+      const applied = applyCompletedMarketToGameState(gameRef.current.state, marketState);
+      if (!applied.success) {
+        setMarketSession(prev =>
+          prev ? { ...prev, message: applied.message ?? '仕込み市場の反映に失敗しました。' } : prev
+        );
+        setIsAnimating(false);
+        return;
+      }
+
+      const nextState = applied.gameState;
+      gameRef.current.state = nextState;
+      setGameState(nextState);
+      setSelectedMarketBid(null);
+      setMarketSession(prev =>
+        prev
+          ? {
+              ...prev,
+              state: marketState,
+              takeDecisions,
+              message: '仕込み市場が完了しました。',
+            }
+          : null
+      );
+      setOverlayText('仕込み市場 完了');
+
+      const doneTimer = setTimeout(() => {
+        setMarketSession(null);
+        setOverlayText(null);
+        setIsAnimating(false);
+
+        if (scheduleCpuTurnRef.current && nextState.currentPlayer !== 0) {
+          scheduleCpuTurnRef.current();
+        }
+      }, 1200);
+      finalTrickTimeoutsRef.current.push(doneTimer);
+    },
+    []
+  );
+
+  const autoAdvanceMarket = useCallback(
+    (
+      marketState: MarketState,
+      bidDecisions: MarketBidDecision[],
+      takeDecisions: MarketTakeDecision[]
+    ) => {
+      let nextState = marketState;
+      const nextTakes = [...takeDecisions];
+
+      while (nextState.phase === 'Choosing') {
+        const currentPlayer = getCurrentMarketPlayer(nextState);
+        if (currentPlayer === null || currentPlayer === 0) break;
+
+        const turn = nextState.exchangeOrder[nextState.currentExchangeIndex];
+        if (!turn) break;
+
+        const decision = chooseMarketCardForHand(nextState.hands[currentPlayer], nextState.market);
+        if (!decision) break;
+
+        const take = takeMarketCard(nextState, currentPlayer, decision.card);
+        if (!take.success) break;
+
+        nextTakes.push({
+          ...decision,
+          player: currentPlayer,
+          bidCard: turn.bidCard,
+        });
+        nextState = take.state;
+      }
+
+      setMarketSession(prev =>
+        prev
+          ? {
+              ...prev,
+              state: nextState,
+              bidDecisions,
+              takeDecisions: nextTakes,
+              message:
+                nextState.phase === 'Choosing'
+                  ? 'あなたの取得順です。市場から1枚選んでください。'
+                  : '市場交換を整理しています。',
+            }
+          : {
+              state: nextState,
+              bidDecisions,
+              takeDecisions: nextTakes,
+              message:
+                nextState.phase === 'Choosing'
+                  ? 'あなたの取得順です。市場から1枚選んでください。'
+                  : '市場交換を整理しています。',
+            }
+      );
+
+      if (nextState.phase === 'Complete') {
+        finishMarketPhase(nextState, nextTakes);
+      }
+    },
+    [finishMarketPhase]
+  );
+
+  const startMarketPhase = useCallback(
+    (state: GameState) => {
+      try {
+        const marketState = createMarketStateFromGameState(state, { extraCards: 2 });
+        if (gameRef.current) {
+          gameRef.current.state = state;
+        }
+        setGameState(state);
+        resetRoundVisualState();
+        setMarketSession({
+          state: marketState,
+          bidDecisions: [],
+          takeDecisions: [],
+          message: `第${state.currentRound}回戦の仕込み市場です。`,
+        });
+        setSelectedMarketBid(null);
+        setOverlayText(null);
+        setIsAnimating(true);
+      } catch (error) {
+        console.error('[Market] Failed to start market phase:', error);
+        setMarketSession(null);
+        setSelectedMarketBid(null);
+        setIsAnimating(false);
+        if (gameRef.current) {
+          gameRef.current.state = state;
+        }
+        setGameState(state);
+
+        if (scheduleCpuTurnRef.current && state.currentPlayer !== 0) {
+          scheduleCpuTurnRef.current();
+        }
+      }
+    },
+    [resetRoundVisualState]
+  );
+
+  const handleSubmitMarketBid = useCallback(
+    (card: number | null) => {
+      if (!marketSession || marketSession.state.phase !== 'Bidding') return;
+
+      const humanBid = submitMarketBid(marketSession.state, 0, card);
+      if (!humanBid.success) {
+        setMarketSession(prev =>
+          prev ? { ...prev, message: humanBid.message ?? '入札に失敗しました。' } : prev
+        );
+        return;
+      }
+
+      let nextState = humanBid.state;
+      const bidDecisions: MarketBidDecision[] = [];
+
+      for (let player = 1; player < nextState.hands.length; player++) {
+        const decision = chooseMarketBidForHand(player, nextState.hands[player], nextState.market);
+        const result = submitMarketBid(nextState, player, decision.card);
+        if (!result.success) {
+          setMarketSession(prev =>
+            prev
+              ? { ...prev, message: result.message ?? `CPU ${player}の入札に失敗しました。` }
+              : prev
+          );
+          return;
+        }
+        bidDecisions.push(decision);
+        nextState = result.state;
+      }
+
+      const revealed = revealMarketBids(nextState);
+      if (!revealed.success) {
+        setMarketSession(prev =>
+          prev ? { ...prev, message: revealed.message ?? '入札公開に失敗しました。' } : prev
+        );
+        return;
+      }
+
+      setSelectedMarketBid(null);
+      setMarketSession({
+        state: revealed.state,
+        bidDecisions,
+        takeDecisions: [],
+        message:
+          revealed.state.phase === 'Choosing'
+            ? '入札を公開しました。大きいカード順に市場から取得します。'
+            : '全員が交換しませんでした。',
+      });
+      autoAdvanceMarket(revealed.state, bidDecisions, []);
+    },
+    [autoAdvanceMarket, marketSession]
+  );
+
+  const handleTakeMarketCard = useCallback(
+    (card: number) => {
+      if (!marketSession || marketSession.state.phase !== 'Choosing') return;
+
+      const currentPlayer = getCurrentMarketPlayer(marketSession.state);
+      if (currentPlayer !== 0) return;
+
+      const turn = marketSession.state.exchangeOrder[marketSession.state.currentExchangeIndex];
+      const result = takeMarketCard(marketSession.state, 0, card);
+      if (!result.success) {
+        setMarketSession(prev =>
+          prev ? { ...prev, message: result.message ?? '市場カードの取得に失敗しました。' } : prev
+        );
+        return;
+      }
+
+      const nextTakes = [
+        ...marketSession.takeDecisions,
+        {
+          player: 0,
+          bidCard: turn?.bidCard ?? -1,
+          card,
+          score: 0,
+        },
+      ];
+
+      setMarketSession({
+        ...marketSession,
+        state: result.state,
+        takeDecisions: nextTakes,
+        message: `${getPlayerLabel(0)}が${card}を取得しました。`,
+      });
+      autoAdvanceMarket(result.state, marketSession.bidDecisions, nextTakes);
+    },
+    [autoAdvanceMarket, marketSession]
+  );
 
   const startGame = useCallback(async () => {
     try {
@@ -254,25 +533,22 @@ function CpuPlayContent() {
       const state = createInitialState(config, rng);
 
       gameRef.current = { state, config, controllers, rng, humanController };
-      setGameState(state);
       setGameOver(false);
       setGameResults([]);
-      setTableTrickCards([]);
-      setBattleV2MovingCard(null);
-      setBattleV2HiddenMoveKey(null);
-      setLatestPlayedKey(null);
-      setTrickWinner(null);
-      setTrickWinnerText(null);
-      setTurnNotice(null);
-      setFinalTrickSelectedPlayers([]);
-      setFinalTrickOpenedPlayers([]);
-      setFinalTrickStatusText(null);
+      resetRoundVisualState();
       setOverlayText(null);
-      setFinalTrickStarted(false);
-      setIsShowdownMode(false);
-      setIsAnimating(false);
+      setMarketSession(null);
+      setSelectedMarketBid(null);
 
       debugGameLog('[Game] New game started with', config.players, 'players');
+
+      if (isMarketRuleSet(config.ruleSet)) {
+        startMarketPhase(state);
+        return;
+      }
+
+      setGameState(state);
+      setIsAnimating(false);
 
       // 最初のプレイヤーがCPUの場合は自動プレイ
       if (state.currentPlayer !== 0) {
@@ -289,7 +565,7 @@ function CpuPlayContent() {
     } catch (error) {
       console.error('[Game] Failed to start game:', error);
     }
-  }, [searchParams]);
+  }, [resetRoundVisualState, searchParams, startMarketPhase]);
 
   useEffect(() => {
     document.title = 'CPU対戦 | Five Cucumber';
@@ -373,6 +649,8 @@ function CpuPlayContent() {
               setFinalTrickOpenedPlayers([]);
               setFinalTrickStatusText(null);
               setOverlayText(null);
+              setMarketSession(null);
+              setSelectedMarketBid(null);
               setFinalTrickStarted(false);
               setIsShowdownMode(false);
               setIsAnimating(false);
@@ -468,37 +746,37 @@ function CpuPlayContent() {
     playCpuTurnRef.current = playCpuTurn;
   });
 
-  const startNextRound = useCallback((state: GameState) => {
-    const nextRound = state.currentRound;
-    setGameState(state);
-    if (gameRef.current) {
-      gameRef.current.state = state;
-    }
-    setTableTrickCards([]);
-    setBattleV2MovingCard(null);
-    setBattleV2HiddenMoveKey(null);
-    setLatestPlayedKey(null);
-    setTrickWinner(null);
-    setTrickWinnerText(null);
-    setTurnNotice(null);
-    setFinalTrickSelectedPlayers([]);
-    setFinalTrickOpenedPlayers([]);
-    setFinalTrickStatusText(null);
-    setFinalTrickStarted(false);
-    setIsShowdownMode(false);
-    setIsAnimating(true);
-    setOverlayText(`第${nextRound}回戦 開始！`);
-
-    const openTimer = setTimeout(() => {
-      setOverlayText(null);
-      setIsAnimating(false);
-
-      if (scheduleCpuTurnRef.current && state.currentPlayer !== 0) {
-        scheduleCpuTurnRef.current();
+  const startNextRound = useCallback(
+    (state: GameState) => {
+      const nextRound = state.currentRound;
+      setGameState(state);
+      if (gameRef.current) {
+        gameRef.current.state = state;
       }
-    }, 1600);
-    finalTrickTimeoutsRef.current.push(openTimer);
-  }, []);
+      resetRoundVisualState();
+      setMarketSession(null);
+      setSelectedMarketBid(null);
+
+      if (isMarketRuleSet(gameRef.current?.config.ruleSet)) {
+        startMarketPhase(state);
+        return;
+      }
+
+      setIsAnimating(true);
+      setOverlayText(`第${nextRound}回戦 開始！`);
+
+      const openTimer = setTimeout(() => {
+        setOverlayText(null);
+        setIsAnimating(false);
+
+        if (scheduleCpuTurnRef.current && state.currentPlayer !== 0) {
+          scheduleCpuTurnRef.current();
+        }
+      }, 1600);
+      finalTrickTimeoutsRef.current.push(openTimer);
+    },
+    [resetRoundVisualState, startMarketPhase]
+  );
 
   const checkGameOver = useCallback(
     (state: GameState) => {
@@ -558,10 +836,9 @@ function CpuPlayContent() {
         const moveTimestamp = Date.now();
         const move: Move = { player, card, timestamp: moveTimestamp, isDiscard: isDiscardMove };
         const moveKey = `${player}-${moveTimestamp}`;
-        const v2MovingCard =
-          shouldUseBattleV2(searchParams)
-            ? createBattleV2MoveAnimation(state, player, card, isDiscardMove, moveTimestamp)
-            : null;
+        const v2MovingCard = shouldUseBattleV2(searchParams)
+          ? createBattleV2MoveAnimation(state, player, card, isDiscardMove, moveTimestamp)
+          : null;
         const trickCardsAfterPlay = isDiscardMove
           ? [...state.trickCards]
           : [...state.trickCards, move];
@@ -691,7 +968,14 @@ function CpuPlayContent() {
   // CPU手番のスケジューリング
   useEffect(() => {
     if (finalTrickStarted) return;
-    if (gameState && !gameOver && !isProcessingRef.current && !isAnimating && gameRef.current) {
+    if (
+      gameState &&
+      !gameOver &&
+      !marketSession &&
+      !isProcessingRef.current &&
+      !isAnimating &&
+      gameRef.current
+    ) {
       const { state } = gameRef.current;
       if (state.currentPlayer !== 0 && state.phase === 'AwaitMove' && !state.isFinalTrick) {
         debugGameLog(`[useEffect] Scheduling CPU turn for player ${state.currentPlayer}`);
@@ -707,10 +991,24 @@ function CpuPlayContent() {
         cpuTurnTimerRef.current = null;
       }
     };
-  }, [finalTrickStarted, gameState?.currentPlayer, gameState?.phase, gameOver, isAnimating]);
+  }, [
+    finalTrickStarted,
+    gameState?.currentPlayer,
+    gameState?.phase,
+    gameOver,
+    isAnimating,
+    marketSession,
+  ]);
 
   const handleCardClick = async (card: number) => {
-    if (!gameRef.current || isCardLocked || isSubmitting || isProcessingRef.current || isAnimating)
+    if (
+      !gameRef.current ||
+      marketSession ||
+      isCardLocked ||
+      isSubmitting ||
+      isProcessingRef.current ||
+      isAnimating
+    )
       return;
 
     const { state } = gameRef.current;
@@ -747,6 +1045,7 @@ function CpuPlayContent() {
   const handleTimeout = async () => {
     if (
       !gameRef.current ||
+      marketSession ||
       gameState?.currentPlayer !== 0 ||
       isProcessingRef.current ||
       isAnimating
@@ -784,7 +1083,7 @@ function CpuPlayContent() {
       'hand length:',
       gameState?.players?.[0]?.hand?.length
     );
-    if (!gameState || !gameRef.current) return;
+    if (!gameState || !gameRef.current || marketSession) return;
     if (!gameState.isFinalTrick || gameState.phase !== 'AwaitMove') return;
     if (finalTrickStarted || isAnimating || isProcessingRef.current) return;
 
@@ -921,16 +1220,22 @@ function CpuPlayContent() {
     setFinalTrickOpenedPlayers([]);
     setOverlayText(useBattleV2 ? '最終カード\nShowDown' : '最終トリック');
 
-    const showdownTimer = setTimeout(() => {
-      if (!useBattleV2) {
-        setOverlayText('Showdown!');
-      }
-      const openTimer = setTimeout(() => {
-        setOverlayText(null);
-        runFinalTrickShowdown();
-      }, useBattleV2 ? 0 : 1500);
-      finalTrickTimeoutsRef.current.push(openTimer);
-    }, useBattleV2 ? 1300 : 2000);
+    const showdownTimer = setTimeout(
+      () => {
+        if (!useBattleV2) {
+          setOverlayText('Showdown!');
+        }
+        const openTimer = setTimeout(
+          () => {
+            setOverlayText(null);
+            runFinalTrickShowdown();
+          },
+          useBattleV2 ? 0 : 1500
+        );
+        finalTrickTimeoutsRef.current.push(openTimer);
+      },
+      useBattleV2 ? 1300 : 2000
+    );
 
     finalTrickTimeoutsRef.current.push(showdownTimer);
   }, [
@@ -940,6 +1245,7 @@ function CpuPlayContent() {
     gameState,
     finalTrickStarted,
     isAnimating,
+    marketSession,
     searchParams,
   ]);
 
@@ -982,11 +1288,13 @@ function CpuPlayContent() {
   const displayRound = gameRef.current?.state.currentRound ?? gameState.currentRound;
   const displayTrick = gameRef.current?.state.currentTrick ?? gameState.currentTrick;
   const useBattleV2 = shouldUseBattleV2(searchParams);
+  const activeRuleSet = gameRef.current?.config.ruleSet ?? 'classic';
   const isFinalTrickPhase =
     gameState.isFinalTrick || displayTrick === (gameRef.current?.config?.initialCards || 7);
   const battleV2LegalMoves =
     gameState.currentPlayer === 0 &&
     gameState.phase === 'AwaitMove' &&
+    !marketSession &&
     !isAnimating &&
     !isFinalTrickPhase
       ? getLegalMoves(gameState, 0)
@@ -995,14 +1303,20 @@ function CpuPlayContent() {
     useBattleV2 &&
     gameState.currentPlayer === 0 &&
     gameState.phase === 'AwaitMove' &&
+    !marketSession &&
     !isAnimating &&
     !isFinalTrickPhase;
-  const currentPlayerIndex = isAnimating || isFinalTrickPhase ? null : gameState.currentPlayer;
+  const currentPlayerIndex =
+    isAnimating || isFinalTrickPhase || marketSession ? null : gameState.currentPlayer;
+  const currentMarketPlayer = marketSession ? getCurrentMarketPlayer(marketSession.state) : null;
+  const humanMarketHand = marketSession?.state.hands[0] ?? [];
+  const humanBid = marketSession?.state.bids[0]?.card ?? null;
+  const humanTake = marketSession?.takeDecisions.find(decision => decision.player === 0);
 
   const timer = (
     <Timer
       turnSeconds={gameRef.current ? getEffectiveTurnSeconds(gameRef.current.config) : null}
-      isActive={gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove'}
+      isActive={gameState.currentPlayer === 0 && gameState.phase === 'AwaitMove' && !marketSession}
       onTimeout={handleTimeout}
     />
   );
@@ -1014,145 +1328,250 @@ function CpuPlayContent() {
         .filter(Boolean)
         .join(' ')}
     >
-        {useBattleV2 ? null : (
-          <BattleHud
-            round={displayRound}
-            trick={displayTrick}
-            timer={timer}
-            onExit={handleBackToHome}
-          />
-        )}
+      {useBattleV2 ? null : (
+        <BattleHud
+          round={displayRound}
+          trick={displayTrick}
+          timer={timer}
+          onExit={handleBackToHome}
+        />
+      )}
 
-        {!useBattleV2 && isFinalTrickPhase ? (
-          <div className="final-trick-notice" role="status" aria-live="polite">
-            最終トリック
-          </div>
-        ) : null}
+      {!useBattleV2 && isFinalTrickPhase ? (
+        <div className="final-trick-notice" role="status" aria-live="polite">
+          最終トリック
+        </div>
+      ) : null}
 
-        {!useBattleV2 && shouldDiscardMinCard ? (
-          <div className="discard-notice" role="status" aria-live="polite">
-            出せるカードがありません。最小のカードを捨てます。
-          </div>
-        ) : null}
+      {!useBattleV2 && shouldDiscardMinCard ? (
+        <div className="discard-notice" role="status" aria-live="polite">
+          出せるカードがありません。最小のカードを捨てます。
+        </div>
+      ) : null}
 
-        {!useBattleV2 && turnNotice ? (
-          <div className="discard-result-notice" role="status" aria-live="polite">
-            {turnNotice}
-          </div>
-        ) : null}
+      {!useBattleV2 && turnNotice ? (
+        <div className="discard-result-notice" role="status" aria-live="polite">
+          {turnNotice}
+        </div>
+      ) : null}
 
-        {useBattleV2 ? (
-          <div className="cpu-play-v2-scene" aria-label="CPU対局">
-            <div className="cpu-play-v2-hud" aria-label="対局情報">
-              <div className="cpu-play-v2-round">
-                第{displayRound}回戦 / 第{displayTrick}トリック
-              </div>
-              {showBattleV2Timer ? <div className="cpu-play-v2-timer">{timer}</div> : null}
+      {useBattleV2 ? (
+        <div className="cpu-play-v2-scene" aria-label="CPU対局">
+          <div className="cpu-play-v2-hud" aria-label="対局情報">
+            <div className="cpu-play-v2-round">
+              第{displayRound}回戦 / 第{displayTrick}トリック
+              {isMarketRuleSet(activeRuleSet) ? (
+                <span className="cpu-play-v2-rule">仕込み市場</span>
+              ) : null}
             </div>
-            <BattleV2Scene
-              state={gameState}
-              names={displayNames}
-              playedCards={tableTrickCards}
-              movingCard={battleV2MovingCard}
-              hiddenPlayedMoveKey={battleV2HiddenMoveKey}
-              legalMoves={battleV2LegalMoves}
-              showdownMode={isShowdownMode}
-              trickWinner={trickWinner}
-              onMoveComplete={() => {
-                setBattleV2MovingCard(null);
-                setBattleV2HiddenMoveKey(null);
-              }}
-              onSelectCard={(card: BattleV2CardView) => {
-                if (!battleV2LegalMoves.includes(card.value)) return;
-                void handleCardClick(card.value);
-              }}
-            />
+            {showBattleV2Timer ? <div className="cpu-play-v2-timer">{timer}</div> : null}
           </div>
-        ) : (
-          <EllipseTable
+          <BattleV2Scene
             state={gameState}
-            config={
-              gameRef.current?.config ||
-              ({
-                players: 4,
-                turnSeconds: 15,
-                maxCucumbers: 6,
-                initialCards: 7,
-                cpuLevel: 'normal',
-              } as GameConfig)
-            }
-            currentPlayerIndex={currentPlayerIndex}
-            onCardClick={(card: number) => handleCardClick(Number(card))}
-            className={['cpu-play-table', isCardLocked ? 'cards-locked' : '']
-              .filter(Boolean)
-              .join(' ')}
-            isSubmitting={isSubmitting}
-            lockedCardId={lockedCardId}
             names={displayNames}
-            mySeatIndex={0}
-            trickCards={tableTrickCards}
-            latestPlayedCardKey={latestPlayedKey}
-            trickWinner={trickWinner}
-            trickWinnerText={trickWinnerText}
-            isFinalTrickMode={isFinalTrickPhase}
-            finalTrickSelectedPlayers={finalTrickSelectedPlayers}
-            finalTrickOpenedPlayers={finalTrickOpenedPlayers}
-            finalTrickStatusText={finalTrickStatusText}
+            playedCards={tableTrickCards}
+            movingCard={battleV2MovingCard}
+            hiddenPlayedMoveKey={battleV2HiddenMoveKey}
+            legalMoves={battleV2LegalMoves}
             showdownMode={isShowdownMode}
+            trickWinner={trickWinner}
+            onMoveComplete={() => {
+              setBattleV2MovingCard(null);
+              setBattleV2HiddenMoveKey(null);
+            }}
+            onSelectCard={(card: BattleV2CardView) => {
+              if (!battleV2LegalMoves.includes(card.value)) return;
+              void handleCardClick(card.value);
+            }}
           />
-        )}
+        </div>
+      ) : (
+        <EllipseTable
+          state={gameState}
+          config={
+            gameRef.current?.config ||
+            ({
+              players: 4,
+              turnSeconds: 15,
+              maxCucumbers: 6,
+              initialCards: 7,
+              cpuLevel: 'normal',
+            } as GameConfig)
+          }
+          currentPlayerIndex={currentPlayerIndex}
+          onCardClick={(card: number) => handleCardClick(Number(card))}
+          className={['cpu-play-table', isCardLocked ? 'cards-locked' : '']
+            .filter(Boolean)
+            .join(' ')}
+          isSubmitting={isSubmitting}
+          lockedCardId={lockedCardId}
+          names={displayNames}
+          mySeatIndex={0}
+          trickCards={tableTrickCards}
+          latestPlayedCardKey={latestPlayedKey}
+          trickWinner={trickWinner}
+          trickWinnerText={trickWinnerText}
+          isFinalTrickMode={isFinalTrickPhase}
+          finalTrickSelectedPlayers={finalTrickSelectedPlayers}
+          finalTrickOpenedPlayers={finalTrickOpenedPlayers}
+          finalTrickStatusText={finalTrickStatusText}
+          showdownMode={isShowdownMode}
+        />
+      )}
 
-        {overlayText ? (
-          <div className="final-trick-overlay" role="status" aria-live="assertive">
-            <div className="final-trick-overlay__text">{overlayText}</div>
-          </div>
-        ) : null}
-
-        {gameOver ? (
-          <div className="game-over-overlay">
-            <div className="game-over-overlay__title">
-              {gameResults
-                .filter(result => result.eliminated)
-                .map(result => result.name)
-                .join('、')}{' '}
-              お漬物！！！
+      {marketSession ? (
+        <section className="market-phase-overlay" aria-label="仕込み市場">
+          <div className="market-phase-panel">
+            <div className="market-phase-panel__header">
+              <div>
+                <p className="market-phase-panel__eyebrow">Market Phase</p>
+                <h2>仕込み市場</h2>
+              </div>
+              <span className="market-phase-panel__rule">参加者+2枚</span>
             </div>
 
-            <div className="game-over-overlay__result">
-              <h2>結果</h2>
-              {gameResults.map((result, index) => (
-                <div
-                  key={`${result.name}-${index}`}
-                  className={`game-over-overlay__rank ${result.eliminated ? 'is-eliminated' : ''}`}
-                >
-                  <span>
-                    {index + 1}位 {result.name}
-                  </span>
-                  <span>
-                    🥒 {result.cucumbers}本 {result.eliminated ? '💀' : ''}
-                  </span>
+            <p className="market-phase-panel__message" role="status" aria-live="polite">
+              {marketSession.message}
+            </p>
+
+            <div className="market-phase-panel__section">
+              <h3>市場</h3>
+              <div className="market-card-row">
+                {marketSession.state.market.map((card, index) => (
+                  <button
+                    key={`market-${card}-${index}`}
+                    type="button"
+                    className="market-card"
+                    disabled={marketSession.state.phase !== 'Choosing' || currentMarketPlayer !== 0}
+                    onClick={() => handleTakeMarketCard(card)}
+                  >
+                    <span>{card}</span>
+                    <small>cucumber</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {marketSession.state.phase === 'Bidding' ? (
+              <div className="market-phase-panel__section">
+                <h3>交換に出すカード</h3>
+                <div className="market-card-row market-card-row--hand">
+                  {humanMarketHand.map((card, index) => (
+                    <button
+                      key={`bid-${card}-${index}`}
+                      type="button"
+                      className={['market-card', selectedMarketBid === card ? 'is-selected' : '']
+                        .filter(Boolean)
+                        .join(' ')}
+                      onClick={() => setSelectedMarketBid(card)}
+                    >
+                      <span>{card}</span>
+                      <small>bid</small>
+                    </button>
+                  ))}
                 </div>
-              ))}
-            </div>
+                <div className="market-phase-panel__actions">
+                  <button
+                    type="button"
+                    className="market-action-button market-action-button--secondary"
+                    onClick={() => handleSubmitMarketBid(null)}
+                  >
+                    交換しない
+                  </button>
+                  <button
+                    type="button"
+                    className="market-action-button"
+                    disabled={selectedMarketBid === null}
+                    onClick={() => handleSubmitMarketBid(selectedMarketBid)}
+                  >
+                    {selectedMarketBid === null ? 'カードを選択' : `${selectedMarketBid}で入札`}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="market-phase-panel__section">
+                <h3>公開された入札</h3>
+                <div className="market-bid-list">
+                  {marketSession.state.bids.map((bid, player) => {
+                    const take = marketSession.takeDecisions.find(
+                      decision => decision.player === player
+                    );
+                    return (
+                      <div key={`bid-result-${player}`} className="market-bid-list__item">
+                        <strong>{getPlayerLabel(player)}</strong>
+                        <span>{bid?.card === null ? '不参加' : (bid?.card ?? '-')}</span>
+                        <em>{take ? `→ ${take.card}` : ''}</em>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-            <div className="game-over-overlay__actions">
-              <button
-                type="button"
-                className="game-over-overlay__home"
-                onClick={handleRestartGame}
-              >
-                もう一度遊ぶ
-              </button>
-              <button
-                type="button"
-                className="game-over-overlay__home game-over-overlay__home--secondary"
-                onClick={handleBackToHome}
-              >
-                ホームへ戻る
-              </button>
-            </div>
+            {marketSession.state.phase === 'Choosing' && currentMarketPlayer === 0 ? (
+              <p className="market-phase-panel__hint">
+                {humanBid === null
+                  ? 'あなたは交換しませんでした。'
+                  : `${humanBid}を除外しました。市場から1枚選んでください。`}
+              </p>
+            ) : null}
+
+            {marketSession.state.phase === 'Complete' && humanTake ? (
+              <p className="market-phase-panel__hint">
+                あなたは{humanBid}を出して{humanTake.card}を取得しました。
+              </p>
+            ) : null}
           </div>
-        ) : null}
+        </section>
+      ) : null}
+
+      {overlayText ? (
+        <div className="final-trick-overlay" role="status" aria-live="assertive">
+          <div className="final-trick-overlay__text">{overlayText}</div>
+        </div>
+      ) : null}
+
+      {gameOver ? (
+        <div className="game-over-overlay">
+          <div className="game-over-overlay__title">
+            {gameResults
+              .filter(result => result.eliminated)
+              .map(result => result.name)
+              .join('、')}{' '}
+            お漬物！！！
+          </div>
+
+          <div className="game-over-overlay__result">
+            <h2>結果</h2>
+            {gameResults.map((result, index) => (
+              <div
+                key={`${result.name}-${index}`}
+                className={`game-over-overlay__rank ${result.eliminated ? 'is-eliminated' : ''}`}
+              >
+                <span>
+                  {index + 1}位 {result.name}
+                </span>
+                <span>
+                  🥒 {result.cucumbers}本 {result.eliminated ? '💀' : ''}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="game-over-overlay__actions">
+            <button type="button" className="game-over-overlay__home" onClick={handleRestartGame}>
+              もう一度遊ぶ
+            </button>
+            <button
+              type="button"
+              className="game-over-overlay__home game-over-overlay__home--secondary"
+              onClick={handleBackToHome}
+            >
+              ホームへ戻る
+            </button>
+          </div>
+        </div>
+      ) : null}
     </BattleLayout>
   );
 }

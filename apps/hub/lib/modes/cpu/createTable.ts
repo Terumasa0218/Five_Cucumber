@@ -2,7 +2,7 @@
 
 import { CpuController } from '../../controllers/cpu';
 import { HumanController } from '../../controllers/human';
-import { GameConfig, PlayerController } from '../../game-core/types';
+import { GameConfig, PlayerController, RuleSetId } from '../../game-core/types';
 
 export interface CpuTableConfig {
   players: number;
@@ -10,6 +10,7 @@ export interface CpuTableConfig {
   maxCucumbers: number;
   initialCards: number;
   cpuLevel: 'easy' | 'normal' | 'hard';
+  ruleSet?: RuleSetId;
   seed?: number;
 }
 
@@ -28,14 +29,19 @@ function parseCpuLevel(value: string | null): 'easy' | 'normal' | 'hard' {
   return value === 'easy' || value === 'normal' || value === 'hard' ? value : 'normal';
 }
 
+function parseRuleSet(value: string | null): RuleSetId {
+  return value === 'market' ? 'market' : 'classic';
+}
+
 export function createCpuTable(tableConfig: CpuTableConfig): CpuTable {
   const config: GameConfig = {
+    ruleSet: tableConfig.ruleSet ?? 'classic',
     players: clampNumber(tableConfig.players, 2, 6, 4),
     turnSeconds: tableConfig.turnSeconds,
     maxCucumbers: clampNumber(tableConfig.maxCucumbers, 4, 10, 5),
     initialCards: clampNumber(tableConfig.initialCards, 1, 7, 7),
     cpuLevel: tableConfig.cpuLevel,
-    seed: tableConfig.seed
+    seed: tableConfig.seed,
   };
 
   const controllers: PlayerController[] = [];
@@ -51,7 +57,7 @@ export function createCpuTable(tableConfig: CpuTableConfig): CpuTable {
   return {
     controllers,
     config,
-    humanController
+    humanController,
   };
 }
 
@@ -62,7 +68,8 @@ export function createCpuTableFromUrlParams(params: URLSearchParams): CpuTable {
     maxCucumbers: parseInt(params.get('maxCucumbers') || '6'),
     initialCards: 7,
     cpuLevel: parseCpuLevel(params.get('cpuLevel')),
-    seed: parseInt(params.get('seed') || '0') || undefined
+    ruleSet: parseRuleSet(params.get('ruleSet')),
+    seed: parseInt(params.get('seed') || '0') || undefined,
   };
 
   return createCpuTable(tableConfig);

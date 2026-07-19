@@ -89,6 +89,20 @@
   font-weight: 800;
 }
 
+.cpu-play-v2-rule {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  border: 1px solid rgba(126, 203, 121, 0.45);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: #dff2c1;
+  background: rgba(40, 91, 45, 0.72);
+  font-size: 0.72em;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 .cpu-play-v2-timer .timer-display {
   padding: 9px 16px;
   min-width: 88px;
@@ -173,6 +187,200 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
   clip: rect(0 0 0 0);
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+.market-phase-overlay {
+  position: fixed;
+  left: clamp(12px, 2.5vw, 28px);
+  bottom: calc(clamp(12px, 2.5vw, 28px) + env(safe-area-inset-bottom, 0));
+  z-index: 30;
+  width: min(620px, calc(100vw - clamp(24px, 5vw, 56px)));
+  pointer-events: none;
+}
+
+.market-phase-panel {
+  border: 1px solid rgba(226, 203, 134, 0.46);
+  border-radius: 18px;
+  padding: clamp(14px, 2vw, 18px);
+  color: #f7edcd;
+  background: #142019;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 245, 205, 0.1),
+    0 18px 42px rgba(0, 0, 0, 0.34);
+  pointer-events: auto;
+}
+
+.market-phase-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.market-phase-panel__eyebrow {
+  margin: 0 0 4px;
+  color: rgba(247, 237, 205, 0.68);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.market-phase-panel h2,
+.market-phase-panel h3,
+.market-phase-panel p {
+  margin: 0;
+}
+
+.market-phase-panel h2 {
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.market-phase-panel h3 {
+  color: #f4dc98;
+  font-size: 0.88rem;
+}
+
+.market-phase-panel__rule {
+  flex: 0 0 auto;
+  border: 1px solid rgba(226, 203, 134, 0.4);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #f7edcd;
+  background: rgba(61, 48, 25, 0.9);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.market-phase-panel__message {
+  margin-top: 12px;
+  color: rgba(247, 237, 205, 0.88);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.market-phase-panel__section {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.market-card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.market-card {
+  display: grid;
+  place-items: center;
+  width: clamp(48px, 7vw, 64px);
+  aspect-ratio: 5 / 7;
+  border: 1px solid rgba(189, 151, 72, 0.7);
+  border-radius: 7px;
+  color: #1d160d;
+  background: linear-gradient(180deg, rgba(255, 248, 216, 0.96), rgba(231, 212, 158, 0.96));
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.28),
+    0 6px 14px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.market-card span {
+  font-size: 1.4rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.market-card small {
+  color: #257641;
+  font-size: 0.58rem;
+  font-weight: 800;
+}
+
+.market-card:hover:not(:disabled),
+.market-card.is-selected {
+  transform: translateY(-5px);
+  border-color: rgba(107, 199, 252, 0.95);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.34),
+    0 0 0 2px rgba(107, 199, 252, 0.45),
+    0 10px 20px rgba(0, 0, 0, 0.35);
+}
+
+.market-card:disabled {
+  cursor: default;
+}
+
+.market-phase-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.market-action-button {
+  border: 1px solid rgba(116, 213, 125, 0.55);
+  border-radius: 999px;
+  padding: 9px 16px;
+  color: #f7fff0;
+  background: #2d873f;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+
+.market-action-button--secondary {
+  border-color: rgba(226, 203, 134, 0.42);
+  color: #f7edcd;
+  background: #3c3020;
+}
+
+.market-action-button:disabled {
+  color: rgba(247, 237, 205, 0.45);
+  background: #293229;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.market-bid-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  gap: 8px;
+}
+
+.market-bid-list__item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(226, 203, 134, 0.24);
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: rgba(247, 237, 205, 0.92);
+  background: #1c2b21;
+  font-size: 0.82rem;
+}
+
+.market-bid-list__item em {
+  color: #a7dfa0;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.market-phase-panel__hint {
+  margin-top: 12px;
+  border-radius: 10px;
+  padding: 9px 10px;
+  color: #fff5d1;
+  background: #314321;
+  font-size: 0.86rem;
+  font-weight: 800;
 }
 
 .ellipse-table-inner {
@@ -384,7 +592,8 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 }
 
 @keyframes pulse-warning {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
   }
@@ -480,7 +689,12 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
     0 2px 4px rgba(0, 0, 0, 0.2),
     0 4px 8px rgba(0, 0, 0, 0.1);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(0, 0, 0, 0.05) 100%),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.15) 0%,
+      transparent 50%,
+      rgba(0, 0, 0, 0.05) 100%
+    ),
     linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(240, 240, 240, 0.8));
   color: #333;
 }
@@ -539,8 +753,14 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 }
 
 @keyframes card-glow {
-  0% { box-shadow: 0 0 30px rgba(49, 153, 255, 0.8); }
-  100% { box-shadow: 0 0 40px rgba(49, 153, 255, 1), 0 0 60px rgba(255, 190, 59, 0.6); }
+  0% {
+    box-shadow: 0 0 30px rgba(49, 153, 255, 0.8);
+  }
+  100% {
+    box-shadow:
+      0 0 40px rgba(49, 153, 255, 1),
+      0 0 60px rgba(255, 190, 59, 0.6);
+  }
 }
 
 .card:hover:not(.disabled) {
@@ -751,31 +971,65 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 }
 
 @keyframes slideToField {
-  0% { transform: translateY(0) scale(1); opacity: 1; }
-  50% { transform: translateY(-100px) scale(1.1); opacity: 0.8; }
-  100% { transform: translateY(-200px) scale(0.9); opacity: 0; }
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-100px) scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-200px) scale(0.9);
+    opacity: 0;
+  }
 }
 
 @keyframes slideToGraveyard {
-  0% { transform: translateY(0) scale(1); opacity: 1; }
-  50% { transform: translateX(200px) translateY(-50px) scale(1.1); opacity: 0.8; }
-  100% { transform: translateX(400px) translateY(-100px) scale(0.8); opacity: 0; }
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(200px) translateY(-50px) scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(400px) translateY(-100px) scale(0.8);
+    opacity: 0;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.5); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes flip {
-  0% { transform: rotateY(0deg); }
-  50% { transform: rotateY(90deg); }
-  100% { transform: rotateY(0deg); }
+  0% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(90deg);
+  }
+  100% {
+    transform: rotateY(0deg);
+  }
 }
 
 /* --- レスポンシブ --- */
@@ -803,8 +1057,12 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
     padding-bottom: clamp(96px, 32svh, 160px);
   }
 
-  .card-number { font-size: 1.2em; }
-  .cucumber-icons { font-size: 0.5em; }
+  .card-number {
+    font-size: 1.2em;
+  }
+  .cucumber-icons {
+    font-size: 0.5em;
+  }
 }
 
 @media (max-width: 480px) {
@@ -832,8 +1090,11 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 .battle-hud {
   border: 1px solid rgba(161, 109, 37, 0.85) !important;
   border-radius: 14px !important;
-  background:
-    linear-gradient(180deg, rgba(242, 203, 121, 0.92), rgba(160, 103, 35, 0.9)) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(242, 203, 121, 0.92),
+    rgba(160, 103, 35, 0.9)
+  ) !important;
   color: #1d140a;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 235, 0.55),
@@ -924,8 +1185,7 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 .discard-notice,
 .discard-result-notice {
   border: 1px solid rgba(218, 170, 75, 0.8);
-  background:
-    linear-gradient(180deg, rgba(68, 38, 12, 0.78), rgba(28, 18, 8, 0.82));
+  background: linear-gradient(180deg, rgba(68, 38, 12, 0.78), rgba(28, 18, 8, 0.82));
   color: #f9e8b4;
   box-shadow: inset 0 1px 0 rgba(255, 241, 181, 0.26);
 }
@@ -933,8 +1193,7 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 .timer-display {
   border: 1px solid rgba(113, 55, 22, 0.7);
   border-radius: 10px;
-  background:
-    linear-gradient(180deg, #f3d38d, #b27631);
+  background: linear-gradient(180deg, #f3d38d, #b27631);
   color: #241407;
   box-shadow:
     inset 0 1px 0 rgba(255, 248, 208, 0.66),
@@ -943,8 +1202,7 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 }
 
 .timer-display.warning {
-  background:
-    linear-gradient(180deg, #f0c06d, #9f2f2e);
+  background: linear-gradient(180deg, #f0c06d, #9f2f2e);
   color: #fff4d6;
 }
 
@@ -955,8 +1213,7 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
   min-width: clamp(116px, 12vw, 168px);
   border: 1px solid rgba(183, 130, 55, 0.82);
   border-radius: 10px;
-  background:
-    linear-gradient(180deg, rgba(245, 214, 139, 0.95), rgba(161, 105, 37, 0.94));
+  background: linear-gradient(180deg, rgba(245, 214, 139, 0.95), rgba(161, 105, 37, 0.94));
   color: #201407;
   box-shadow:
     inset 0 1px 0 rgba(255, 250, 214, 0.45),
@@ -1000,16 +1257,14 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
   border-radius: 3px;
   border: 0;
   background: url('/assets/ui/antique/processed/card-back.png') center / 100% 100% no-repeat;
-  box-shadow:
-    0 2px 5px rgba(0, 0, 0, 0.38);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.38);
 }
 
 #hand-dock .me-name {
   border: 1px solid rgba(219, 172, 73, 0.8);
   border-radius: 999px;
   padding: 0.25rem 1rem;
-  background:
-    linear-gradient(180deg, rgba(44, 87, 24, 0.95), rgba(20, 48, 19, 0.95));
+  background: linear-gradient(180deg, rgba(44, 87, 24, 0.95), rgba(20, 48, 19, 0.95));
   color: #f9e8b4;
   box-shadow:
     inset 0 1px 0 rgba(255, 241, 181, 0.2),
@@ -1019,8 +1274,7 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 #hand-dock .hand {
   padding: 0.35rem 0.7rem;
   border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(38, 21, 9, 0.38), rgba(10, 5, 2, 0.28));
+  background: linear-gradient(180deg, rgba(38, 21, 9, 0.38), rgba(10, 5, 2, 0.28));
   box-shadow: inset 0 1px 10px rgba(0, 0, 0, 0.25);
 }
 
@@ -1028,11 +1282,9 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
   isolation: isolate;
   border: 0;
   border-radius: 8px;
-  background:
-    url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
+  background: url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
   color: #201407;
-  box-shadow:
-    0 5px 12px rgba(18, 8, 1, 0.42);
+  box-shadow: 0 5px 12px rgba(18, 8, 1, 0.42);
   text-shadow: 0 1px 0 rgba(255, 244, 192, 0.55);
 }
 
@@ -1064,8 +1316,7 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 }
 
 .card.playable {
-  background:
-    url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
+  background: url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
   color: #201407;
   box-shadow:
     0 0 0 2px rgba(255, 222, 125, 0.3),
@@ -1097,16 +1348,14 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 }
 
 .card.disabled {
-  background:
-    url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
+  background: url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
   color: rgba(229, 209, 164, 0.62);
   opacity: 0.58;
   filter: grayscale(0.4) brightness(0.82);
 }
 
 .card.current-card {
-  background:
-    url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
+  background: url('/assets/ui/antique/processed/card-face-normal.png') center / 100% 100% no-repeat;
   color: #201407;
   border: 0;
   box-shadow:
@@ -1120,8 +1369,8 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 }
 
 .card.game-card[data-card='1'] {
-  background:
-    url('/assets/ui/antique/processed/card-face-special-1.png') center / 100% 100% no-repeat;
+  background: url('/assets/ui/antique/processed/card-face-special-1.png') center / 100% 100%
+    no-repeat;
   box-shadow:
     0 0 0 2px rgba(229, 182, 72, 0.45),
     0 0 28px rgba(255, 239, 153, 0.65),
@@ -1129,8 +1378,8 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 }
 
 .card.game-card[data-card='15'] {
-  background:
-    url('/assets/ui/antique/processed/card-face-danger-15.png') center / 100% 100% no-repeat;
+  background: url('/assets/ui/antique/processed/card-face-danger-15.png') center / 100% 100%
+    no-repeat;
 }
 
 .card.game-card[data-card='15'] .card-number {
@@ -1145,15 +1394,13 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
   top: -11px;
   right: -9px;
   border: 1px solid rgba(215, 142, 73, 0.9);
-  background:
-    linear-gradient(180deg, #ffe7ad, #b87538);
+  background: linear-gradient(180deg, #ffe7ad, #b87538);
   color: #311609;
 }
 
 .graveyard-card {
   border: 1px solid rgba(183, 130, 55, 0.86);
-  background:
-    linear-gradient(180deg, rgba(67, 49, 28, 0.98), rgba(25, 19, 14, 0.98));
+  background: linear-gradient(180deg, rgba(67, 49, 28, 0.98), rgba(25, 19, 14, 0.98));
   color: #f3d38d;
   box-shadow:
     inset 0 0 0 1px rgba(0, 0, 0, 0.32),
@@ -1161,15 +1408,13 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 }
 
 .game-over-overlay {
-  background:
-    radial-gradient(circle at 50% 38%, rgba(57, 91, 39, 0.76), rgba(8, 5, 2, 0.92) 64%);
+  background: radial-gradient(circle at 50% 38%, rgba(57, 91, 39, 0.76), rgba(8, 5, 2, 0.92) 64%);
 }
 
 .game-over-overlay__result {
   border: 1px solid rgba(202, 153, 67, 0.75);
   border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(245, 214, 139, 0.93), rgba(113, 73, 28, 0.9));
+  background: linear-gradient(180deg, rgba(245, 214, 139, 0.93), rgba(113, 73, 28, 0.9));
   color: #211307;
 }
 
@@ -1181,8 +1426,7 @@ body:has(.cpu-play-layout--v2) [data-build-badge] {
 .game-over-overlay__home {
   border: 1px solid rgba(223, 177, 84, 0.8);
   border-radius: 10px;
-  background:
-    linear-gradient(180deg, #2d651f, #143513);
+  background: linear-gradient(180deg, #2d651f, #143513);
   color: #f9e8b4;
 }
 

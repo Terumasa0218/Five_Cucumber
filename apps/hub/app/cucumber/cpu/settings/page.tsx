@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { OptionToggleGroup, SettingsLayout } from '@/components/ui';
 import Link from 'next/link';
@@ -10,6 +10,7 @@ interface GameSettings {
   turnSeconds: number;
   maxCucumbers: number;
   cpuLevel: 'easy' | 'normal' | 'hard';
+  ruleSet: 'classic' | 'market';
   showAllHands: boolean;
 }
 
@@ -24,7 +25,8 @@ export default function CpuSettings() {
     turnSeconds: 15,
     maxCucumbers: 5,
     cpuLevel: 'normal',
-    showAllHands: false
+    ruleSet: 'classic',
+    showAllHands: false,
   });
   const [announcement, setAnnouncement] = useState('');
 
@@ -34,18 +36,23 @@ export default function CpuSettings() {
 
   const handleSettingChange = <K extends SettingKey>(key: K, value: GameSettings[K]) => {
     setSettings(prev => ({ ...prev, [key]: value }));
-    
+
     // アクセシビリティ用の音声通知
     const labels: Record<SettingKey, Record<OptionValue, string>> = {
       players: { 2: '2人', 3: '3人', 4: '4人', 5: '5人', 6: '6人' },
       turnSeconds: { 10: '10秒', 15: '15秒', 20: '20秒', 30: '30秒', 0: '無制限' },
       maxCucumbers: { 5: '5本', 6: '6本', 7: '7本', 10: '10本' },
       cpuLevel: { easy: 'やさしい', normal: 'ふつう', hard: 'つよい' },
-      showAllHands: {}
+      ruleSet: { classic: 'クラシック', market: '仕込み市場' },
+      showAllHands: {},
     };
-    
+
     const keyLabels = labels[key];
-    if (keyLabels && (typeof value === 'string' || typeof value === 'number') && value in keyLabels) {
+    if (
+      keyLabels &&
+      (typeof value === 'string' || typeof value === 'number') &&
+      value in keyLabels
+    ) {
       const label = keyLabels[value as OptionValue];
       if (label) {
         setAnnouncement(`${label}を選択`);
@@ -60,20 +67,28 @@ export default function CpuSettings() {
       turnSeconds: settings.turnSeconds === 0 ? null : settings.turnSeconds,
       maxCucumbers: settings.maxCucumbers,
       initialCards: 7,
-      cpuLevel: settings.cpuLevel
+      cpuLevel: settings.cpuLevel,
+      ruleSet: settings.ruleSet,
     };
-    
+
     const params = new URLSearchParams();
     params.set('players', config.players.toString());
     params.set('turnSeconds', config.turnSeconds?.toString() || '0');
     params.set('maxCucumbers', config.maxCucumbers.toString());
     params.set('cpuLevel', config.cpuLevel);
-    
+    params.set('ruleSet', config.ruleSet);
+
     router.push(`/cucumber/cpu/play?${params.toString()}`);
   };
 
   const isAllSelected = () => {
-    return settings.players && settings.turnSeconds !== undefined && settings.maxCucumbers && settings.cpuLevel;
+    return (
+      settings.players &&
+      settings.turnSeconds !== undefined &&
+      settings.maxCucumbers &&
+      settings.cpuLevel &&
+      settings.ruleSet
+    );
   };
 
   return (
@@ -97,7 +112,9 @@ export default function CpuSettings() {
         </>
       }
     >
-      <div aria-live="polite" className="sr-only">{announcement}</div>
+      <div aria-live="polite" className="sr-only">
+        {announcement}
+      </div>
 
       <div className="grid gap-8">
         <section className="flex flex-col gap-3">
@@ -106,9 +123,9 @@ export default function CpuSettings() {
           <OptionToggleGroup
             id="players"
             label="対戦人数"
-            options={[2,3,4,5,6].map(n=>({ value: n, label: `${n}人` }))}
+            options={[2, 3, 4, 5, 6].map(n => ({ value: n, label: `${n}人` }))}
             value={settings.players}
-            onChange={(v)=>handleSettingChange('players', Number(v))}
+            onChange={v => handleSettingChange('players', Number(v))}
           />
         </section>
 
@@ -126,7 +143,7 @@ export default function CpuSettings() {
               { value: 0, label: 'なし' },
             ]}
             value={settings.turnSeconds}
-            onChange={(v)=>handleSettingChange('turnSeconds', Number(v))}
+            onChange={v => handleSettingChange('turnSeconds', Number(v))}
           />
         </section>
 
@@ -136,9 +153,9 @@ export default function CpuSettings() {
           <OptionToggleGroup
             id="maxCucumbers"
             label="きゅうり数"
-            options={[5,6,7,10].map(n=>({ value: n, label: `${n}本` }))}
+            options={[5, 6, 7, 10].map(n => ({ value: n, label: `${n}本` }))}
             value={settings.maxCucumbers}
-            onChange={(v)=>handleSettingChange('maxCucumbers', Number(v))}
+            onChange={v => handleSettingChange('maxCucumbers', Number(v))}
           />
         </section>
 
@@ -151,10 +168,25 @@ export default function CpuSettings() {
             options={[
               { value: 'easy', label: 'やさしい' },
               { value: 'normal', label: 'ふつう' },
-              { value: 'hard', label: 'つよい' }
+              { value: 'hard', label: 'つよい' },
             ]}
             value={settings.cpuLevel}
-            onChange={(v)=>handleSettingChange('cpuLevel', v)}
+            onChange={v => handleSettingChange('cpuLevel', v)}
+          />
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h2 className="font-heading text-[clamp(18px,2.6vw,24px)]">ルール</h2>
+          <p className="text-white/80 text-[clamp(13px,1.6vw,16px)]">通常ルール / 仕込み市場</p>
+          <OptionToggleGroup
+            id="ruleSet"
+            label="ルール"
+            options={[
+              { value: 'classic', label: 'クラシック' },
+              { value: 'market', label: '仕込み市場' },
+            ]}
+            value={settings.ruleSet}
+            onChange={v => handleSettingChange('ruleSet', v as GameSettings['ruleSet'])}
           />
         </section>
 
@@ -165,7 +197,7 @@ export default function CpuSettings() {
               <input
                 type="checkbox"
                 checked={settings.showAllHands}
-                onChange={(e) => handleSettingChange('showAllHands', e.target.checked)}
+                onChange={e => handleSettingChange('showAllHands', e.target.checked)}
               />
               <span>全員の手札を表示（開発用）</span>
             </label>

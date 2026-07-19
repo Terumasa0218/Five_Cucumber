@@ -33,4 +33,14 @@ describe('createCpuTable', () => {
 
     expect(table.config.cpuLevel).toBe('normal');
   });
+
+  it('URLパラメータからルールセットを解釈する', () => {
+    const classic = createCpuTableFromUrlParams(new URLSearchParams());
+    const market = createCpuTableFromUrlParams(new URLSearchParams('ruleSet=market'));
+    const invalid = createCpuTableFromUrlParams(new URLSearchParams('ruleSet=unknown'));
+
+    expect(classic.config.ruleSet).toBe('classic');
+    expect(market.config.ruleSet).toBe('market');
+    expect(invalid.config.ruleSet).toBe('classic');
+  });
 });
