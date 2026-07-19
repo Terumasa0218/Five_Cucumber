@@ -54,6 +54,21 @@ export interface MarketComparisonSummary {
   exchangeLeaderAveragePenalty: number;
   weakHandAveragePenaltyClassic: number;
   weakHandAveragePenaltyMarket: number;
+  middleOnlySampleCount: number;
+  middleOnlyHandRate: number;
+  middleOnlyAveragePenaltyClassic: number;
+  middleOnlyAveragePenaltyMarket: number;
+  middleOnlyPenaltyDelta: number;
+  middleOnlyZeroPenaltyRateClassic: number;
+  middleOnlyZeroPenaltyRateMarket: number;
+  middleOnlyExchangeParticipationRate: number;
+  middleOnlyEdgeRecoveryRate: number;
+  marketDecisionRoundRate: number;
+  contestedExchangeRoundRate: number;
+  averageBiddersPerMarketRound: number;
+  publicCardFactsPerRound: number;
+  knownCurrentCardShareAfterMarket: number;
+  highSignalBidRate: number;
 }
 
 function cloneHands(state: GameState): number[][] {
@@ -110,6 +125,18 @@ function pearsonCorrelation(xs: number[], ys: number[]): number {
 
   const denominator = Math.sqrt(varianceX * varianceY);
   return denominator === 0 ? 0 : numerator / denominator;
+}
+
+function isEdgeCard(card: number): boolean {
+  return card <= 3 || card >= 13;
+}
+
+function isMiddleOnlyHand(hand: number[]): boolean {
+  return hand.length > 0 && hand.every(card => card >= 4 && card <= 12);
+}
+
+function hasEdgeCard(hand: number[]): boolean {
+  return hand.some(isEdgeCard);
 }
 
 export function simulateRound(options: RoundSimulationOptions): RoundSimulationResult {
@@ -184,9 +211,19 @@ export function compareClassicAndMarketRounds(
   const riskScoresMarket: number[] = [];
   const weakClassicPenalties: number[] = [];
   const weakMarketPenalties: number[] = [];
+  const middleOnlyClassicPenalties: number[] = [];
+  const middleOnlyMarketPenalties: number[] = [];
   const exchangeLeaderPenalties: number[] = [];
   let exchangeCount = 0;
   let possibleExchanges = 0;
+  let middleOnlyExchangeCount = 0;
+  let middleOnlyEdgeRecoveryCount = 0;
+  let marketDecisionRoundCount = 0;
+  let contestedExchangeRoundCount = 0;
+  let totalBidders = 0;
+  let publicCardFactCount = 0;
+  let knownCurrentCardCount = 0;
+  let highSignalBidCount = 0;
 
   for (let index = 0; index < options.iterations; index++) {
     const seed = options.seed + index;
@@ -217,6 +254,11 @@ export function compareClassicAndMarketRounds(
         weakClassicPenalties.push(classicPenalty);
         weakMarketPenalties.push(marketPenalty);
       }
+
+      if (isMiddleOnlyHand(classic.initialHands[player])) {
+        middleOnlyClassicPenalties.push(classicPenalty);
+        middleOnlyMarketPenalties.push(marketPenalty);
+      }
     }
 
     const exchange = market.marketExchange;
@@ -224,16 +266,49 @@ export function compareClassicAndMarketRounds(
       const exchangedPlayers = exchange.bidDecisions.filter(decision => decision.card !== null);
       exchangeCount += exchangedPlayers.length;
       possibleExchanges += options.config.players;
+      totalBidders += exchangedPlayers.length;
+      publicCardFactCount += exchangedPlayers.length + exchange.takeDecisions.length;
+      knownCurrentCardCount += exchange.takeDecisions.length;
+      highSignalBidCount += exchangedPlayers.filter(decision => isEdgeCard(decision.card!)).length;
+
+      if (exchangedPlayers.length > 0) {
+        marketDecisionRoundCount += 1;
+      }
+
+      if (exchangedPlayers.length >= 2) {
+        contestedExchangeRoundCount += 1;
+      }
 
       const leader = exchange.marketState.exchangeOrder[0];
       if (leader) {
         exchangeLeaderPenalties.push(market.roundPenalties[leader.player]);
+      }
+
+      for (const decision of exchangedPlayers) {
+        if (!isMiddleOnlyHand(classic.initialHands[decision.player])) continue;
+
+        middleOnlyExchangeCount += 1;
+        if (hasEdgeCard(exchange.marketState.hands[decision.player])) {
+          middleOnlyEdgeRecoveryCount += 1;
+        }
       }
     }
   }
 
   const classicAveragePenaltyPerPlayer = average(classicPenalties);
   const marketAveragePenaltyPerPlayer = average(marketPenalties);
+  const middleOnlyAveragePenaltyClassic = average(middleOnlyClassicPenalties);
+  const middleOnlyAveragePenaltyMarket = average(middleOnlyMarketPenalties);
+  const middleOnlySampleCount = middleOnlyClassicPenalties.length;
+  const middleOnlyZeroPenaltyRateClassic =
+    middleOnlySampleCount === 0
+      ? 0
+      : middleOnlyClassicPenalties.filter(penalty => penalty === 0).length / middleOnlySampleCount;
+  const middleOnlyZeroPenaltyRateMarket =
+    middleOnlySampleCount === 0
+      ? 0
+      : middleOnlyMarketPenalties.filter(penalty => penalty === 0).length / middleOnlySampleCount;
+  const totalPlayerSamples = options.iterations * options.config.players;
 
   return {
     iterations: options.iterations,
@@ -247,5 +322,28 @@ export function compareClassicAndMarketRounds(
     exchangeLeaderAveragePenalty: average(exchangeLeaderPenalties),
     weakHandAveragePenaltyClassic: average(weakClassicPenalties),
     weakHandAveragePenaltyMarket: average(weakMarketPenalties),
+    middleOnlySampleCount,
+    middleOnlyHandRate: totalPlayerSamples === 0 ? 0 : middleOnlySampleCount / totalPlayerSamples,
+    middleOnlyAveragePenaltyClassic,
+    middleOnlyAveragePenaltyMarket,
+    middleOnlyPenaltyDelta: middleOnlyAveragePenaltyMarket - middleOnlyAveragePenaltyClassic,
+    middleOnlyZeroPenaltyRateClassic,
+    middleOnlyZeroPenaltyRateMarket,
+    middleOnlyExchangeParticipationRate:
+      middleOnlySampleCount === 0 ? 0 : middleOnlyExchangeCount / middleOnlySampleCount,
+    middleOnlyEdgeRecoveryRate:
+      middleOnlyExchangeCount === 0 ? 0 : middleOnlyEdgeRecoveryCount / middleOnlyExchangeCount,
+    marketDecisionRoundRate:
+      options.iterations === 0 ? 0 : marketDecisionRoundCount / options.iterations,
+    contestedExchangeRoundRate:
+      options.iterations === 0 ? 0 : contestedExchangeRoundCount / options.iterations,
+    averageBiddersPerMarketRound: options.iterations === 0 ? 0 : totalBidders / options.iterations,
+    publicCardFactsPerRound:
+      options.iterations === 0 ? 0 : publicCardFactCount / options.iterations,
+    knownCurrentCardShareAfterMarket:
+      totalPlayerSamples === 0
+        ? 0
+        : knownCurrentCardCount / (totalPlayerSamples * options.config.initialCards),
+    highSignalBidRate: exchangeCount === 0 ? 0 : highSignalBidCount / exchangeCount,
   };
 }

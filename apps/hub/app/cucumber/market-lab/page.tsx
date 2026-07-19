@@ -50,21 +50,52 @@ function signed(value: number, digits = 2): string {
   return value > 0 ? `+${formatted}` : formatted;
 }
 
+function sampled(
+  sampleCount: number,
+  value: number,
+  formatter: (value: number) => string = formatNumber,
+): string {
+  return sampleCount === 0 ? 'n/a' : formatter(value);
+}
+
+function sampledPair(
+  sampleCount: number,
+  before: number,
+  after: number,
+  formatter: (value: number) => string,
+): string {
+  return sampleCount === 0 ? 'n/a' : `${formatter(before)} -> ${formatter(after)}`;
+}
+
+function getMiddleOnlyRescueDelta(summary: MarketComparisonSummary): number {
+  return summary.middleOnlySampleCount === 0
+    ? summary.weakHandAveragePenaltyMarket - summary.weakHandAveragePenaltyClassic
+    : summary.middleOnlyPenaltyDelta;
+}
+
 function getVariantTone(summary: MarketComparisonSummary): 'good' | 'watch' | 'neutral' {
   const weakDelta = summary.weakHandAveragePenaltyMarket - summary.weakHandAveragePenaltyClassic;
+  const rescueDelta = getMiddleOnlyRescueDelta(summary);
   const correlationDelta = summary.marketRiskPenaltyCorrelation - summary.classicRiskPenaltyCorrelation;
 
-  if (weakDelta < 0 && correlationDelta <= 0.03) return 'good';
-  if (weakDelta > 0 || correlationDelta > 0.08) return 'watch';
+  if (rescueDelta < 0 && weakDelta <= 0 && correlationDelta <= 0.03) return 'good';
+  if (rescueDelta > 0 || weakDelta > 0 || correlationDelta > 0.08) return 'watch';
   return 'neutral';
 }
 
 function getVariantNote(summary: MarketComparisonSummary): string {
   const weakDelta = summary.weakHandAveragePenaltyMarket - summary.weakHandAveragePenaltyClassic;
+  const rescueDelta = getMiddleOnlyRescueDelta(summary);
   const correlationDelta = summary.marketRiskPenaltyCorrelation - summary.classicRiskPenaltyCorrelation;
 
-  if (weakDelta < 0 && correlationDelta <= 0.03) {
-    return '事故手札の失点を下げつつ、初期手札依存も強めすぎていません。';
+  if (summary.middleOnlySampleCount === 0) {
+    return 'この条件では中間札だけの手札サンプルがありません。試行回数を増やして確認してください。';
+  }
+  if (rescueDelta < 0 && weakDelta <= 0 && correlationDelta <= 0.03) {
+    return '中間札事故の失点を下げつつ、初期手札依存も強めすぎていません。';
+  }
+  if (rescueDelta > 0) {
+    return '中間札だけの手札の平均失点が上がっています。救済ルールとしては要注意です。';
   }
   if (weakDelta > 0) {
     return '事故手札の平均失点が上がっています。CPU判断か市場枚数の再調整候補です。';
@@ -121,6 +152,7 @@ function VariantCard({ report }: { report: VariantReport }) {
   const { summary } = report;
   const weakDelta = summary.weakHandAveragePenaltyMarket - summary.weakHandAveragePenaltyClassic;
   const tone = getVariantTone(summary);
+  const middleOnlyDelta = sampled(summary.middleOnlySampleCount, summary.middleOnlyPenaltyDelta, signed);
 
   return (
     <article className={`${styles.variantCard} ${styles[`variantCard_${tone}`]}`}>
@@ -153,6 +185,31 @@ function VariantCard({ report }: { report: VariantReport }) {
           value={formatNumber(summary.exchangeLeaderAveragePenalty)}
           hint="強い入札者が得しすぎるか"
         />
+        <MetricCell
+          label="中間事故の失点差"
+          value={middleOnlyDelta}
+          hint="4〜12だけの手札。市場 - クラシック"
+        />
+        <MetricCell
+          label="中間事故の無失点率"
+          value={sampledPair(
+            summary.middleOnlySampleCount,
+            summary.middleOnlyZeroPenaltyRateClassic,
+            summary.middleOnlyZeroPenaltyRateMarket,
+            formatPercent,
+          )}
+          hint="クラシック -> 市場"
+        />
+        <MetricCell
+          label="読み合い候補率"
+          value={formatPercent(summary.contestedExchangeRoundRate)}
+          hint="2人以上が交換に参加したラウンド"
+        />
+        <MetricCell
+          label="既知手札率"
+          value={formatPercent(summary.knownCurrentCardShareAfterMarket)}
+          hint="市場取得で現在手札が見える割合"
+        />
       </div>
 
       <p className={styles.variantNote}>{getVariantNote(summary)}</p>
@@ -174,6 +231,14 @@ function ComparisonTable({ reports }: { reports: VariantReport[] }) {
             <th>事故相関 Market</th>
             <th>事故手札 Classic</th>
             <th>事故手札 Market</th>
+            <th>中間事故 n</th>
+            <th>中間事故差</th>
+            <th>中間事故 無失点</th>
+            <th>端札回復率</th>
+            <th>読み合い候補</th>
+            <th>公開情報/回</th>
+            <th>既知手札率</th>
+            <th>重要札入札</th>
             <th>交換率</th>
           </tr>
         </thead>
@@ -190,6 +255,21 @@ function ComparisonTable({ reports }: { reports: VariantReport[] }) {
                 <td>{formatNumber(summary.marketRiskPenaltyCorrelation)}</td>
                 <td>{formatNumber(summary.weakHandAveragePenaltyClassic)}</td>
                 <td>{formatNumber(summary.weakHandAveragePenaltyMarket)}</td>
+                <td>{summary.middleOnlySampleCount}</td>
+                <td>{sampled(summary.middleOnlySampleCount, summary.middleOnlyPenaltyDelta, signed)}</td>
+                <td>
+                  {sampledPair(
+                    summary.middleOnlySampleCount,
+                    summary.middleOnlyZeroPenaltyRateClassic,
+                    summary.middleOnlyZeroPenaltyRateMarket,
+                    formatPercent,
+                  )}
+                </td>
+                <td>{sampled(summary.middleOnlySampleCount, summary.middleOnlyEdgeRecoveryRate, formatPercent)}</td>
+                <td>{formatPercent(summary.contestedExchangeRoundRate)}</td>
+                <td>{formatNumber(summary.publicCardFactsPerRound)}</td>
+                <td>{formatPercent(summary.knownCurrentCardShareAfterMarket)}</td>
+                <td>{formatPercent(summary.highSignalBidRate)}</td>
                 <td>{formatPercent(summary.exchangeParticipationRate)}</td>
               </tr>
             );
@@ -219,11 +299,12 @@ export default function MarketLabPage({ searchParams = {} }: { searchParams?: Se
   }));
 
   const recommended = [...reports].sort((a, b) => {
-    const aWeakDelta =
-      a.summary.weakHandAveragePenaltyMarket - a.summary.weakHandAveragePenaltyClassic;
-    const bWeakDelta =
-      b.summary.weakHandAveragePenaltyMarket - b.summary.weakHandAveragePenaltyClassic;
-    return aWeakDelta - bWeakDelta || a.summary.marketPenaltyDeltaPerPlayer - b.summary.marketPenaltyDeltaPerPlayer;
+    const aRescueDelta = getMiddleOnlyRescueDelta(a.summary);
+    const bRescueDelta = getMiddleOnlyRescueDelta(b.summary);
+    return (
+      aRescueDelta - bRescueDelta
+      || a.summary.marketPenaltyDeltaPerPlayer - b.summary.marketPenaltyDeltaPerPlayer
+    );
   })[0];
 
   return (
@@ -303,7 +384,10 @@ export default function MarketLabPage({ searchParams = {} }: { searchParams?: Se
         <section className={styles.notes}>
           <h2>次に見るべきところ</h2>
           <ul>
-            <li>事故手札の平均失点が下がっているか</li>
+            <li>4〜12だけの中間事故手札が、市場で無失点になりやすくなっているか</li>
+            <li>中間事故手札が市場で1〜3または13〜15を取り戻せているか</li>
+            <li>2人以上が交換に参加するラウンドが十分あり、読み合いの入口が生まれているか</li>
+            <li>市場で取得したカードが見えることで、現在手札の予測が簡単になりすぎていないか</li>
             <li>交換順1位の失点が極端に低くなりすぎていないか</li>
             <li>市場枚数を増やしたとき、交換参加率が高くなりすぎないか</li>
             <li>事故相関が上がる場合、強い初期手札の最適化ルールになっていないか</li>
