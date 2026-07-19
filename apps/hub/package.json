@@ -11,6 +11,7 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf .next dist",
+    "market:report": "tsc -p tsconfig.market-report.json && node ../../tmp/market-report-build/scripts/generate-market-report.js",
     "test": "vitest run"
   },
   "dependencies": {
