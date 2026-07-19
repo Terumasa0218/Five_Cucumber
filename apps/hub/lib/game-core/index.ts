@@ -2,6 +2,7 @@
 
 export * from './engine';
 export * from './market';
+export * from './market-batch';
 export * from './market-policy';
 export * from './market-simulation';
 export * from './rng';

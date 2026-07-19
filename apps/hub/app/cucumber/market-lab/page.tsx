@@ -319,6 +319,7 @@ export default function MarketLabPage({ searchParams = {} }: { searchParams?: Se
             </p>
           </div>
           <div className={styles.heroActions}>
+            <Link href="/cucumber/market-lab/batch">一括検証</Link>
             <Link href="/home">ホーム</Link>
             <Link href="/cucumber/cpu/play">CPU対戦</Link>
           </div>

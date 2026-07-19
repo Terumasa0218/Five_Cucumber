@@ -186,9 +186,12 @@
 
 ```text
 /cucumber/market-lab
+/cucumber/market-lab/batch
 ```
 
-このページでは、同じ条件で `人数 + 1`、`人数 + 2`、`人数 + 3` の市場枚数を横比較できます。
+`/cucumber/market-lab` では、指定した人数について、同じ条件で `人数 + 1`、`人数 + 2`、`人数 + 3` の市場枚数を横比較できます。
+
+`/cucumber/market-lab/batch` では、`2〜6人 × 人数 + 1/+2/+3` を一括で比較し、採用候補を絞るための一覧レポートを表示します。
 
 検索パラメータ:
 
@@ -200,6 +203,7 @@
 
 ```text
 /cucumber/market-lab?players=4&iterations=180&seed=20260719
+/cucumber/market-lab/batch?iterations=480&seed=20260719
 ```
 
 このページは本番ルール選択画面ではありません。
