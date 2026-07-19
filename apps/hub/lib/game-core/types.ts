@@ -24,6 +24,8 @@ export interface PlayerState {
   graveyard: number[];
 }
 
+export type RuleSetId = 'classic' | 'market';
+
 export type GamePhase = 'AwaitMove' | 'ResolvingTrick' | 'RoundEnd' | 'GameEnd';
 
 export interface GameState {
@@ -45,6 +47,7 @@ export interface GameState {
 }
 
 export interface GameConfig {
+  ruleSet?: RuleSetId;
   players: number;
   turnSeconds: number | null;
   maxCucumbers: number;

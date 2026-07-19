@@ -1,6 +1,7 @@
 // ゲームコアのエクスポート
 
 export * from './engine';
+export * from './market';
 export * from './rng';
 export * from './rules';
 export * from './serialize';
