@@ -13,6 +13,7 @@ import {
   takeMarketCard,
 } from '../market';
 import { SeededRng } from '../rng';
+import { initializeCardCounts } from '../rules';
 import type { GameConfig, GameState } from '../types';
 
 const config: GameConfig = {
@@ -43,7 +44,7 @@ function createMarketBaseState(): GameState {
     isGameOver: false,
     gameOverPlayers: [],
     remainingCards: [2, 5, 9, 11, 15, 1, 14, 7],
-    cardCounts: [],
+    cardCounts: initializeCardCounts(),
     phase: 'AwaitMove',
     isFinalTrick: false,
   };
@@ -190,6 +191,9 @@ describe('market completion handoff', () => {
     expect(result.gameState.players[1].hand).toEqual([2, 4, 5, 6, 7, 8, 9]);
     expect(result.gameState.players[2].hand).toEqual([1, 3, 5, 10, 11, 12, 14]);
     expect(result.gameState.players[3].hand).toEqual([1, 3, 5, 6, 8, 9, 13]);
+    expect(result.gameState.cardCounts[11]).toBe(5);
+    expect(result.gameState.cardCounts[6]).toBe(6);
+    expect(result.gameState.cardCounts[1]).toBe(7);
     expect(source.players[0].hand).toEqual([4, 5, 7, 8, 12, 13, 15]);
   });
 

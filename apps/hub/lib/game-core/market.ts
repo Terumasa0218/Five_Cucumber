@@ -1,4 +1,5 @@
 import type { GameState } from './types';
+import { updateCardCounts } from './rules';
 
 export type MarketPhase = 'Bidding' | 'Choosing' | 'Complete';
 export type MarketExchangeOrder = 'high-card-first';
@@ -215,6 +216,8 @@ export function applyCompletedMarketToGameState(
     return { success: false, gameState, message: 'Market player count does not match game state' };
   }
 
+  const removedCards = [...marketState.excludedCards, ...marketState.market];
+
   return {
     success: true,
     gameState: {
@@ -229,6 +232,10 @@ export function applyCompletedMarketToGameState(
       trickCards: [],
       actionCount: 0,
       remainingCards: [...marketState.remainingCards],
+      cardCounts:
+        gameState.cardCounts.length > 0
+          ? updateCardCounts(gameState.cardCounts, removedCards)
+          : [...gameState.cardCounts],
       phase: 'AwaitMove',
     },
   };
