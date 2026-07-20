@@ -5,7 +5,7 @@ import { Canvas, ThreeEvent, useFrame, useLoader, useThree } from '@react-three/
 import { Suspense, useLayoutEffect, useMemo, useRef } from 'react';
 import { Shape, TextureLoader, Vector3 } from 'three';
 import type { Group } from 'three';
-import type { GameState, Move } from '@/lib/game-core';
+import type { GameState, MarketState, Move } from '@/lib/game-core';
 import { battleV2Assets, type BattleV2AssetSlot } from '@/lib/battle-v2/assets';
 import {
   animationConfig,
@@ -40,6 +40,24 @@ export type BattleV2MovingCard = {
 };
 
 type CardVisualStatus = 'normal' | 'playable' | 'discard' | 'disabled';
+
+export type BattleV2MarketStage =
+  | 'select'
+  | 'submit'
+  | 'reveal'
+  | 'order'
+  | 'choose'
+  | 'complete';
+
+export type BattleV2MarketView = {
+  state: MarketState;
+  stage: BattleV2MarketStage;
+  selectedBidId?: string | null;
+  currentPlayer?: number | null;
+  canTakeCard?: boolean;
+  onSelectBid?: (card: BattleV2CardView) => void;
+  onTakeCard?: (card: number) => void;
+};
 
 export function toBattleV2CardViews(hand: number[]): BattleV2CardView[] {
   return hand.map((value, index) => ({ id: `${value}-${index}`, value }));
@@ -81,6 +99,38 @@ function withY(position: Vec3, y: number): Vec3 {
 function clampViewerIndex(viewerIndex: number, players: number): number {
   if (!Number.isFinite(viewerIndex)) return 0;
   return Math.min(Math.max(0, Math.round(viewerIndex)), Math.max(0, players - 1));
+}
+
+function marketStageAtLeast(stage: BattleV2MarketStage, target: BattleV2MarketStage): boolean {
+  const order: BattleV2MarketStage[] = [
+    'select',
+    'submit',
+    'reveal',
+    'order',
+    'choose',
+    'complete',
+  ];
+  return order.indexOf(stage) >= order.indexOf(target);
+}
+
+function removeOneCardValue(hand: number[], card: number): number[] {
+  const next = [...hand];
+  const index = next.indexOf(card);
+  if (index >= 0) {
+    next.splice(index, 1);
+  }
+  return next;
+}
+
+function getMarketDisplayHands(market: BattleV2MarketView): number[][] {
+  if (market.state.phase !== 'Bidding' || !marketStageAtLeast(market.stage, 'submit')) {
+    return market.state.hands;
+  }
+
+  return market.state.hands.map((hand, player) => {
+    const bid = market.state.bids[player];
+    return bid && bid.card !== null ? removeOneCardValue(hand, bid.card) : hand;
+  });
 }
 
 function getLogicalIndex(visualIndex: number, viewerIndex: number, players: number): number {
@@ -395,6 +445,310 @@ function AnimatedCard({
   );
 }
 
+function getMarketStageTitle(stage: BattleV2MarketStage): string {
+  if (stage === 'select') return '交換カードを選択';
+  if (stage === 'submit') return '伏せ札を提出';
+  if (stage === 'reveal') return '一斉公開';
+  if (stage === 'order') return '交換順';
+  if (stage === 'choose') return '市場から取得';
+  return 'ゲーム開始';
+}
+
+function MarketStageTitle3D({ stage }: { stage: BattleV2MarketStage }) {
+  return (
+    <group position={[0, tableCardY + 0.06, -1.48]} rotation={screenFacingRotation}>
+      <mesh renderOrder={50} position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[2.6, 0.42]} />
+        <meshBasicMaterial
+          color="#111a13"
+          transparent
+          opacity={0.86}
+          depthTest={false}
+          depthWrite={false}
+        />
+      </mesh>
+      <Suspense fallback={null}>
+        <Text
+          renderOrder={51}
+          position={[0, 0.052, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.19}
+          color="#f7edcd"
+          anchorX="center"
+          anchorY="middle"
+          material-depthTest={false}
+          material-depthWrite={false}
+        >
+          {getMarketStageTitle(stage)}
+        </Text>
+      </Suspense>
+    </group>
+  );
+}
+
+function MarketCardRow3D({
+  cards,
+  canTake,
+  onTakeCard,
+}: {
+  cards: number[];
+  canTake: boolean;
+  onTakeCard?: (card: number) => void;
+}) {
+  const spacing = cards.length <= 1 ? 0 : Math.min(0.84, 4.8 / Math.max(1, cards.length - 1));
+  const mid = (cards.length - 1) / 2;
+
+  return (
+    <group position={[0, tableCardY + 0.036, -0.62]} scale={1.06}>
+      {cards.map((value, index) => (
+        <group
+          key={`market-card-${value}-${index}`}
+          position={[(index - mid) * spacing, canTake ? 0.025 : 0, 0]}
+          rotation={[0, (index - mid) * 0.025, 0]}
+        >
+          <Card3D
+            value={value}
+            faceUp
+            status={canTake ? 'playable' : 'normal'}
+            onSelect={canTake ? () => onTakeCard?.(value) : undefined}
+          />
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function MarketPassMarker({ label = 'PASS' }: { label?: string }) {
+  return (
+    <group>
+      <mesh position={[0, cardGeometry.thickness + 0.016, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[cardGeometry.width * 1.1, cardGeometry.height * 0.48]} />
+        <meshBasicMaterial color="#1c261d" transparent opacity={0.92} depthWrite={false} />
+      </mesh>
+      <Suspense fallback={null}>
+        <Text
+          position={[0, cardGeometry.thickness + 0.025, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.12}
+          color="#c9bc8c"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {label}
+        </Text>
+      </Suspense>
+    </group>
+  );
+}
+
+function MarketOrderLabel({ rank }: { rank: number }) {
+  return (
+    <group position={[0, cardGeometry.thickness + 0.034, -0.6]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.58, 0.22]} />
+        <meshBasicMaterial color="#f1c84b" transparent opacity={0.9} depthWrite={false} />
+      </mesh>
+      <Suspense fallback={null}>
+        <Text
+          position={[0, 0.016, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          fontSize={0.105}
+          color="#15130c"
+          anchorX="center"
+          anchorY="middle"
+          material-depthWrite={false}
+        >
+          {`${rank}番`}
+        </Text>
+      </Suspense>
+    </group>
+  );
+}
+
+function MarketSubmittedCard({
+  value,
+  faceUp,
+  targetPosition,
+  targetRotation,
+  scale,
+  animateFrom,
+  orderRank,
+}: {
+  value: number | null;
+  faceUp: boolean;
+  targetPosition: Vec3;
+  targetRotation: Euler3;
+  scale: number;
+  animateFrom?: CardPose | null;
+  orderRank?: number | null;
+}) {
+  const groupRef = useRef<Group>(null);
+  const elapsedRef = useRef(0);
+  const completedRef = useRef(false);
+
+  useLayoutEffect(() => {
+    elapsedRef.current = 0;
+    completedRef.current = false;
+    if (!groupRef.current) return;
+    const startPosition = animateFrom?.position ?? targetPosition;
+    const startRotation = animateFrom?.rotation ?? targetRotation;
+    groupRef.current.position.set(...startPosition);
+    groupRef.current.rotation.set(...startRotation);
+  }, [animateFrom, targetPosition, targetRotation]);
+
+  useFrame((_, delta) => {
+    if (!groupRef.current || completedRef.current || !animateFrom) return;
+    elapsedRef.current += delta * 1000;
+    const t = Math.min(1, elapsedRef.current / 560);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const position = mixVec3(animateFrom.position, targetPosition, eased);
+    const rotation = mixEuler(animateFrom.rotation, targetRotation, eased);
+    groupRef.current.position.set(...position);
+    groupRef.current.rotation.set(...rotation);
+
+    if (t >= 1) {
+      completedRef.current = true;
+    }
+  });
+
+  return (
+    <group ref={groupRef} scale={scale}>
+      {value === null ? <MarketPassMarker /> : <Card3D value={value} faceUp={faceUp} />}
+      {orderRank ? <MarketOrderLabel rank={orderRank} /> : null}
+    </group>
+  );
+}
+
+function getMarketBidPose(seatPosition: Vec3, isSelf: boolean): Vec3 {
+  if (isSelf) {
+    return [seatPosition[0] * 0.34, tableCardY + 0.055, 1.12];
+  }
+  return [seatPosition[0] * 0.7, tableCardY + 0.055, seatPosition[2] * 0.64];
+}
+
+function getMarketBidAnimateFrom(seatPosition: Vec3, isSelf: boolean): CardPose {
+  return {
+    position: isSelf
+      ? [playerHandOrigin[0], playerHandOrigin[1], playerHandOrigin[2] - 0.18]
+      : [seatPosition[0], tableCardY + 0.1, seatPosition[2]],
+    rotation: isSelf ? screenFacingRotation : [0, 0, 0],
+    scale: 1,
+  };
+}
+
+function MarketBids3D({
+  market,
+  layout,
+  viewerIndex,
+  playerCount,
+}: {
+  market: BattleV2MarketView;
+  layout: typeof seatLayouts[2];
+  viewerIndex: number;
+  playerCount: number;
+}) {
+  const shouldShowSubmitted = marketStageAtLeast(market.stage, 'submit');
+  const faceUp = marketStageAtLeast(market.stage, 'reveal');
+  const showOrder = marketStageAtLeast(market.stage, 'order');
+
+  if (!shouldShowSubmitted) return null;
+
+  return (
+    <group>
+      {market.state.bids.map((bid, logicalIndex) => {
+        if (!bid) return null;
+        const visualIndex = getVisualIndex(logicalIndex, viewerIndex, playerCount);
+        const seat = layout[visualIndex];
+        if (!seat) return null;
+        const isSelf = logicalIndex === viewerIndex;
+        const targetPosition = getMarketBidPose(seat.position, isSelf);
+        const orderIndex = market.state.exchangeOrder.findIndex(
+          turn => turn.player === logicalIndex
+        );
+        const isCurrent = market.stage === 'choose' && market.currentPlayer === logicalIndex;
+        const scale = isSelf ? 0.94 : 0.76;
+
+        return (
+          <group key={`market-bid-${logicalIndex}`}>
+            <MarketSubmittedCard
+              value={bid.card}
+              faceUp={faceUp}
+              targetPosition={targetPosition}
+              targetRotation={seat.rotation}
+              scale={isCurrent ? scale * 1.08 : scale}
+              animateFrom={
+                market.stage === 'submit' ? getMarketBidAnimateFrom(seat.position, isSelf) : null
+              }
+              orderRank={showOrder && orderIndex >= 0 ? orderIndex + 1 : null}
+            />
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
+function MarketPlayerHand({
+  cards,
+  selectedCardId,
+  canSelect,
+  onSelectCard,
+}: {
+  cards: BattleV2CardView[];
+  selectedCardId: string | null;
+  canSelect: boolean;
+  onSelectCard?: (card: BattleV2CardView) => void;
+}) {
+  return (
+    <group position={playerHandOrigin} rotation={screenFacingRotation}>
+      {cards.map((card, index) => {
+        const pose = getHandCardPose(index, cards.length, selectedCardId === card.id);
+        const status: CardVisualStatus = canSelect ? 'playable' : 'normal';
+        return (
+          <PosedCard
+            key={card.id}
+            pose={pose}
+            card={card}
+            faceUp
+            selected={selectedCardId === card.id}
+            status={status}
+            onSelect={canSelect ? () => onSelectCard?.(card) : undefined}
+          />
+        );
+      })}
+    </group>
+  );
+}
+
+function MarketScene3D({
+  market,
+  layout,
+  viewerIndex,
+  playerCount,
+}: {
+  market: BattleV2MarketView;
+  layout: typeof seatLayouts[2];
+  viewerIndex: number;
+  playerCount: number;
+}) {
+  return (
+    <group>
+      <MarketStageTitle3D stage={market.stage} />
+      <MarketCardRow3D
+        cards={market.state.market}
+        canTake={market.stage === 'choose' && !!market.canTakeCard}
+        onTakeCard={market.onTakeCard}
+      />
+      <MarketBids3D
+        market={market}
+        layout={layout}
+        viewerIndex={viewerIndex}
+        playerCount={playerCount}
+      />
+    </group>
+  );
+}
+
 function Table3D() {
   return (
     <group>
@@ -676,6 +1030,7 @@ function BattleSceneContents({
   legalMoves,
   showdownMode,
   trickWinner,
+  market,
   onSelectCard,
   onMoveComplete,
 }: {
@@ -689,6 +1044,7 @@ function BattleSceneContents({
   legalMoves: number[];
   showdownMode: boolean;
   trickWinner: number | null;
+  market: BattleV2MarketView | null;
   onSelectCard: (card: BattleV2CardView) => void;
   onMoveComplete: () => void;
 }) {
@@ -696,7 +1052,10 @@ function BattleSceneContents({
   const layout = seatLayouts[players];
   const logicalPlayerCount = Math.max(1, state.players.length);
   const safeViewerIndex = clampViewerIndex(viewerIndex, logicalPlayerCount);
-  const playerCards = toBattleV2CardViews(state.players[safeViewerIndex]?.hand ?? []);
+  const marketDisplayHands = market ? getMarketDisplayHands(market) : null;
+  const playerCards = toBattleV2CardViews(
+    marketDisplayHands?.[safeViewerIndex] ?? state.players[safeViewerIndex]?.hand ?? []
+  );
   const isPlayerTurn = state.currentPlayer === safeViewerIndex && state.phase === 'AwaitMove';
 
   return (
@@ -718,20 +1077,30 @@ function BattleSceneContents({
       >
         <Table3D />
         <Suspense fallback={null}>
-          <CenterPiles
-            playedCards={playedCards}
-            graveyard={state.sharedGraveyard}
-            fieldCard={state.fieldCard}
-            hiddenPlayedMoveKey={hiddenPlayedMoveKey}
-            showdownMode={showdownMode}
-            layout={layout}
-            viewerIndex={safeViewerIndex}
-            trickWinner={trickWinner}
-          />
+          {market ? (
+            <MarketScene3D
+              market={market}
+              layout={layout}
+              viewerIndex={safeViewerIndex}
+              playerCount={logicalPlayerCount}
+            />
+          ) : (
+            <CenterPiles
+              playedCards={playedCards}
+              graveyard={state.sharedGraveyard}
+              fieldCard={state.fieldCard}
+              hiddenPlayedMoveKey={hiddenPlayedMoveKey}
+              showdownMode={showdownMode}
+              layout={layout}
+              viewerIndex={safeViewerIndex}
+              trickWinner={trickWinner}
+            />
+          )}
 
           {layout.map((seat, visualIndex) => {
             const logicalIndex = getLogicalIndex(visualIndex, safeViewerIndex, logicalPlayerCount);
             const player = state.players[logicalIndex];
+            const marketHand = marketDisplayHands?.[logicalIndex];
             if (!player) return null;
             const isSelf = logicalIndex === safeViewerIndex;
             const opponentHandPosition = isSelf
@@ -753,13 +1122,18 @@ function BattleSceneContents({
                   name={names[logicalIndex] ?? (isSelf ? 'あなた' : `P${logicalIndex + 1}`)}
                   pose={namePose}
                   cucumbers={player.cucumbers}
-                  cards={player.hand.length}
-                  active={state.phase === 'AwaitMove' && state.currentPlayer === logicalIndex}
+                  cards={marketHand?.length ?? player.hand.length}
+                  active={
+                    market
+                      ? (market.stage === 'select' && isSelf) ||
+                        (market.stage === 'choose' && market.currentPlayer === logicalIndex)
+                      : state.phase === 'AwaitMove' && state.currentPlayer === logicalIndex
+                  }
                   compact={!isSelf}
                 />
                 {!isSelf ? (
                   <OpponentHand
-                    cards={player.hand}
+                    cards={marketHand ?? player.hand}
                     position={opponentHandPosition}
                     rotation={seat.rotation}
                   />
@@ -768,15 +1142,24 @@ function BattleSceneContents({
             );
           })}
 
-          <PlayerHand
-            cards={playerCards}
-            selectedCardId={selectedCardId}
-            movingCardId={movingCard?.id ?? null}
-            legalMoves={legalMoves}
-            isPlayerTurn={isPlayerTurn}
-            fieldCard={state.fieldCard}
-            onSelectCard={onSelectCard}
-          />
+          {market ? (
+            <MarketPlayerHand
+              cards={playerCards}
+              selectedCardId={market.selectedBidId ?? null}
+              canSelect={market.stage === 'select' && market.state.phase === 'Bidding'}
+              onSelectCard={market.onSelectBid}
+            />
+          ) : (
+            <PlayerHand
+              cards={playerCards}
+              selectedCardId={selectedCardId}
+              movingCardId={movingCard?.id ?? null}
+              legalMoves={legalMoves}
+              isPlayerTurn={isPlayerTurn}
+              fieldCard={state.fieldCard}
+              onSelectCard={onSelectCard}
+            />
+          )}
 
           {movingCard ? <AnimatedCard movingCard={movingCard} onComplete={onMoveComplete} /> : null}
         </Suspense>
@@ -796,6 +1179,7 @@ export type BattleV2SceneProps = {
   legalMoves?: number[];
   showdownMode?: boolean;
   trickWinner?: number | null;
+  market?: BattleV2MarketView | null;
   onSelectCard: (card: BattleV2CardView) => void;
   onMoveComplete?: () => void;
 };
@@ -811,6 +1195,7 @@ export function BattleV2Scene({
   legalMoves = [],
   showdownMode = false,
   trickWinner = null,
+  market = null,
   onSelectCard,
   onMoveComplete = () => {},
 }: BattleV2SceneProps) {
@@ -841,6 +1226,7 @@ export function BattleV2Scene({
         legalMoves={legalMoves}
         showdownMode={showdownMode}
         trickWinner={trickWinner}
+        market={market}
         onSelectCard={onSelectCard}
         onMoveComplete={onMoveComplete}
       />

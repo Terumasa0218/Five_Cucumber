@@ -3,7 +3,11 @@
 import BattleLayout from '@/components/BattleLayout';
 import BattleV2Scene from '@/components/battle-v2/LazyBattleV2Scene';
 import { BattleHud, EllipseTable, Timer } from '@/components/ui';
-import type { BattleV2CardView, BattleV2MovingCard } from '@/components/battle-v2/BattleV2Scene';
+import type {
+  BattleV2CardView,
+  BattleV2MarketStage,
+  BattleV2MovingCard,
+} from '@/components/battle-v2/BattleV2Scene';
 import { HumanController } from '@/lib/controllers/human';
 import { delay, runAnimation } from '@/lib/animQueue';
 import {
@@ -73,6 +77,7 @@ type MarketUiSession = {
 type SelectedMarketBid = {
   card: number;
   index: number;
+  id: string;
 };
 
 function isMarketRuleSet(ruleSet?: RuleSetId): boolean {
@@ -87,6 +92,30 @@ function getMarketStep(phase: MarketState['phase']): number {
   if (phase === 'Bidding') return 1;
   if (phase === 'Choosing') return 3;
   return 4;
+}
+
+function getMarketSceneStep(stage: BattleV2MarketStage): number {
+  if (stage === 'select') return 1;
+  if (stage === 'submit') return 2;
+  if (stage === 'reveal') return 3;
+  if (stage === 'order') return 4;
+  return 5;
+}
+
+function marketStageAtLeastForPage(
+  stage: BattleV2MarketStage,
+  target: BattleV2MarketStage
+): boolean {
+  return getMarketSceneStep(stage) >= getMarketSceneStep(target);
+}
+
+function getMarketSceneTitle(stage: BattleV2MarketStage): string {
+  if (stage === 'select') return '交換するカードを選ぶ';
+  if (stage === 'submit') return '伏せて提出';
+  if (stage === 'reveal') return '一斉公開';
+  if (stage === 'order') return '交換順を確認';
+  if (stage === 'choose') return '市場から取得';
+  return 'ゲーム開始';
 }
 
 function getMarketPhaseLabel(phase: MarketState['phase']): string {
@@ -209,6 +238,7 @@ function CpuPlayContent() {
   const [finalTrickStatusText, setFinalTrickStatusText] = useState<string | null>(null);
   const [overlayText, setOverlayText] = useState<string | null>(null);
   const [marketSession, setMarketSession] = useState<MarketUiSession | null>(null);
+  const [marketSceneStage, setMarketSceneStage] = useState<BattleV2MarketStage>('select');
   const [selectedMarketBid, setSelectedMarketBid] = useState<SelectedMarketBid | null>(null);
   const [finalTrickStarted, setFinalTrickStarted] = useState(false);
   const [isShowdownMode, setIsShowdownMode] = useState(false);
@@ -350,62 +380,85 @@ function CpuPlayContent() {
     []
   );
 
-  const autoAdvanceMarket = useCallback(
+  const advanceMarketChoices = useCallback(
     (
       marketState: MarketState,
       bidDecisions: MarketBidDecision[],
       takeDecisions: MarketTakeDecision[]
     ) => {
       let nextState = marketState;
-      const nextTakes = [...takeDecisions];
+      let nextTakes = [...takeDecisions];
 
-      while (nextState.phase === 'Choosing') {
+      const updateSession = (state: MarketState, message: string) => {
+        setMarketSession(prev =>
+          prev
+            ? { ...prev, state, bidDecisions, takeDecisions: nextTakes, message }
+            : { state, bidDecisions, takeDecisions: nextTakes, message }
+        );
+      };
+
+      const runNext = () => {
+        if (nextState.phase === 'Complete') {
+          setMarketSceneStage('complete');
+          finishMarketPhase(nextState, nextTakes);
+          return;
+        }
+
         const currentPlayer = getCurrentMarketPlayer(nextState);
-        if (currentPlayer === null || currentPlayer === 0) break;
+        if (currentPlayer === null) {
+          setMarketSceneStage('complete');
+          finishMarketPhase(nextState, nextTakes);
+          return;
+        }
 
-        const turn = nextState.exchangeOrder[nextState.currentExchangeIndex];
-        if (!turn) break;
+        setMarketSceneStage('choose');
+        updateSession(
+          nextState,
+          currentPlayer === 0
+            ? 'あなたの取得順です。市場から1枚選んでください。'
+            : `${getPlayerLabel(currentPlayer)}が市場カードを選んでいます。`
+        );
 
-        const decision = chooseMarketCardForHand(nextState.hands[currentPlayer], nextState.market);
-        if (!decision) break;
+        if (currentPlayer === 0) return;
 
-        const take = takeMarketCard(nextState, currentPlayer, decision.card);
-        if (!take.success) break;
+        const thinkTimer = setTimeout(() => {
+          const turn = nextState.exchangeOrder[nextState.currentExchangeIndex];
+          if (!turn) return;
 
-        nextTakes.push({
-          ...decision,
-          player: currentPlayer,
-          bidCard: turn.bidCard,
-        });
-        nextState = take.state;
-      }
+          const decision = chooseMarketCardForHand(nextState.hands[currentPlayer], nextState.market);
+          if (!decision) {
+            setMarketSceneStage('complete');
+            finishMarketPhase(nextState, nextTakes);
+            return;
+          }
 
-      setMarketSession(prev =>
-        prev
-          ? {
-              ...prev,
-              state: nextState,
-              bidDecisions,
-              takeDecisions: nextTakes,
-              message:
-                nextState.phase === 'Choosing'
-                  ? 'あなたの取得順です。市場から1枚選んでください。'
-                  : '市場交換を整理しています。',
-            }
-          : {
-              state: nextState,
-              bidDecisions,
-              takeDecisions: nextTakes,
-              message:
-                nextState.phase === 'Choosing'
-                  ? 'あなたの取得順です。市場から1枚選んでください。'
-                  : '市場交換を整理しています。',
-            }
-      );
+          const take = takeMarketCard(nextState, currentPlayer, decision.card);
+          if (!take.success) {
+            updateSession(nextState, take.message ?? '市場カードの取得に失敗しました。');
+            return;
+          }
 
-      if (nextState.phase === 'Complete') {
-        finishMarketPhase(nextState, nextTakes);
-      }
+          nextTakes = [
+            ...nextTakes,
+            {
+              ...decision,
+              player: currentPlayer,
+              bidCard: turn.bidCard,
+            },
+          ];
+          nextState = take.state;
+          updateSession(
+            nextState,
+            `${getPlayerLabel(currentPlayer)}が${decision.card}を取得しました。`
+          );
+
+          const nextTimer = setTimeout(runNext, 680);
+          finalTrickTimeoutsRef.current.push(nextTimer);
+        }, 820);
+        finalTrickTimeoutsRef.current.push(thinkTimer);
+      };
+
+      runNext();
     },
     [finishMarketPhase]
   );
@@ -425,12 +478,14 @@ function CpuPlayContent() {
           takeDecisions: [],
           message: `第${state.currentRound}回戦の仕込み市場です。`,
         });
+        setMarketSceneStage('select');
         setSelectedMarketBid(null);
         setOverlayText(null);
         setIsAnimating(true);
       } catch (error) {
         console.error('[Market] Failed to start market phase:', error);
         setMarketSession(null);
+        setMarketSceneStage('select');
         setSelectedMarketBid(null);
         setIsAnimating(false);
         if (gameRef.current) {
@@ -448,7 +503,13 @@ function CpuPlayContent() {
 
   const handleSubmitMarketBid = useCallback(
     (card: number | null) => {
-      if (!marketSession || marketSession.state.phase !== 'Bidding') return;
+      if (
+        !marketSession ||
+        marketSession.state.phase !== 'Bidding' ||
+        marketSceneStage !== 'select'
+      ) {
+        return;
+      }
 
       const humanBid = submitMarketBid(marketSession.state, 0, card);
       if (!humanBid.success) {
@@ -476,27 +537,69 @@ function CpuPlayContent() {
         nextState = result.state;
       }
 
-      const revealed = revealMarketBids(nextState);
-      if (!revealed.success) {
-        setMarketSession(prev =>
-          prev ? { ...prev, message: revealed.message ?? '入札公開に失敗しました。' } : prev
-        );
-        return;
-      }
-
+      setMarketSceneStage('submit');
       setSelectedMarketBid(null);
       setMarketSession({
-        state: revealed.state,
+        state: nextState,
         bidDecisions,
         takeDecisions: [],
         message:
-          revealed.state.phase === 'Choosing'
-            ? '入札を公開しました。大きいカード順に市場から取得します。'
-            : '全員が交換しませんでした。',
+          card === null
+            ? '交換を見送ります。全員が伏せ札を提出中です。'
+            : `${card}を伏せて提出しました。`,
       });
-      autoAdvanceMarket(revealed.state, bidDecisions, []);
+
+      const revealTimer = setTimeout(() => {
+        const revealed = revealMarketBids(nextState);
+        if (!revealed.success) {
+          setMarketSceneStage('select');
+          setMarketSession(prev =>
+            prev ? { ...prev, message: revealed.message ?? '入札公開に失敗しました。' } : prev
+          );
+          return;
+        }
+
+        setMarketSceneStage('reveal');
+        setMarketSession({
+          state: revealed.state,
+          bidDecisions,
+          takeDecisions: [],
+          message:
+            revealed.state.phase === 'Choosing'
+              ? '全員の提出カードを公開しました。'
+              : '全員が交換を見送りました。',
+        });
+
+        const orderTimer = setTimeout(() => {
+          setMarketSceneStage('order');
+          setMarketSession(prev =>
+            prev
+              ? {
+                  ...prev,
+                  state: revealed.state,
+                  message:
+                    revealed.state.exchangeOrder.length > 0
+                      ? '大きい提出カード順に市場から取得します。'
+                      : '交換するプレイヤーがいませんでした。',
+                }
+              : prev
+          );
+
+          const chooseTimer = setTimeout(() => {
+            if (revealed.state.phase === 'Complete') {
+              setMarketSceneStage('complete');
+              finishMarketPhase(revealed.state, []);
+              return;
+            }
+            advanceMarketChoices(revealed.state, bidDecisions, []);
+          }, 980);
+          finalTrickTimeoutsRef.current.push(chooseTimer);
+        }, 1150);
+        finalTrickTimeoutsRef.current.push(orderTimer);
+      }, 740);
+      finalTrickTimeoutsRef.current.push(revealTimer);
     },
-    [autoAdvanceMarket, marketSession]
+    [advanceMarketChoices, finishMarketPhase, marketSceneStage, marketSession]
   );
 
   const handleTakeMarketCard = useCallback(
@@ -531,9 +634,33 @@ function CpuPlayContent() {
         takeDecisions: nextTakes,
         message: `${getPlayerLabel(0)}が${card}を取得しました。`,
       });
-      autoAdvanceMarket(result.state, marketSession.bidDecisions, nextTakes);
+      const nextTimer = setTimeout(() => {
+        advanceMarketChoices(result.state, marketSession.bidDecisions, nextTakes);
+      }, 620);
+      finalTrickTimeoutsRef.current.push(nextTimer);
     },
-    [autoAdvanceMarket, marketSession]
+    [advanceMarketChoices, marketSession]
+  );
+
+  const handleSelectMarketBidCard = useCallback(
+    (card: BattleV2CardView) => {
+      if (
+        !marketSession ||
+        marketSession.state.phase !== 'Bidding' ||
+        marketSceneStage !== 'select'
+      ) {
+        return;
+      }
+
+      const indexText = card.id.split('-').at(-1);
+      const index = indexText ? Number(indexText) : 0;
+      setSelectedMarketBid({
+        card: card.value,
+        index: Number.isFinite(index) ? index : 0,
+        id: card.id,
+      });
+    },
+    [marketSceneStage, marketSession]
   );
 
   const startGame = useCallback(async () => {
@@ -549,6 +676,7 @@ function CpuPlayContent() {
       resetRoundVisualState();
       setOverlayText(null);
       setMarketSession(null);
+      setMarketSceneStage('select');
       setSelectedMarketBid(null);
 
       debugGameLog('[Game] New game started with', config.players, 'players');
@@ -661,6 +789,7 @@ function CpuPlayContent() {
               setFinalTrickStatusText(null);
               setOverlayText(null);
               setMarketSession(null);
+              setMarketSceneStage('select');
               setSelectedMarketBid(null);
               setFinalTrickStarted(false);
               setIsShowdownMode(false);
@@ -766,6 +895,7 @@ function CpuPlayContent() {
       }
       resetRoundVisualState();
       setMarketSession(null);
+      setMarketSceneStage('select');
       setSelectedMarketBid(null);
 
       if (isMarketRuleSet(gameRef.current?.config.ruleSet)) {
@@ -1324,12 +1454,28 @@ function CpuPlayContent() {
   const humanBid = marketSession?.state.bids[0]?.card ?? null;
   const humanTake = marketSession?.takeDecisions.find(decision => decision.player === 0);
   const marketStep = marketSession ? getMarketStep(marketSession.state.phase) : 0;
+  const marketSceneStep = marketSession ? getMarketSceneStep(marketSceneStage) : 0;
   const selectedMarketBidCard = selectedMarketBid?.card ?? null;
+  const selectedMarketBidId = selectedMarketBid?.id ?? null;
   const currentMarketTurn = marketSession
     ? marketSession.state.exchangeOrder[marketSession.state.currentExchangeIndex]
     : null;
   const canTakeMarketCard =
-    marketSession?.state.phase === 'Choosing' && currentMarketPlayer === 0;
+    marketSession?.state.phase === 'Choosing' &&
+    marketSceneStage === 'choose' &&
+    currentMarketPlayer === 0;
+  const battleV2Market =
+    marketSession && useBattleV2
+      ? {
+          state: marketSession.state,
+          stage: marketSceneStage,
+          selectedBidId: selectedMarketBidId,
+          currentPlayer: currentMarketPlayer,
+          canTakeCard: canTakeMarketCard,
+          onSelectBid: handleSelectMarketBidCard,
+          onTakeCard: handleTakeMarketCard,
+        }
+      : null;
 
   const timer = (
     <Timer
@@ -1393,6 +1539,7 @@ function CpuPlayContent() {
             legalMoves={battleV2LegalMoves}
             showdownMode={isShowdownMode}
             trickWinner={trickWinner}
+            market={battleV2Market}
             onMoveComplete={() => {
               setBattleV2MovingCard(null);
               setBattleV2HiddenMoveKey(null);
@@ -1437,7 +1584,93 @@ function CpuPlayContent() {
         />
       )}
 
-      {marketSession ? (
+      {marketSession && useBattleV2 ? (
+        <section className="market-v2-control" aria-label="仕込み市場">
+          <div className="market-v2-control__main">
+            <div className="market-v2-control__header">
+              <div>
+                <p>仕込み市場</p>
+                <h2>{getMarketSceneTitle(marketSceneStage)}</h2>
+              </div>
+              <strong>参加者+2枚</strong>
+            </div>
+            <ol className="market-v2-steps" aria-label="市場フェーズの進行">
+              {['選択', '提出', '公開', '順番', '開始'].map((label, index) => {
+                const step = index + 1;
+                return (
+                  <li
+                    key={label}
+                    className={[
+                      marketSceneStep === step ? 'is-current' : '',
+                      marketSceneStep > step ? 'is-done' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    <span>{step}</span>
+                    {label}
+                  </li>
+                );
+              })}
+            </ol>
+            <p className="market-v2-control__message" role="status" aria-live="polite">
+              {marketSession.message}
+            </p>
+          </div>
+
+          <div className="market-v2-control__actions">
+            {marketSession.state.phase === 'Bidding' && marketSceneStage === 'select' ? (
+              <>
+                <button
+                  type="button"
+                  className="market-v2-button market-v2-button--secondary"
+                  onClick={() => handleSubmitMarketBid(null)}
+                >
+                  交換しない
+                </button>
+                <button
+                  type="button"
+                  className="market-v2-button"
+                  disabled={selectedMarketBidCard === null}
+                  onClick={() => handleSubmitMarketBid(selectedMarketBidCard)}
+                >
+                  {selectedMarketBidCard === null
+                    ? '手札から1枚選択'
+                    : `${selectedMarketBidCard}を伏せる`}
+                </button>
+              </>
+            ) : marketSession.state.phase === 'Choosing' ? (
+              <div className="market-v2-control__prompt">
+                {canTakeMarketCard
+                  ? '中央の市場札を1枚選択'
+                  : currentMarketPlayer !== null
+                    ? `${getPlayerLabel(currentMarketPlayer)}の取得中`
+                    : '取得順を確認中'}
+              </div>
+            ) : (
+              <div className="market-v2-control__prompt">
+                {marketSceneStage === 'complete' ? '通常対局へ移行します' : '進行中'}
+              </div>
+            )}
+          </div>
+
+          {marketSession.state.exchangeOrder.length > 0 &&
+          marketStageAtLeastForPage(marketSceneStage, 'order') ? (
+            <div className="market-v2-order" aria-label="交換順">
+              {marketSession.state.exchangeOrder.map((turn, index) => (
+                <span
+                  key={`market-order-${turn.player}-${turn.bidCard}`}
+                  className={currentMarketPlayer === turn.player ? 'is-current' : ''}
+                >
+                  {index + 1}. {getPlayerLabel(turn.player)} / {turn.bidCard}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {marketSession && !useBattleV2 ? (
         <section className="market-phase-overlay" aria-label="仕込み市場">
           <div className="market-phase-panel">
             <div className="market-phase-panel__header">
@@ -1540,7 +1773,9 @@ function CpuPlayContent() {
                             .filter(Boolean)
                             .join(' ')}
                           disabled={marketSession.state.phase !== 'Bidding'}
-                          onClick={() => setSelectedMarketBid({ card, index })}
+                          onClick={() =>
+                            setSelectedMarketBid({ card, index, id: `${card}-${index}` })
+                          }
                         >
                           <span>{card}</span>
                           <small>{marketSession.state.phase === 'Bidding' ? 'bid' : 'hand'}</small>
