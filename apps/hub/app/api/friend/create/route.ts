@@ -15,7 +15,7 @@ import {
 } from '@/lib/friend-room';
 import { CreateRoomRequest, Room } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/auth';
+import { getAuthFailureBody, getAuthFailureStatus, verifyAuthDetailed } from '@/lib/auth';
 
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
 
@@ -30,8 +30,13 @@ function parseNumberish(value: unknown): number | null {
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const auth = await verifyAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await verifyAuthDetailed(req);
+  if (!auth.ok) {
+    return NextResponse.json(getAuthFailureBody(auth.detail), {
+      status: getAuthFailureStatus(auth.detail.reason),
+      headers: noStore,
+    });
+  }
   try {
     // リクエストボディの取得と検証
     let body: CreateRoomRequest;
@@ -203,7 +208,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 }
 
 export async function GET(req: Request) {
-  const auth = await verifyAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await verifyAuthDetailed(req);
+  if (!auth.ok) {
+    return NextResponse.json(getAuthFailureBody(auth.detail), {
+      status: getAuthFailureStatus(auth.detail.reason),
+      headers: noStore,
+    });
+  }
   return NextResponse.json({ ok: false, message: 'Use POST' }, { status: 405, headers: noStore });
 }

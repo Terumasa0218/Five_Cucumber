@@ -6,15 +6,20 @@ export const revalidate = 0;
 import { kvExpire, kvGetJSON, roomTTL } from '@/lib/kv';
 import { NextResponse } from 'next/server';
 import type { Room } from '@/types/room';
-import { verifyAuth } from '@/lib/auth';
+import { getAuthFailureBody, getAuthFailureStatus, verifyAuthDetailed } from '@/lib/auth';
 import { normalizeRoomId } from '@/lib/friend-room';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
 
 export async function GET(req: Request, { params }: { params: { roomId: string } }) {
-  const auth = await verifyAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await verifyAuthDetailed(req);
+  if (!auth.ok) {
+    return NextResponse.json(getAuthFailureBody(auth.detail), {
+      status: getAuthFailureStatus(auth.detail.reason),
+      headers: noStore,
+    });
+  }
   const id = normalizeRoomId(params.roomId);
   if (id.length !== 6) {
     return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400, headers: noStore });

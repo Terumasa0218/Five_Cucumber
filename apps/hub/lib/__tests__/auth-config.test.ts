@@ -33,6 +33,7 @@ describe('Firebase Admin environment detection', () => {
       hasProjectId: true,
       hasClientEmail: true,
       hasPrivateKey: true,
+      hasUsableCredentials: true,
     });
   });
 
@@ -47,6 +48,7 @@ describe('Firebase Admin environment detection', () => {
       hasProjectId: true,
       hasClientEmail: true,
       hasPrivateKey: true,
+      hasUsableCredentials: true,
     });
   });
 
@@ -56,6 +58,7 @@ describe('Firebase Admin environment detection', () => {
 
     expect(getFirebaseAdminEnvStatus()).toMatchObject({
       hasServiceAccountJson: true,
+      hasUsableCredentials: true,
     });
   });
 });

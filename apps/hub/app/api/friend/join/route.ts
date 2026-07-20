@@ -8,7 +8,7 @@ import { realtime } from '@/lib/realtime';
 import { joinRoomSnapshot, normalizeNickname, normalizeRoomId } from '@/lib/friend-room';
 import { Room, RoomSeat } from '@/types/room';
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/auth';
+import { getAuthFailureBody, getAuthFailureStatus, verifyAuthDetailed } from '@/lib/auth';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
@@ -23,8 +23,13 @@ type JoinRoomPayload = {
 const isOccupiedSeat = (seat: RoomSeat): seat is Exclude<RoomSeat, null> => seat !== null;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const auth = await verifyAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await verifyAuthDetailed(req);
+  if (!auth.ok) {
+    return NextResponse.json(getAuthFailureBody(auth.detail), {
+      status: getAuthFailureStatus(auth.detail.reason),
+      headers: noStore,
+    });
+  }
 
   try {
     const raw = (await req.json()) as JoinRoomPayload;

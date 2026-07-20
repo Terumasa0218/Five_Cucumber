@@ -9,7 +9,7 @@ import type {
 import { Timer } from '@/components/ui';
 import PageBackground from '@/components/ui/PageBackground';
 import { BACKGROUNDS } from '@/lib/backgrounds';
-import { apiJson, apiRequest } from '@/lib/api';
+import { ApiRequestError, apiJson, apiRequest } from '@/lib/api';
 import {
   clampPlayers,
   getHandCardPose,
@@ -22,6 +22,7 @@ import {
   type Euler3,
   type Vec3,
 } from '@/lib/battle-v2/layout';
+import { friendAuthFailureMessage } from '@/lib/friendApiErrors';
 import { normalizeRoomId } from '@/lib/friend-room';
 import {
   GameConfig,
@@ -166,6 +167,17 @@ function FriendPlayContent() {
   const debugRooms = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
   const debugWarn = (...args: unknown[]) => {
     if (debugRooms) console.warn(...args);
+  };
+
+  const getOnlineFailureMessage = (error: unknown, fallback: string): string => {
+    if (error instanceof ApiRequestError) {
+      const authMessage = friendAuthFailureMessage(
+        error.response.status,
+        error.response.data as { reason?: string; detail?: unknown; error?: string } | undefined
+      );
+      if (authMessage) return authMessage;
+    }
+    return fallback;
   };
 
   type FriendGameResponse = { ok: true; snapshot: GameSnapshot } | { ok: false; reason: string };
@@ -429,7 +441,7 @@ function FriendPlayContent() {
           }
         } catch (initError) {
           debugWarn('[Friend Game] Failed to persist snapshot:', initError);
-          setToast('ゲーム初期化に失敗しました。サーバー同期設定を確認してください。');
+          setToast(getOnlineFailureMessage(initError, 'ゲーム初期化に失敗しました。サーバー同期設定を確認してください。'));
         }
       } else {
         // ゲストはサーバーのスナッ��ショットを取得するまで待機
@@ -549,7 +561,7 @@ function FriendPlayContent() {
       }
     } catch (error) {
       debugWarn('[Friend Game] Error during move:', error);
-      setToast('カード送信に失敗しました');
+      setToast(getOnlineFailureMessage(error, 'カード送信に失敗しました'));
       updateBattleV2MovingCard(null);
       setBattleV2HiddenMoveKey(null);
       setTableTrickCards(gameState.trickCards);

@@ -2,6 +2,7 @@
 
 import { FriendRoomLayout, PlayerSeatGrid, RoomActionBar, RoomSummaryCard } from "@/components/ui";
 import { apiJson, apiRequest, ApiRequestError } from "@/lib/api";
+import { friendAuthFailureMessage } from "@/lib/friendApiErrors";
 import { getNickname } from "@/lib/profile";
 import { normalizeRoomId } from "@/lib/friend-room";
 import { getRoom as getLocalRoom } from "@/lib/roomSystemUnified";
@@ -101,10 +102,13 @@ export default function RoomWaitingPage() {
               err instanceof ApiRequestError &&
               [401, 404, 503].includes(err.response.status)
             ) {
+              const body = err.response.data as (RoomResponse & { error?: string }) | undefined;
+              const authMessage = friendAuthFailureMessage(err.response.status, body);
               setError(
-                err.response.status === 404
+                authMessage ??
+                (err.response.status === 404
                   ? 'ルームが見つかりません。ルームが削除されたか、ルーム番号が間違っている可能性があります。'
-                  : 'サーバー同期の設定が不足しています。別端末とのフレンド対戦にはFirebase Adminと共有ストアの設定が必要です。'
+                  : 'サーバー同期の設定が不足しています。別端末とのフレンド対戦にはFirebase Adminと共有ストアの設定が必要です。')
               );
             } else {
               setError('ネットワークエラーが発生しました');

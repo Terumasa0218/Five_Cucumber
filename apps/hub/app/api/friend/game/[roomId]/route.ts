@@ -2,7 +2,7 @@ import { applyServerMove, getGame, initGame } from '@/lib/friendGameStore';
 import { GameConfig, GameState, Move, RngState } from '@/lib/game-core';
 import { NextRequest, NextResponse } from 'next/server';
 import { json } from '@/lib/http';
-import { verifyAuth } from '@/lib/auth';
+import { getAuthFailureBody, getAuthFailureStatus, verifyAuthDetailed } from '@/lib/auth';
 import { withLock } from '@/lib/lock';
 import { countJoinedPlayers, getSeatIndex, isRoomHost, normalizeNickname, normalizeRoomId } from '@/lib/friend-room';
 import { kvGetJSON } from '@/lib/kv';
@@ -33,8 +33,8 @@ export async function GET(
 
   { params }: { params: { roomId: string } }
 ): Promise<NextResponse> {
-  const auth = await verifyAuth(req);
-  if (!auth) return json({ error: 'Unauthorized' }, 401);
+  const auth = await verifyAuthDetailed(req);
+  if (!auth.ok) return json(getAuthFailureBody(auth.detail), getAuthFailureStatus(auth.detail.reason));
   try {
     const roomId = normalizeRoomId(params.roomId);
     const nickname = normalizeNickname(req.nextUrl.searchParams.get('nickname'));
@@ -56,8 +56,8 @@ export async function POST(
 
   { params }: { params: { roomId: string } }
 ): Promise<NextResponse> {
-  const auth = await verifyAuth(req);
-  if (!auth) return json({ error: 'Unauthorized' }, 401);
+  const auth = await verifyAuthDetailed(req);
+  if (!auth.ok) return json(getAuthFailureBody(auth.detail), getAuthFailureStatus(auth.detail.reason));
   try {
     const roomId = normalizeRoomId(params.roomId);
     if (roomId.length !== 6) return json({ ok: false, reason: 'bad-request' }, 400);

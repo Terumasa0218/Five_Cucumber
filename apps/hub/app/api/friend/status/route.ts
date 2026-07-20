@@ -3,7 +3,7 @@ import type { NextResponse } from 'next/server';
 import { json } from '@/lib/http';
 import type { Room, RoomStatus } from '@/types/room';
 import { kvGetJSON, kvSaveJSON, roomTTL } from '@/lib/kv';
-import { verifyAuth } from '@/lib/auth';
+import { getAuthFailureBody, getAuthFailureStatus, verifyAuthDetailed } from '@/lib/auth';
 import { withLock } from '@/lib/lock';
 import { canStartRoom, normalizeNickname, normalizeRoomId } from '@/lib/friend-room';
 
@@ -19,8 +19,8 @@ const isRoomStatus = (value: string): value is RoomStatus =>
   value === 'waiting' || value === 'playing' || value === 'closed';
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const auth = await verifyAuth(req);
-  if (!auth) return json({ error: 'Unauthorized' }, 401);
+  const auth = await verifyAuthDetailed(req);
+  if (!auth.ok) return json(getAuthFailureBody(auth.detail), getAuthFailureStatus(auth.detail.reason));
   try {
     const body = (await req.json()) as StatusPayload;
     const roomId = normalizeRoomId(body.roomId);

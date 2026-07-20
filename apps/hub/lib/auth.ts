@@ -1,6 +1,17 @@
 import { createRequire } from 'node:module';
 
 export type VerifiedAuth = { uid: string };
+export type AuthFailureReason = 'missing-token' | 'server-auth-unavailable' | 'token-invalid';
+
+export type AuthFailureDetail = {
+  reason: AuthFailureReason;
+  hasBearerToken: boolean;
+  firebaseAdmin: ReturnType<typeof getFirebaseAdminEnvStatus>;
+};
+
+export type AuthCheckResult =
+  | { ok: true; auth: VerifiedAuth }
+  | { ok: false; detail: AuthFailureDetail };
 
 const require = createRequire(import.meta.url);
 
@@ -29,11 +40,17 @@ function getFirebaseAdminPrivateKey(): string | undefined {
 }
 
 export function getFirebaseAdminEnvStatus() {
+  const hasServiceAccountJson = Boolean(getFirebaseServiceAccountJson());
+  const hasProjectId = Boolean(getFirebaseAdminProjectId());
+  const hasClientEmail = Boolean(getFirebaseAdminClientEmail());
+  const hasPrivateKey = Boolean(getFirebaseAdminPrivateKey());
+
   return {
-    hasServiceAccountJson: Boolean(getFirebaseServiceAccountJson()),
-    hasProjectId: Boolean(getFirebaseAdminProjectId()),
-    hasClientEmail: Boolean(getFirebaseAdminClientEmail()),
-    hasPrivateKey: Boolean(getFirebaseAdminPrivateKey()),
+    hasServiceAccountJson,
+    hasProjectId,
+    hasClientEmail,
+    hasPrivateKey,
+    hasUsableCredentials: hasServiceAccountJson || (hasProjectId && hasClientEmail && hasPrivateKey),
   };
 }
 
@@ -98,19 +115,74 @@ function getAdminAuth(): { verifyIdToken(token: string): Promise<{ uid: string }
 }
 
 export async function verifyAuth(request: Request): Promise<VerifiedAuth | null> {
+  const result = await verifyAuthDetailed(request);
+  return result.ok ? result.auth : null;
+}
+
+export async function verifyAuthDetailed(request: Request): Promise<AuthCheckResult> {
   const authHeader = request.headers.get('authorization') ?? request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return {
+      ok: false,
+      detail: {
+        reason: 'missing-token',
+        hasBearerToken: false,
+        firebaseAdmin: getFirebaseAdminEnvStatus(),
+      },
+    };
+  }
 
   const token = authHeader.slice('Bearer '.length).trim();
-  if (!token) return null;
+  if (!token) {
+    return {
+      ok: false,
+      detail: {
+        reason: 'missing-token',
+        hasBearerToken: false,
+        firebaseAdmin: getFirebaseAdminEnvStatus(),
+      },
+    };
+  }
 
   const auth = getAdminAuth();
-  if (!auth) return null;
+  if (!auth) {
+    return {
+      ok: false,
+      detail: {
+        reason: 'server-auth-unavailable',
+        hasBearerToken: true,
+        firebaseAdmin: getFirebaseAdminEnvStatus(),
+      },
+    };
+  }
 
   try {
     const decoded = await auth.verifyIdToken(token);
-    return { uid: decoded.uid };
+    return { ok: true, auth: { uid: decoded.uid } };
   } catch {
-    return null;
+    const firebaseAdmin = getFirebaseAdminEnvStatus();
+    return {
+      ok: false,
+      detail: {
+        reason: firebaseAdmin.hasUsableCredentials ? 'token-invalid' : 'server-auth-unavailable',
+        hasBearerToken: true,
+        firebaseAdmin,
+      },
+    };
   }
+}
+
+export function getAuthFailureStatus(reason: AuthFailureReason): number {
+  return reason === 'server-auth-unavailable' ? 503 : 401;
+}
+
+export function getAuthFailureBody(detail: AuthFailureDetail) {
+  return {
+    ok: false,
+    reason: detail.reason,
+    detail: {
+      hasBearerToken: detail.hasBearerToken,
+      firebaseAdmin: detail.firebaseAdmin,
+    },
+  };
 }

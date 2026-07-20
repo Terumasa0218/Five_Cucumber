@@ -3,11 +3,12 @@ import { json } from '@/lib/http';
 import { realtime } from '@/lib/realtime';
 import type { Room, RoomSeat } from '@/types/room';
 import { kvGetJSON, kvSaveJSON, roomTTL } from '@/lib/kv';
-import { verifyAuth } from '@/lib/auth';
+import { getAuthFailureBody, getAuthFailureStatus, verifyAuthDetailed } from '@/lib/auth';
 import { withLock } from '@/lib/lock';
 import { normalizeNickname, normalizeRoomId } from '@/lib/friend-room';
 
 const keyOf = (id: string) => `friend:room:${id}`;
+const noStore = { 'Cache-Control': 'no-store, no-cache, max-age=0, must-revalidate' } as const;
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,8 +22,13 @@ type LeaveRoomPayload = {
 const isOccupiedSeat = (seat: RoomSeat): seat is Exclude<RoomSeat, null> => seat !== null;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const auth = await verifyAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const auth = await verifyAuthDetailed(req);
+  if (!auth.ok) {
+    return NextResponse.json(getAuthFailureBody(auth.detail), {
+      status: getAuthFailureStatus(auth.detail.reason),
+      headers: noStore,
+    });
+  }
   try {
     const body = (await req.json()) as LeaveRoomPayload;
     const roomId = normalizeRoomId(body.roomId);

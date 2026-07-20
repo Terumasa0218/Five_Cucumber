@@ -1,6 +1,7 @@
 'use client';
 
 import { apiJson, ApiRequestError } from "@/lib/api";
+import { friendAuthFailureMessage } from "@/lib/friendApiErrors";
 import { normalizeRoomId } from "@/lib/friend-room";
 import { getNickname } from "@/lib/profile";
 import { getRoom, joinRoom, upsertLocalRoom } from "@/lib/roomSystemUnified";
@@ -44,10 +45,9 @@ export default function FriendJoinPage() {
 
   const backendFailureMessage = (err: unknown) => {
     if (err instanceof ApiRequestError) {
-      const body = err.response.data as RoomResponse | { reason?: string } | undefined;
-      if (err.response.status === 401) {
-        return 'サーバー同期に必要な認証設定が不足しています。フレンド対戦を公開環境で使うにはFirebase Admin設定が必要です。';
-      }
+      const body = err.response.data as (RoomResponse & { error?: string }) | undefined;
+      const authMessage = friendAuthFailureMessage(err.response.status, body);
+      if (authMessage) return authMessage;
       return joinFailureMessage(body?.reason);
     }
 
