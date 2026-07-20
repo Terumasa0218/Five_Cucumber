@@ -70,12 +70,35 @@ type MarketUiSession = {
   message: string;
 };
 
+type SelectedMarketBid = {
+  card: number;
+  index: number;
+};
+
 function isMarketRuleSet(ruleSet?: RuleSetId): boolean {
   return ruleSet === 'market';
 }
 
 function getPlayerLabel(player: number): string {
   return player === 0 ? 'あなた' : `CPU ${player}`;
+}
+
+function getMarketStep(phase: MarketState['phase']): number {
+  if (phase === 'Bidding') return 1;
+  if (phase === 'Choosing') return 3;
+  return 4;
+}
+
+function getMarketPhaseLabel(phase: MarketState['phase']): string {
+  if (phase === 'Bidding') return '交換カード選択';
+  if (phase === 'Choosing') return '市場カード取得';
+  return '通常対局へ移行';
+}
+
+function getMarketBidText(bid: MarketState['bids'][number] | null): string {
+  if (!bid) return '未選択';
+  if (bid.card === null) return '交換しない';
+  return `${bid.card}を提出`;
 }
 
 function addVec3(a: Vec3, b: Vec3): Vec3 {
@@ -186,7 +209,7 @@ function CpuPlayContent() {
   const [finalTrickStatusText, setFinalTrickStatusText] = useState<string | null>(null);
   const [overlayText, setOverlayText] = useState<string | null>(null);
   const [marketSession, setMarketSession] = useState<MarketUiSession | null>(null);
-  const [selectedMarketBid, setSelectedMarketBid] = useState<number | null>(null);
+  const [selectedMarketBid, setSelectedMarketBid] = useState<SelectedMarketBid | null>(null);
   const [finalTrickStarted, setFinalTrickStarted] = useState(false);
   const [isShowdownMode, setIsShowdownMode] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -1300,6 +1323,13 @@ function CpuPlayContent() {
   const humanMarketHand = marketSession?.state.hands[0] ?? [];
   const humanBid = marketSession?.state.bids[0]?.card ?? null;
   const humanTake = marketSession?.takeDecisions.find(decision => decision.player === 0);
+  const marketStep = marketSession ? getMarketStep(marketSession.state.phase) : 0;
+  const selectedMarketBidCard = selectedMarketBid?.card ?? null;
+  const currentMarketTurn = marketSession
+    ? marketSession.state.exchangeOrder[marketSession.state.currentExchangeIndex]
+    : null;
+  const canTakeMarketCard =
+    marketSession?.state.phase === 'Choosing' && currentMarketPlayer === 0;
 
   const timer = (
     <Timer
@@ -1412,103 +1442,197 @@ function CpuPlayContent() {
           <div className="market-phase-panel">
             <div className="market-phase-panel__header">
               <div>
-                <p className="market-phase-panel__eyebrow">Market Phase</p>
+                <p className="market-phase-panel__eyebrow">Round Setup</p>
                 <h2>仕込み市場</h2>
               </div>
-              <span className="market-phase-panel__rule">参加者+2枚</span>
+              <div className="market-phase-panel__meta">
+                <span>{getMarketPhaseLabel(marketSession.state.phase)}</span>
+                <strong>参加者+2枚</strong>
+              </div>
             </div>
+
+            <ol className="market-stepper" aria-label="市場フェーズの進行">
+              {['提出', '公開', '取得', '開始'].map((label, index) => {
+                const step = index + 1;
+                return (
+                  <li
+                    key={label}
+                    className={[
+                      'market-stepper__item',
+                      marketStep === step ? 'is-current' : '',
+                      marketStep > step ? 'is-done' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    <span>{step}</span>
+                    <strong>{label}</strong>
+                  </li>
+                );
+              })}
+            </ol>
 
             <p className="market-phase-panel__message" role="status" aria-live="polite">
               {marketSession.message}
             </p>
 
-            <div className="market-phase-panel__section">
-              <h3>市場</h3>
-              <div className="market-card-row">
-                {marketSession.state.market.map((card, index) => (
-                  <button
-                    key={`market-${card}-${index}`}
-                    type="button"
-                    className="market-card"
-                    disabled={marketSession.state.phase !== 'Choosing' || currentMarketPlayer !== 0}
-                    onClick={() => handleTakeMarketCard(card)}
-                  >
-                    <span>{card}</span>
-                    <small>cucumber</small>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <div className="market-phase-panel__body">
+              <div className="market-phase-panel__main">
+                <div className="market-zone market-zone--market">
+                  <div className="market-zone__header">
+                    <h3>市場</h3>
+                    <span>
+                      {canTakeMarketCard
+                        ? '取得するカードを選択'
+                        : `${marketSession.state.market.length}枚公開中`}
+                    </span>
+                  </div>
+                  <div className="market-card-row market-card-row--market">
+                    {marketSession.state.market.map((card, index) => (
+                      <button
+                        key={`market-${card}-${index}`}
+                        type="button"
+                        className={[
+                          'market-card',
+                          'market-card--market',
+                          canTakeMarketCard ? 'is-takeable' : '',
+                          card === 1 ? 'market-card--special' : '',
+                          card === 15 ? 'market-card--danger' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                        disabled={!canTakeMarketCard}
+                        onClick={() => handleTakeMarketCard(card)}
+                      >
+                        <span>{card}</span>
+                        <small>market</small>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {marketSession.state.phase === 'Bidding' ? (
-              <div className="market-phase-panel__section">
-                <h3>交換に出すカード</h3>
-                <div className="market-card-row market-card-row--hand">
-                  {humanMarketHand.map((card, index) => (
-                    <button
-                      key={`bid-${card}-${index}`}
-                      type="button"
-                      className={['market-card', selectedMarketBid === card ? 'is-selected' : '']
-                        .filter(Boolean)
-                        .join(' ')}
-                      onClick={() => setSelectedMarketBid(card)}
-                    >
-                      <span>{card}</span>
-                      <small>bid</small>
-                    </button>
-                  ))}
-                </div>
-                <div className="market-phase-panel__actions">
-                  <button
-                    type="button"
-                    className="market-action-button market-action-button--secondary"
-                    onClick={() => handleSubmitMarketBid(null)}
-                  >
-                    交換しない
-                  </button>
-                  <button
-                    type="button"
-                    className="market-action-button"
-                    disabled={selectedMarketBid === null}
-                    onClick={() => handleSubmitMarketBid(selectedMarketBid)}
-                  >
-                    {selectedMarketBid === null ? 'カードを選択' : `${selectedMarketBid}で入札`}
-                  </button>
+                <div className="market-zone market-zone--hand">
+                  <div className="market-zone__header">
+                    <h3>あなたの手札</h3>
+                    <span>
+                      {marketSession.state.phase === 'Bidding'
+                        ? '1枚を伏せて提出できます'
+                        : humanBid === null
+                          ? '交換しませんでした'
+                          : `${humanBid}を除外済み`}
+                    </span>
+                  </div>
+                  <div className="market-card-row market-card-row--hand">
+                    {humanMarketHand.map((card, index) => {
+                      const isSelected =
+                        selectedMarketBid?.card === card && selectedMarketBid.index === index;
+                      return (
+                        <button
+                          key={`bid-${card}-${index}`}
+                          type="button"
+                          className={[
+                            'market-card',
+                            'market-card--hand',
+                            isSelected ? 'is-selected' : '',
+                            card === 1 ? 'market-card--special' : '',
+                            card === 15 ? 'market-card--danger' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                          disabled={marketSession.state.phase !== 'Bidding'}
+                          onClick={() => setSelectedMarketBid({ card, index })}
+                        >
+                          <span>{card}</span>
+                          <small>{marketSession.state.phase === 'Bidding' ? 'bid' : 'hand'}</small>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="market-phase-panel__actions">
+                    {marketSession.state.phase === 'Bidding' ? (
+                      <>
+                        <button
+                          type="button"
+                          className="market-action-button market-action-button--secondary"
+                          onClick={() => handleSubmitMarketBid(null)}
+                        >
+                          交換しない
+                        </button>
+                        <button
+                          type="button"
+                          className="market-action-button"
+                          disabled={selectedMarketBidCard === null}
+                          onClick={() => handleSubmitMarketBid(selectedMarketBidCard)}
+                        >
+                          {selectedMarketBidCard === null
+                            ? '提出カードを選択'
+                            : `${selectedMarketBidCard}を伏せて提出`}
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" className="market-action-button" disabled>
+                        {marketSession.state.phase === 'Choosing'
+                          ? canTakeMarketCard
+                            ? '市場カードを選択してください'
+                            : '取得順を処理中'
+                          : '通常対局へ移行中'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            ) : (
-              <div className="market-phase-panel__section">
-                <h3>公開された入札</h3>
+
+              <aside className="market-phase-panel__side" aria-label="市場の状況">
+                <div className="market-status-card">
+                  <h3>現在</h3>
+                  <strong>
+                    {marketSession.state.phase === 'Choosing' && currentMarketTurn
+                      ? `${getPlayerLabel(currentMarketTurn.player)}の取得順`
+                      : getMarketPhaseLabel(marketSession.state.phase)}
+                  </strong>
+                  <p>
+                    {marketSession.state.phase === 'Bidding'
+                      ? selectedMarketBid === null
+                        ? '出すカードを選ぶか、交換しないを選択します。'
+                        : `${selectedMarketBidCard}を出す予定です。`
+                      : marketSession.state.phase === 'Choosing'
+                        ? currentMarketTurn
+                          ? `提出カード ${currentMarketTurn.bidCard}。大きい順に市場から取ります。`
+                          : '取得順を確認しています。'
+                        : humanTake
+                          ? `${humanBid}を出して${humanTake.card}を取得しました。`
+                          : '市場交換が完了しました。'}
+                  </p>
+                </div>
+
                 <div className="market-bid-list">
                   {marketSession.state.bids.map((bid, player) => {
                     const take = marketSession.takeDecisions.find(
                       decision => decision.player === player
                     );
+                    const isCurrent = currentMarketPlayer === player;
                     return (
-                      <div key={`bid-result-${player}`} className="market-bid-list__item">
+                      <div
+                        key={`bid-result-${player}`}
+                        className={[
+                          'market-bid-list__item',
+                          player === 0 ? 'is-self' : '',
+                          isCurrent ? 'is-current' : '',
+                          take ? 'is-taken' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                      >
                         <strong>{getPlayerLabel(player)}</strong>
-                        <span>{bid?.card === null ? '不参加' : (bid?.card ?? '-')}</span>
-                        <em>{take ? `→ ${take.card}` : ''}</em>
+                        <span>{getMarketBidText(bid)}</span>
+                        <em>{take ? `${take.card}を取得` : isCurrent ? '取得中' : ''}</em>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-            )}
-
-            {marketSession.state.phase === 'Choosing' && currentMarketPlayer === 0 ? (
-              <p className="market-phase-panel__hint">
-                {humanBid === null
-                  ? 'あなたは交換しませんでした。'
-                  : `${humanBid}を除外しました。市場から1枚選んでください。`}
-              </p>
-            ) : null}
-
-            {marketSession.state.phase === 'Complete' && humanTake ? (
-              <p className="market-phase-panel__hint">
-                あなたは{humanBid}を出して{humanTake.card}を取得しました。
-              </p>
-            ) : null}
+              </aside>
+            </div>
           </div>
         </section>
       ) : null}
