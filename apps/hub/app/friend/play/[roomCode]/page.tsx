@@ -2,11 +2,26 @@
 
 import BattleLayout from '@/components/BattleLayout';
 import BattleV2Scene from '@/components/battle-v2/LazyBattleV2Scene';
-import type { BattleV2CardView } from '@/components/battle-v2/BattleV2Scene';
+import type {
+  BattleV2CardView,
+  BattleV2MovingCard,
+} from '@/components/battle-v2/BattleV2Scene';
 import { Timer } from '@/components/ui';
 import PageBackground from '@/components/ui/PageBackground';
 import { BACKGROUNDS } from '@/lib/backgrounds';
 import { apiJson, apiRequest } from '@/lib/api';
+import {
+  clampPlayers,
+  getHandCardPose,
+  getOpponentCardPose,
+  pilePositions,
+  playerHandOrigin,
+  screenFacingRotation,
+  seatLayouts,
+  type CardPose,
+  type Euler3,
+  type Vec3,
+} from '@/lib/battle-v2/layout';
 import { normalizeRoomId } from '@/lib/friend-room';
 import {
   GameConfig,
@@ -26,6 +41,91 @@ import { useParams, useRouter } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import '../../../cucumber/cpu/play/game.css';
 
+function addVec3(a: Vec3, b: Vec3): Vec3 {
+  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+}
+
+function rotateVec3Y(position: Vec3, radians: number): Vec3 {
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return [
+    position[0] * cos - position[2] * sin,
+    position[1],
+    position[0] * sin + position[2] * cos,
+  ];
+}
+
+function combinePose(parentPosition: Vec3, parentRotation: Euler3, childPose: CardPose): CardPose {
+  return {
+    position: addVec3(parentPosition, rotateVec3Y(childPose.position, parentRotation[1])),
+    rotation: [
+      parentRotation[0] + childPose.rotation[0],
+      parentRotation[1] + childPose.rotation[1],
+      parentRotation[2] + childPose.rotation[2],
+    ],
+    scale: childPose.scale,
+  };
+}
+
+function getVisualIndex(logicalIndex: number, viewerIndex: number, players: number): number {
+  return (logicalIndex - viewerIndex + players) % players;
+}
+
+function createFriendBattleV2MoveAnimation(
+  state: GameState,
+  viewerIndex: number,
+  player: number,
+  card: number,
+  isDiscardMove: boolean,
+  timestamp: number,
+  actorLabel: string
+): BattleV2MovingCard | null {
+  const playerState = state.players[player];
+  if (!playerState) return null;
+
+  const cardIndex = playerState.hand.indexOf(card);
+  if (cardIndex < 0) return null;
+
+  const visualIndex = getVisualIndex(player, viewerIndex, state.players.length);
+  const from =
+    visualIndex === 0
+      ? combinePose(
+          playerHandOrigin,
+          screenFacingRotation,
+          getHandCardPose(cardIndex, playerState.hand.length, true)
+        )
+      : (() => {
+          const layout = seatLayouts[clampPlayers(state.players.length)];
+          const seat = layout[visualIndex];
+          if (!seat) return null;
+          return combinePose(
+            seat.position,
+            seat.rotation,
+            getOpponentCardPose(cardIndex, playerState.hand.length)
+          );
+        })();
+
+  if (!from) return null;
+
+  return {
+    id: `${player}-${card}-${timestamp}`,
+    value: card,
+    actorLabel,
+    from,
+    to: {
+      position: isDiscardMove
+        ? [
+            pilePositions.graveyard[0],
+            pilePositions.graveyard[1] + 0.12,
+            pilePositions.graveyard[2],
+          ]
+        : [pilePositions.field[0], pilePositions.field[1] + 0.14, pilePositions.field[2]],
+      rotation: [0, isDiscardMove ? 0.16 : 0.28, 0],
+      scale: 1,
+    },
+  };
+}
+
 function FriendPlayContent() {
   const params = useParams();
   const router = useRouter();
@@ -39,6 +139,10 @@ function FriendPlayContent() {
   const [isCardLocked, setIsCardLocked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedBattleV2CardId, setSelectedBattleV2CardId] = useState<string | null>(null);
+  const [tableTrickCards, setTableTrickCards] = useState<Move[]>([]);
+  const [battleV2MovingCard, setBattleV2MovingCard] = useState<BattleV2MovingCard | null>(null);
+  const [battleV2HiddenMoveKey, setBattleV2HiddenMoveKey] = useState<string | null>(null);
+  const [trickWinner, setTrickWinner] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [roomConfig, setRoomConfig] = useState<Room | null>(null);
   const useServer = USE_SERVER_SYNC;
@@ -54,6 +158,9 @@ function FriendPlayContent() {
   } | null>(null);
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const resolvedTrickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastResolvedTrickKeyRef = useRef<string | null>(null);
+  const battleV2MovingCardRef = useRef<BattleV2MovingCard | null>(null);
   const lastVersionRef = useRef<number>(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const debugRooms = process.env.NEXT_PUBLIC_DEBUG_ROOMS === '1';
@@ -95,6 +202,101 @@ function FriendPlayContent() {
       }
     },
     [getPlayerName],
+  );
+
+  const updateBattleV2MovingCard = useCallback((movingCard: BattleV2MovingCard | null) => {
+    battleV2MovingCardRef.current = movingCard;
+    setBattleV2MovingCard(movingCard);
+  }, []);
+
+  const clearResolvedTrickTimer = useCallback(() => {
+    if (resolvedTrickTimeoutRef.current) {
+      clearTimeout(resolvedTrickTimeoutRef.current);
+      resolvedTrickTimeoutRef.current = null;
+    }
+  }, []);
+
+  const applyFriendSnapshot = useCallback(
+    (snapshot: GameSnapshot) => {
+      const previousState = gameRef.current?.state ?? null;
+      const previousVersion = lastVersionRef.current;
+      const snapshotVersion = snapshot.version ?? previousVersion + 1;
+      const isNewerSnapshot = !previousVersion || snapshotVersion > previousVersion;
+
+      if (
+        isNewerSnapshot &&
+        snapshot.lastMove &&
+        previousState &&
+        snapshot.lastMove.player !== mySeatIndex &&
+        previousState.phase === 'AwaitMove'
+      ) {
+        const move = snapshot.lastMove;
+        const moveKey = `${move.player}-${move.timestamp}`;
+        const isDiscardMove = move.isDiscard === true;
+        const movingCard = createFriendBattleV2MoveAnimation(
+          previousState,
+          mySeatIndex,
+          move.player,
+          move.card,
+          isDiscardMove,
+          move.timestamp,
+          getPlayerName(move.player)
+        );
+        updateBattleV2MovingCard(movingCard);
+        setBattleV2HiddenMoveKey(movingCard && !isDiscardMove ? moveKey : null);
+        setTableTrickCards(
+          isDiscardMove ? [...previousState.trickCards] : [...previousState.trickCards, move]
+        );
+      }
+
+      lastVersionRef.current = snapshotVersion;
+      if (gameRef.current) {
+        gameRef.current.state = snapshot.state;
+        gameRef.current.config = snapshot.config;
+        if (snapshot.rngState) {
+          gameRef.current.rng = SeededRng.fromState(snapshot.rngState);
+        }
+      }
+
+      setGameState(snapshot.state);
+      checkGameOver(snapshot.state);
+
+      const resolvedTrick = snapshot.resolvedTrick;
+      const resolvedTrickKey = resolvedTrick
+        ? `${resolvedTrick.round}-${resolvedTrick.trick}-${resolvedTrick.completedAt}`
+        : null;
+      const shouldShowResolvedTrick =
+        resolvedTrick &&
+        resolvedTrickKey !== lastResolvedTrickKeyRef.current &&
+        Date.now() - resolvedTrick.completedAt < 8000;
+
+      if (shouldShowResolvedTrick && resolvedTrickKey) {
+        lastResolvedTrickKeyRef.current = resolvedTrickKey;
+        clearResolvedTrickTimer();
+        setTableTrickCards(resolvedTrick.cards);
+        setTrickWinner(resolvedTrick.winner >= 0 ? resolvedTrick.winner : null);
+
+        resolvedTrickTimeoutRef.current = setTimeout(() => {
+          resolvedTrickTimeoutRef.current = null;
+          const currentState = gameRef.current?.state ?? snapshot.state;
+          setTableTrickCards(currentState.trickCards);
+          setTrickWinner(null);
+        }, 1700);
+        return;
+      }
+
+      if (!resolvedTrickTimeoutRef.current && !battleV2MovingCardRef.current) {
+        setTableTrickCards(snapshot.state.trickCards);
+        setTrickWinner(null);
+      }
+    },
+    [
+      checkGameOver,
+      clearResolvedTrickTimer,
+      getPlayerName,
+      mySeatIndex,
+      updateBattleV2MovingCard,
+    ]
   );
 
   // ルーム情報を取得
@@ -211,19 +413,17 @@ function FriendPlayContent() {
             json: { type: 'init', nickname, state, config, rngState: rng.getState() },
           });
           if (data.ok) {
-            const syncedRng = data.snapshot.rngState
-              ? SeededRngClass.fromState(data.snapshot.rngState)
-              : rng;
             gameRef.current = {
               state: data.snapshot.state,
               config: data.snapshot.config,
               controllers,
-              rng: syncedRng,
+              rng: data.snapshot.rngState
+                ? SeededRngClass.fromState(data.snapshot.rngState)
+                : rng,
             };
-            setGameState(data.snapshot.state);
             setGameOver(false);
             setGameResults([]);
-            lastVersionRef.current = data.snapshot.version ?? 1;
+            applyFriendSnapshot(data.snapshot);
           } else {
             throw new Error(data.reason);
           }
@@ -248,10 +448,9 @@ function FriendPlayContent() {
                   controllers,
                   rng,
                 };
-                setGameState(data.snapshot.state);
                 setGameOver(false);
                 setGameResults([]);
-                lastVersionRef.current = data.snapshot.version ?? 1;
+                applyFriendSnapshot(data.snapshot);
                 break;
               }
             } catch {
@@ -284,17 +483,7 @@ function FriendPlayContent() {
 
             if (payload.ok) {
               if (!lastVersionRef.current || payload.snapshot.version > lastVersionRef.current) {
-                lastVersionRef.current = payload.snapshot.version;
-                if (gameRef.current) {
-                  gameRef.current.state = payload.snapshot.state;
-                  gameRef.current.config = payload.snapshot.config;
-                  if (payload.snapshot.rngState) {
-                    gameRef.current.rng = SeededRngClass.fromState(payload.snapshot.rngState);
-                  }
-                }
-                setGameState(payload.snapshot.state);
-                // ゲーム終了チェック
-                checkGameOver(payload.snapshot.state);
+                applyFriendSnapshot(payload.snapshot);
               }
             }
           } catch (error) {
@@ -323,36 +512,47 @@ function FriendPlayContent() {
     setIsCardLocked(true);
 
     try {
+      const nickname = getNickname();
+      if (!nickname) return;
+
       const isDiscardMove =
         gameState.fieldCard !== null && card < gameState.fieldCard;
+      const moveTimestamp = Date.now();
       const move: Move = {
         player: mySeatIndex,
         card,
-        timestamp: Date.now(),
+        timestamp: moveTimestamp,
         isDiscard: isDiscardMove,
       };
+      const moveKey = `${mySeatIndex}-${moveTimestamp}`;
+      const movingCard = createFriendBattleV2MoveAnimation(
+        gameState,
+        mySeatIndex,
+        mySeatIndex,
+        card,
+        isDiscardMove,
+        moveTimestamp,
+        'あなた'
+      );
+      updateBattleV2MovingCard(movingCard);
+      setBattleV2HiddenMoveKey(movingCard && !isDiscardMove ? moveKey : null);
+      setTableTrickCards(
+        isDiscardMove ? [...gameState.trickCards] : [...gameState.trickCards, move]
+      );
 
-      const nickname = getNickname();
-      if (!nickname) return;
       const data = await apiJson<FriendGameResponse>(`/api/friend/game/${roomCode}`, {
         method: 'POST',
         json: { type: 'move', nickname, move },
       });
       if (data.ok) {
-        lastVersionRef.current = data.snapshot.version ?? lastVersionRef.current + 1;
-        if (gameRef.current) {
-          gameRef.current.state = data.snapshot.state;
-          gameRef.current.config = data.snapshot.config;
-          if (data.snapshot.rngState) {
-            gameRef.current.rng = SeededRng.fromState(data.snapshot.rngState);
-          }
-        }
-        setGameState(data.snapshot.state);
-        checkGameOver(data.snapshot.state);
+        applyFriendSnapshot(data.snapshot);
       }
     } catch (error) {
       debugWarn('[Friend Game] Error during move:', error);
       setToast('カード送信に失敗しました');
+      updateBattleV2MovingCard(null);
+      setBattleV2HiddenMoveKey(null);
+      setTableTrickCards(gameState.trickCards);
       setTimeout(() => setToast(null), 3000);
     } finally {
       setIsSubmitting(false);
@@ -391,6 +591,7 @@ function FriendPlayContent() {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
+      clearResolvedTrickTimer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomCode]);
@@ -466,8 +667,15 @@ function FriendPlayContent() {
             names={displayNames}
             viewerIndex={mySeatIndex}
             selectedCardId={selectedBattleV2CardId}
-            playedCards={gameState.trickCards}
+            playedCards={tableTrickCards}
+            movingCard={battleV2MovingCard}
+            hiddenPlayedMoveKey={battleV2HiddenMoveKey}
             legalMoves={battleV2LegalMoves}
+            trickWinner={trickWinner}
+            onMoveComplete={() => {
+              updateBattleV2MovingCard(null);
+              setBattleV2HiddenMoveKey(null);
+            }}
             onSelectCard={(card: BattleV2CardView) => {
               if (!battleV2LegalMoves.includes(card.value)) return;
               setSelectedBattleV2CardId(card.id);

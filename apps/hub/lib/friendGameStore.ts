@@ -1,5 +1,6 @@
 import {
   applyMove,
+  determineTrickWinner,
   endTrick,
   finalRound,
   GameConfig,
@@ -16,7 +17,7 @@ import {
   getRoomGameSnapshotRedis,
   saveRoomGameSnapshotRedis
 } from '@/lib/roomsRedis';
-import type { RoomGameSnapshot } from '@/types/room';
+import type { RoomGameSnapshot, RoomResolvedTrickSnapshot } from '@/types/room';
 import { HAS_SHARED_STORE } from '@/lib/serverSync';
 import { isRedisAvailable } from '@/lib/redis';
 
@@ -25,6 +26,25 @@ const HAS_FIRESTORE = Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && pro
 export type GameSnapshot = RoomGameSnapshot;
 
 const memoryStore: Map<string, GameSnapshot> = new Map();
+
+export function createResolvedTrickSnapshot(
+  state: GameState,
+  config: GameConfig,
+  move: Move,
+  completedAt = Date.now()
+): RoomResolvedTrickSnapshot | null {
+  const actionCountAfterMove = (state.actionCount ?? 0) + 1;
+  if (actionCountAfterMove < config.players) return null;
+
+  const cards = move.isDiscard ? [...state.trickCards] : [...state.trickCards, move];
+  return {
+    round: state.currentRound,
+    trick: state.currentTrick,
+    cards,
+    winner: determineTrickWinner(cards),
+    completedAt,
+  };
+}
 
 async function loadSnapshot(roomId: string): Promise<GameSnapshot | null> {
   // 共有ストアが無い環境ではサーバ同期を無効化（メモリ使用禁止）
@@ -111,6 +131,7 @@ export async function initGame(
     version: 1,
     updatedAt: Date.now(),
     rngState: snapshot.rngState,
+    resolvedTrick: null,
   };
   await persistSnapshot(roomId, snap);
   return snap;
@@ -126,6 +147,8 @@ export async function applyServerMove(roomId: string, move: Move): Promise<GameS
   const rng = rngState ? SeededRng.fromState(rngState) : new SeededRng(snap.config.seed ?? Date.now());
   const result = applyMove(snap.state, move, snap.config, rng);
   if (!result.success) return snap; // ignore illegal moves but keep existing state
+  const updatedAt = Date.now();
+  const resolvedTrick = createResolvedTrickSnapshot(snap.state, snap.config, move, updatedAt);
 
   let newState = result.newState;
   if (newState.phase === 'ResolvingTrick') {
@@ -141,8 +164,10 @@ export async function applyServerMove(roomId: string, move: Move): Promise<GameS
     state: newState,
     config: snap.config,
     version: snap.version + 1,
-    updatedAt: Date.now(),
+    updatedAt,
     rngState: rng.getState(),
+    lastMove: move,
+    resolvedTrick,
   };
   await persistSnapshot(roomId, updated);
   return updated;

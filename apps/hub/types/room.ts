@@ -1,10 +1,18 @@
 // ルーム管理の型定義
 
+import type { GameConfig, GameState, Move, RngState } from '@/lib/game-core';
+
 export type RoomSeat = { nickname: string } | null;
 
 export type RoomStatus = 'waiting' | 'playing' | 'closed';
 
-import type { GameConfig, GameState, RngState } from '@/lib/game-core';
+export interface RoomResolvedTrickSnapshot {
+  round: number;
+  trick: number;
+  cards: Move[];
+  winner: number;
+  completedAt: number;
+}
 
 export interface RoomGameSnapshot {
   state: GameState;
@@ -12,6 +20,8 @@ export interface RoomGameSnapshot {
   version: number;
   updatedAt: number;
   rngState?: RngState;
+  lastMove?: Move;
+  resolvedTrick?: RoomResolvedTrickSnapshot | null;
 }
 
 export interface Room {
