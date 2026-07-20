@@ -13,7 +13,7 @@
 Firestore の資格情報が揃っていても、共有ストアが無い場合は同期戦を提供できないため `503 no-shared-store` で遮断します。
 
 ## まず確認すること
-1. `https://<デプロイ先>/api/_diag/shared-store` にアクセスし、`hasKV` などの真偽値を確認する
+1. 認証済みブラウザセッションまたは認証ヘッダー付きリクエストで `https://<デプロイ先>/api/_diag/shared-store` にアクセスし、`hasKV` などの真偽値を確認する
    - すべて `false` ならサーバーから共有ストアの環境変数が見えていません
 2. Vercel の Dashboard > Project > Settings > Environment Variables で、対象ブランチの KV 関連変数が存在するか確認
 3. 変数を追加・修正したら "Redeploy" または `vercel deploy` を実行して反映する
@@ -33,13 +33,11 @@ BASE_URL=https://five-cucumber-hub.vercel.app pnpm --filter hub exec node ../../
   "reason": "no-shared-store",
   "detail": {
     "sharedConfigured": false,
-    "sharedAvailable": false,
-    "allowMemoryFallback": false,
     "flags": {
       "kv": false,
-      "upstash": false,
-      "vercelRedis": false,
-      "redisTcp": false
+      "upstashKv": false,
+      "upstashRedis": false,
+      "vercelRedis": false
     }
   }
 }

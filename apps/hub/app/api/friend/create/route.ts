@@ -1,7 +1,13 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-import { hasSharedStoreConfig, kvExists, kvSaveJSON, roomTTL } from '@/lib/kv';
+import {
+  getSharedStoreDiagnostics,
+  hasSharedStoreConfig,
+  kvExists,
+  kvSaveJSON,
+  roomTTL,
+} from '@/lib/kv';
 import {
   createFriendRoom,
   normalizeFriendRoomSettings,
@@ -75,7 +81,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (!hasSharedStoreConfig()) {
       console.warn('[API] KV not configured; rejecting room creation.');
       return NextResponse.json(
-        { ok: false, reason: 'no-shared-store' },
+        { ok: false, reason: 'no-shared-store', detail: getSharedStoreDiagnostics() },
         { status: 503, headers: noStore }
       );
     }
@@ -121,7 +127,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const detail = kvError instanceof Error ? kvError.message : 'unknown';
         console.error('[API] KV persist failed:', kvError);
         return NextResponse.json(
-          { ok: false, reason: 'kv-failed', detail },
+          {
+            ok: false,
+            reason: 'kv-failed',
+            detail: { message: detail, diagnostics: getSharedStoreDiagnostics() },
+          },
           { status: 503, headers: noStore }
         );
       }
@@ -166,7 +176,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       const detail = e instanceof Error ? e.message : 'unknown';
       console.error('[API] KV persist failed:', detail);
       return NextResponse.json(
-        { ok: false, reason: 'kv-failed', detail },
+        {
+          ok: false,
+          reason: 'kv-failed',
+          detail: { message: detail, diagnostics: getSharedStoreDiagnostics() },
+        },
         { status: 503, headers: noStore }
       );
     }

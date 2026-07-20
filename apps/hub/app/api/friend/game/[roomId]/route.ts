@@ -1,5 +1,5 @@
 import { applyServerMove, getGame, initGame } from '@/lib/friendGameStore';
-import { GameConfig, GameState, Move } from '@/lib/game-core';
+import { GameConfig, GameState, Move, RngState } from '@/lib/game-core';
 import { NextRequest, NextResponse } from 'next/server';
 import { json } from '@/lib/http';
 import { verifyAuth } from '@/lib/auth';
@@ -17,6 +17,7 @@ type GameInitBody = {
   nickname?: unknown;
   state: GameState;
   config: GameConfig;
+  rngState?: RngState;
 };
 
 type GameMoveBody = {
@@ -82,7 +83,7 @@ export async function POST(
     if (actorSeatIndex < 0) return json({ ok: false, reason: 'not-member' }, 403);
     
     if (requestBody.type === 'init') {
-      const { state, config } = requestBody;
+      const { state, config, rngState } = requestBody;
       if (!state || !config || typeof state !== 'object' || typeof config !== 'object') {
         return json({ ok: false, reason: 'bad-request' }, 400);
       }
@@ -92,7 +93,11 @@ export async function POST(
       if (room.status !== 'playing' || countJoinedPlayers(room) !== room.size) {
         return json({ ok: false, reason: 'room-not-ready' }, 409);
       }
-      const snap = await initGame(roomId, { state: state as GameState, config: config as GameConfig });
+      const snap = await initGame(roomId, {
+        state: state as GameState,
+        config: config as GameConfig,
+        rngState: rngState as RngState | undefined,
+      });
       return json({ ok: true, snapshot: snap }, 200);
     }
     

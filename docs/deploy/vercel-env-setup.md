@@ -20,6 +20,10 @@
 | `NEXT_PUBLIC_USE_SERVER` | `true` | Enable server-backed friend-room flow |
 | `ABLY_API_KEY` | Ably key | Optional room update acceleration |
 
+Firebase Admin credentials may also use the older aliases `FIREBASE_ADMIN_PROJECT_ID`,
+`FIREBASE_ADMIN_CLIENT_EMAIL`, `FIREBASE_ADMIN_PRIVATE_KEY`, or a single
+`FIREBASE_ADMIN_SDK_JSON` value. The app checks both naming styles.
+
 ## Vercelでの設定手順
 
 ### 1. ダッシュボードにアクセス

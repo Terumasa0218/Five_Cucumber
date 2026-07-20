@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { hasSharedStoreConfig, kvGetJSON, kvSaveJSON } from '@/lib/kv';
+import { getSharedStoreDiagnostics, hasSharedStoreConfig, kvGetJSON, kvSaveJSON } from '@/lib/kv';
 import { verifyAuth } from '@/lib/auth';
 
 export const runtime = 'nodejs';
@@ -24,5 +24,11 @@ export async function GET(req: Request) {
     console.error('[DIAG] KV persist failed:', detail);
   }
 
-  return NextResponse.json({ hasKV, hasVercelRedisRest, canPersist, detail });
+  return NextResponse.json({
+    hasKV,
+    hasVercelRedisRest,
+    canPersist,
+    detail,
+    diagnostics: getSharedStoreDiagnostics(),
+  });
 }

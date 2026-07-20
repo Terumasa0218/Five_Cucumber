@@ -34,6 +34,15 @@ FIREBASE_CLIENT_EMAIL=firebase-adminsdk-...
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 ```
 
+The runtime also accepts these aliases for compatibility with older deployments:
+
+```env
+FIREBASE_ADMIN_PROJECT_ID=your-project-id
+FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk-...
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+FIREBASE_ADMIN_SDK_JSON={"project_id":"...","client_email":"...","private_key":"..."}
+```
+
 ## Smoke Check
 
 1. Open `/home`.

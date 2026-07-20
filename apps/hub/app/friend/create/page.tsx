@@ -59,6 +59,13 @@ export default function FriendCreatePage() {
   }, []);
 
   const roomFailureMessage = (reason?: string, detail?: unknown) => {
+    const detailMessage =
+      typeof detail === "string"
+        ? detail
+        : detail && typeof detail === "object" && "message" in detail
+          ? String((detail as { message?: unknown }).message ?? "")
+          : "";
+
     if (reason === "no-shared-store") {
       return "フレンド対戦のサーバー同期に必要な共有ストアが未設定です。ローカル確認ではサーバー同期をOFFにしてください。";
     }
@@ -69,7 +76,7 @@ export default function FriendCreatePage() {
       return "共有ストアへの保存に失敗しました。KV/Redis設定を確認してください。";
     }
 
-    const suffix = detail ? ` (${String(detail)})` : "";
+    const suffix = detailMessage ? ` (${detailMessage})` : "";
     return `ルーム作成に失敗しました${reason ? `: ${reason}` : ""}${suffix}`;
   };
 

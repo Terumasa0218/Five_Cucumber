@@ -7,6 +7,36 @@ const require = createRequire(import.meta.url);
 let adminAuth: { verifyIdToken(token: string): Promise<{ uid: string }> } | null = null;
 let authInitAttempted = false;
 
+function getFirebaseServiceAccountJson(): string | undefined {
+  return process.env.FIREBASE_ADMIN_SDK_JSON ?? process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+}
+
+function getFirebaseAdminProjectId(): string | undefined {
+  return (
+    process.env.FIREBASE_ADMIN_PROJECT_ID ??
+    process.env.FIREBASE_PROJECT_ID ??
+    process.env.GOOGLE_CLOUD_PROJECT ??
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  );
+}
+
+function getFirebaseAdminClientEmail(): string | undefined {
+  return process.env.FIREBASE_ADMIN_CLIENT_EMAIL ?? process.env.FIREBASE_CLIENT_EMAIL;
+}
+
+function getFirebaseAdminPrivateKey(): string | undefined {
+  return process.env.FIREBASE_ADMIN_PRIVATE_KEY ?? process.env.FIREBASE_PRIVATE_KEY;
+}
+
+export function getFirebaseAdminEnvStatus() {
+  return {
+    hasServiceAccountJson: Boolean(getFirebaseServiceAccountJson()),
+    hasProjectId: Boolean(getFirebaseAdminProjectId()),
+    hasClientEmail: Boolean(getFirebaseAdminClientEmail()),
+    hasPrivateKey: Boolean(getFirebaseAdminPrivateKey()),
+  };
+}
+
 function getAdminAuth(): { verifyIdToken(token: string): Promise<{ uid: string }> } | null {
   if (adminAuth) return adminAuth;
   if (authInitAttempted) return null;
@@ -27,7 +57,7 @@ function getAdminAuth(): { verifyIdToken(token: string): Promise<{ uid: string }
     if (appMod.getApps().length > 0) {
       app = appMod.getApp();
     } else {
-      const serviceAccountJson = process.env.FIREBASE_ADMIN_SDK_JSON;
+      const serviceAccountJson = getFirebaseServiceAccountJson();
       if (serviceAccountJson) {
         const serviceAccount = JSON.parse(serviceAccountJson) as {
           project_id: string;
@@ -42,9 +72,9 @@ function getAdminAuth(): { verifyIdToken(token: string): Promise<{ uid: string }
           }),
         });
       } else {
-        const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID ?? process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-        const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
-        const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY;
+        const projectId = getFirebaseAdminProjectId();
+        const clientEmail = getFirebaseAdminClientEmail();
+        const privateKey = getFirebaseAdminPrivateKey();
 
         if (projectId && clientEmail && privateKey) {
           app = appMod.initializeApp({

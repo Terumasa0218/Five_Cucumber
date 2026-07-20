@@ -1,4 +1,13 @@
-import { applyMove, endTrick, finalRound, GameConfig, GameState, Move, SeededRng } from '@/lib/game-core';
+import {
+  applyMove,
+  endTrick,
+  finalRound,
+  GameConfig,
+  GameState,
+  Move,
+  RngState,
+  SeededRng,
+} from '@/lib/game-core';
 import {
   getRoomGameSnapshot,
   saveRoomGameSnapshot
@@ -91,7 +100,7 @@ export async function getGame(roomId: string): Promise<GameSnapshot | null> {
 
 export async function initGame(
   roomId: string,
-  snapshot: { state: GameState; config: GameConfig }
+  snapshot: { state: GameState; config: GameConfig; rngState?: RngState }
 ): Promise<GameSnapshot> {
   const existing = await loadSnapshot(roomId);
   if (existing) return existing;
@@ -100,7 +109,8 @@ export async function initGame(
     state: snapshot.state,
     config: snapshot.config,
     version: 1,
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
+    rngState: snapshot.rngState,
   };
   await persistSnapshot(roomId, snap);
   return snap;

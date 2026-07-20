@@ -205,20 +205,31 @@ function FriendPlayContent() {
       if (isHost) {
         const rng = new SeededRngClass(config.seed);
         const state = createInitialState(config, rng);
-        gameRef.current = { state, config, controllers, rng };
-        setGameState(state);
-        setGameOver(false);
-        setGameResults([]);
         try {
           const data = await apiJson<FriendGameResponse>(`/api/friend/game/${roomCode}`, {
             method: 'POST',
-            json: { type: 'init', nickname, state, config },
+            json: { type: 'init', nickname, state, config, rngState: rng.getState() },
           });
           if (data.ok) {
+            const syncedRng = data.snapshot.rngState
+              ? SeededRngClass.fromState(data.snapshot.rngState)
+              : rng;
+            gameRef.current = {
+              state: data.snapshot.state,
+              config: data.snapshot.config,
+              controllers,
+              rng: syncedRng,
+            };
+            setGameState(data.snapshot.state);
+            setGameOver(false);
+            setGameResults([]);
             lastVersionRef.current = data.snapshot.version ?? 1;
+          } else {
+            throw new Error(data.reason);
           }
         } catch (initError) {
           debugWarn('[Friend Game] Failed to persist snapshot:', initError);
+          setToast('ゲーム初期化に失敗しました。サーバー同期設定を確認してください。');
         }
       } else {
         // ゲストはサーバーのスナッ��ショットを取得するまで待機
@@ -228,7 +239,9 @@ function FriendPlayContent() {
             try {
               const data = await apiJson<FriendGameResponse>(`/api/friend/game/${roomCode}?nickname=${encodeURIComponent(nickname)}`);
               if (data.ok) {
-                const rng = new SeededRngClass(data.snapshot.config.seed);
+                const rng = data.snapshot.rngState
+                  ? SeededRngClass.fromState(data.snapshot.rngState)
+                  : new SeededRngClass(data.snapshot.config.seed);
                 gameRef.current = {
                   state: data.snapshot.state,
                   config: data.snapshot.config,
@@ -275,6 +288,9 @@ function FriendPlayContent() {
                 if (gameRef.current) {
                   gameRef.current.state = payload.snapshot.state;
                   gameRef.current.config = payload.snapshot.config;
+                  if (payload.snapshot.rngState) {
+                    gameRef.current.rng = SeededRngClass.fromState(payload.snapshot.rngState);
+                  }
                 }
                 setGameState(payload.snapshot.state);
                 // ゲーム終了チェック
@@ -326,6 +342,10 @@ function FriendPlayContent() {
         lastVersionRef.current = data.snapshot.version ?? lastVersionRef.current + 1;
         if (gameRef.current) {
           gameRef.current.state = data.snapshot.state;
+          gameRef.current.config = data.snapshot.config;
+          if (data.snapshot.rngState) {
+            gameRef.current.rng = SeededRng.fromState(data.snapshot.rngState);
+          }
         }
         setGameState(data.snapshot.state);
         checkGameOver(data.snapshot.state);

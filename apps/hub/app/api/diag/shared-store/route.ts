@@ -1,6 +1,6 @@
 export const runtime = 'nodejs';
 
-import { hasSharedStoreConfig, kvGetJSON, kvSaveJSON } from '@/lib/kv';
+import { getSharedStoreDiagnostics, hasSharedStoreConfig, kvGetJSON, kvSaveJSON } from '@/lib/kv';
 import { NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
 
@@ -27,7 +27,13 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ hasKV, hasVercelRedisRest, canPersist, detail });
+  return NextResponse.json({
+    hasKV,
+    hasVercelRedisRest,
+    canPersist,
+    detail,
+    diagnostics: getSharedStoreDiagnostics(),
+  });
 }
 
 

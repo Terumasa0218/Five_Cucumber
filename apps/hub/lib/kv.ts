@@ -26,6 +26,20 @@ export function hasSharedStoreConfig(): boolean {
   return getSharedStoreEnvPair() !== null;
 }
 
+export function getSharedStoreDiagnostics() {
+  return {
+    sharedConfigured: hasSharedStoreConfig(),
+    flags: {
+      kv: Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN),
+      upstashKv: Boolean(process.env.UPSTASH_KV_REST_URL && process.env.UPSTASH_KV_REST_TOKEN),
+      upstashRedis: Boolean(
+        process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN,
+      ),
+      vercelRedis: Boolean(process.env.VERCEL_REDIS_URL && process.env.VERCEL_REDIS_TOKEN),
+    },
+  };
+}
+
 function normalizeKvEnvironment(): void {
   if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) return;
 
