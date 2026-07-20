@@ -180,16 +180,16 @@ function createRoundedRectShape(width: number, height: number, radius: number): 
 
 function RoundedCardBody({ color }: { color: string }) {
   const shape = useMemo(
-    () => createRoundedRectShape(cardGeometry.width, cardGeometry.height, 0.055),
+    () => createRoundedRectShape(cardGeometry.width, cardGeometry.height, 0.05),
     []
   );
   const extrudeSettings = useMemo(
     () => ({
       depth: cardGeometry.thickness,
       bevelEnabled: true,
-      bevelSegments: 3,
-      bevelSize: 0.007,
-      bevelThickness: 0.002,
+      bevelSegments: 2,
+      bevelSize: 0.003,
+      bevelThickness: 0.001,
     }),
     []
   );
@@ -198,11 +198,11 @@ function RoundedCardBody({ color }: { color: string }) {
     <mesh
       castShadow
       receiveShadow
-      position={[0, cardGeometry.thickness + 0.002, 0]}
+      position={[0, cardGeometry.thickness + 0.001, 0]}
       rotation={[Math.PI / 2, 0, 0]}
     >
       <extrudeGeometry args={[shape, extrudeSettings]} />
-      <meshStandardMaterial color={color} roughness={0.84} metalness={0} />
+      <meshStandardMaterial color={color} roughness={0.9} metalness={0} />
     </mesh>
   );
 }
@@ -217,7 +217,7 @@ function RoundedCardSurface({ slot }: { slot: BattleV2AssetSlot }) {
     <mesh
       castShadow
       receiveShadow
-      position={[0, cardGeometry.thickness + 0.008, 0]}
+      position={[0, cardGeometry.thickness + 0.006, 0]}
       rotation={[-Math.PI / 2, 0, 0]}
     >
       <shapeGeometry args={[shape]} />
@@ -234,11 +234,50 @@ function RoundedCardOverlay({ color, opacity }: { color: string; opacity: number
 
   return (
     <mesh
-      position={[0, cardGeometry.thickness + 0.02, 0]}
+      position={[0, cardGeometry.thickness + 0.018, 0]}
       rotation={[-Math.PI / 2, 0, 0]}
     >
       <shapeGeometry args={[shape]} />
       <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+    </mesh>
+  );
+}
+
+function FlatRoundedPanel({
+  width,
+  height,
+  radius,
+  color,
+  opacity = 1,
+  y = 0,
+  renderOrder = 1,
+  depthTest = true,
+}: {
+  width: number;
+  height: number;
+  radius: number;
+  color: string;
+  opacity?: number;
+  y?: number;
+  renderOrder?: number;
+  depthTest?: boolean;
+}) {
+  const shape = useMemo(() => createRoundedRectShape(width, height, radius), [
+    height,
+    radius,
+    width,
+  ]);
+
+  return (
+    <mesh renderOrder={renderOrder} position={[0, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <shapeGeometry args={[shape]} />
+      <meshBasicMaterial
+        color={color}
+        transparent={opacity < 1}
+        opacity={opacity}
+        depthTest={depthTest}
+        depthWrite={false}
+      />
     </mesh>
   );
 }
@@ -261,29 +300,82 @@ function CameraRig() {
   return null;
 }
 
-function CardStatusOutline({ color, opacity }: { color: string; opacity: number }) {
-  const y = cardGeometry.thickness + 0.018;
-  const width = cardGeometry.width * 0.99;
-  const height = cardGeometry.height * 0.99;
-  const strip = 0.024;
+function CardLineFrame({
+  color,
+  opacity,
+  inset = 0.045,
+  strip = 0.012,
+  y = cardGeometry.thickness + 0.013,
+}: {
+  color: string;
+  opacity: number;
+  inset?: number;
+  strip?: number;
+  y?: number;
+}) {
+  const width = cardGeometry.width - inset * 2;
+  const height = cardGeometry.height - inset * 2;
 
   return (
     <group>
-      <mesh position={[0, y, -height / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh renderOrder={8} position={[0, y, -height / 2]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[width, strip]} />
         <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
       </mesh>
-      <mesh position={[0, y, height / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh renderOrder={8} position={[0, y, height / 2]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[width, strip]} />
         <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
       </mesh>
-      <mesh position={[-width / 2, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh renderOrder={8} position={[-width / 2, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[strip, height]} />
         <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
       </mesh>
-      <mesh position={[width / 2, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh renderOrder={8} position={[width / 2, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[strip, height]} />
         <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+function CardStatusOutline({ color, opacity }: { color: string; opacity: number }) {
+  const y = cardGeometry.thickness + 0.02;
+  const width = cardGeometry.width * 0.99;
+  const height = cardGeometry.height * 0.99;
+  const strip = 0.018;
+
+  return (
+    <group>
+      <mesh renderOrder={12} position={[0, y, -height / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[width, strip]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+      </mesh>
+      <mesh renderOrder={12} position={[0, y, height / 2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[width, strip]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+      </mesh>
+      <mesh renderOrder={12} position={[-width / 2, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[strip, height]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+      </mesh>
+      <mesh renderOrder={12} position={[width / 2, y, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[strip, height]} />
+        <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
+      </mesh>
+    </group>
+  );
+}
+
+function CardBackMark() {
+  return (
+    <group>
+      <mesh position={[0, cardGeometry.thickness + 0.014, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.16, 0.175, 40]} />
+        <meshBasicMaterial color="#d8c98d" transparent opacity={0.72} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, cardGeometry.thickness + 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[0.42, 0.035]} />
+        <meshBasicMaterial color="#d8c98d" transparent opacity={0.52} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -309,74 +401,104 @@ function Card3D({
   const isDisabled = status === 'disabled';
   const outlineColor =
     status === 'playable'
-      ? '#42a8ff'
+      ? '#2f91d4'
       : status === 'discard'
-        ? '#ff3647'
+        ? '#c94335'
         : selected
-          ? '#f3d36a'
+          ? '#d6ae46'
           : null;
-  const faceTextColor = isDisabled ? '#7e827b' : value === 15 ? '#b03a2e' : '#1f1b13';
-  const sideColor = isDisabled ? '#555a51' : battleV2Assets.cardSide.color;
+  const faceTextColor = isDisabled ? '#777b72' : value === 15 ? '#c73a2e' : '#1f1b13';
+  const sideColor = isDisabled ? '#a7aa9d' : battleV2Assets.cardSide.color;
+  const frameColor = faceUp ? '#b39a61' : '#d6c583';
 
   return (
     <group onPointerDown={handlePointerDown}>
       <RoundedCardBody color={sideColor} />
       <RoundedCardSurface slot={faceUp ? battleV2Assets.cardFace : battleV2Assets.cardBack} />
+      <CardLineFrame color={frameColor} opacity={faceUp ? 0.72 : 0.62} />
+      <CardLineFrame
+        color={faceUp ? '#2f7049' : '#102f22'}
+        opacity={faceUp ? 0.26 : 0.42}
+        inset={0.078}
+        strip={0.006}
+        y={cardGeometry.thickness + 0.014}
+      />
 
       {faceUp ? (
         <Suspense fallback={null}>
           <Text
-            position={[0, cardGeometry.thickness + 0.011, -0.08]}
+            position={[0, cardGeometry.thickness + 0.018, -0.06]}
             rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.24}
+            fontSize={0.29}
             color={faceTextColor}
             anchorX="center"
             anchorY="middle"
+            material-depthWrite={false}
           >
             {String(value)}
           </Text>
           <Text
-            position={[0, cardGeometry.thickness + 0.012, 0.22]}
+            position={[0, cardGeometry.thickness + 0.019, 0.25]}
             rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.08}
-            color={isDisabled ? '#8a8d83' : '#267842'}
+            fontSize={0.065}
+            color={isDisabled ? '#8a8d83' : '#237b48'}
             anchorX="center"
             anchorY="middle"
+            material-depthWrite={false}
           >
             cucumber
           </Text>
-        </Suspense>
-      ) : (
-        <Suspense fallback={null}>
           <Text
-            position={[0, cardGeometry.thickness + 0.011, 0]}
+            position={[-0.25, cardGeometry.thickness + 0.019, -0.34]}
             rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.11}
-            color="#d6c488"
+            fontSize={0.075}
+            color={faceTextColor}
             anchorX="center"
             anchorY="middle"
+            material-depthWrite={false}
           >
-            V2
+            {String(value)}
+          </Text>
+          <Text
+            position={[0.25, cardGeometry.thickness + 0.019, 0.34]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            fontSize={0.075}
+            color={faceTextColor}
+            anchorX="center"
+            anchorY="middle"
+            material-depthWrite={false}
+          >
+            {String(value)}
           </Text>
         </Suspense>
+      ) : (
+        <>
+          <CardBackMark />
+          <Suspense fallback={null}>
+            <Text
+              position={[0, cardGeometry.thickness + 0.018, 0]}
+              rotation={[-Math.PI / 2, 0, 0]}
+              fontSize={0.085}
+              color="#e1d394"
+              anchorX="center"
+              anchorY="middle"
+              material-depthWrite={false}
+            >
+              C5
+            </Text>
+          </Suspense>
+        </>
       )}
 
       {outlineColor ? (
         <CardStatusOutline
           color={outlineColor}
-          opacity={status === 'discard' ? 0.96 : 0.82}
+          opacity={status === 'discard' ? 0.98 : 0.88}
         />
       ) : null}
 
       {isDisabled ? (
-        <RoundedCardOverlay color="#6c7168" opacity={0.58} />
-      ) : null}
-
-      {selected ? (
-        <mesh position={[0, 0.008, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.48, 0.54, 48]} />
-          <meshBasicMaterial color="#f3d36a" transparent opacity={0.9} />
-        </mesh>
+        <RoundedCardOverlay color="#9da196" opacity={0.56} />
       ) : null}
     </group>
   );
@@ -456,24 +578,34 @@ function getMarketStageTitle(stage: BattleV2MarketStage): string {
 
 function MarketStageTitle3D({ stage }: { stage: BattleV2MarketStage }) {
   return (
-    <group position={[0, tableCardY + 0.06, -1.48]} rotation={screenFacingRotation}>
-      <mesh renderOrder={50} position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[2.6, 0.42]} />
-        <meshBasicMaterial
-          color="#111a13"
-          transparent
-          opacity={0.86}
-          depthTest={false}
-          depthWrite={false}
-        />
-      </mesh>
+    <group position={[0, tableCardY + 0.08, -1.5]} rotation={screenFacingRotation}>
+      <FlatRoundedPanel
+        width={2.44}
+        height={0.38}
+        radius={0.08}
+        color="#fff1c9"
+        opacity={0.94}
+        y={0.02}
+        renderOrder={50}
+        depthTest={false}
+      />
+      <FlatRoundedPanel
+        width={2.58}
+        height={0.5}
+        radius={0.12}
+        color="#c9a24a"
+        opacity={0.3}
+        y={0.012}
+        renderOrder={49}
+        depthTest={false}
+      />
       <Suspense fallback={null}>
         <Text
           renderOrder={51}
           position={[0, 0.052, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
-          fontSize={0.19}
-          color="#f7edcd"
+          fontSize={0.17}
+          color="#21180d"
           anchorX="center"
           anchorY="middle"
           material-depthTest={false}
@@ -495,11 +627,11 @@ function MarketCardRow3D({
   canTake: boolean;
   onTakeCard?: (card: number) => void;
 }) {
-  const spacing = cards.length <= 1 ? 0 : Math.min(0.84, 4.8 / Math.max(1, cards.length - 1));
+  const spacing = cards.length <= 1 ? 0 : Math.min(0.86, 5.0 / Math.max(1, cards.length - 1));
   const mid = (cards.length - 1) / 2;
 
   return (
-    <group position={[0, tableCardY + 0.036, -0.62]} scale={1.06}>
+    <group position={[0, tableCardY + 0.038, -0.58]} scale={1.08}>
       {cards.map((value, index) => (
         <group
           key={`market-card-${value}-${index}`}
@@ -521,16 +653,21 @@ function MarketCardRow3D({
 function MarketPassMarker({ label = 'PASS' }: { label?: string }) {
   return (
     <group>
-      <mesh position={[0, cardGeometry.thickness + 0.016, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[cardGeometry.width * 1.1, cardGeometry.height * 0.48]} />
-        <meshBasicMaterial color="#1c261d" transparent opacity={0.92} depthWrite={false} />
-      </mesh>
+      <FlatRoundedPanel
+        width={cardGeometry.width * 1.06}
+        height={cardGeometry.height * 0.46}
+        radius={0.06}
+        color="#fff1c9"
+        opacity={0.9}
+        y={cardGeometry.thickness + 0.016}
+        renderOrder={9}
+      />
       <Suspense fallback={null}>
         <Text
           position={[0, cardGeometry.thickness + 0.025, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
           fontSize={0.12}
-          color="#c9bc8c"
+          color="#483315"
           anchorX="center"
           anchorY="middle"
         >
@@ -544,10 +681,13 @@ function MarketPassMarker({ label = 'PASS' }: { label?: string }) {
 function MarketOrderLabel({ rank }: { rank: number }) {
   return (
     <group position={[0, cardGeometry.thickness + 0.034, -0.6]}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[0.58, 0.22]} />
-        <meshBasicMaterial color="#f1c84b" transparent opacity={0.9} depthWrite={false} />
-      </mesh>
+      <FlatRoundedPanel
+        width={0.58}
+        height={0.22}
+        radius={0.045}
+        color="#f1d77a"
+        opacity={0.94}
+      />
       <Suspense fallback={null}>
         <Text
           position={[0, 0.016, 0]}
@@ -752,25 +892,33 @@ function MarketScene3D({
 function Table3D() {
   return (
     <group>
-      <mesh castShadow receiveShadow position={[0, -0.05, 0]} scale={[1.92, 0.08, 1.02]}>
-        <cylinderGeometry args={[3.35, 3.55, 0.28, 96]} />
-        <TextureMaterial slot={battleV2Assets.tableRim} />
+      <mesh receiveShadow position={[0, -0.23, 0]} scale={[2.18, 0.035, 1.1]}>
+        <cylinderGeometry args={[3.55, 3.72, 0.08, 128]} />
+        <meshStandardMaterial color="#080a08" roughness={0.94} metalness={0} />
       </mesh>
-      <mesh receiveShadow position={[0, 0.17, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.9, 0.9, 1]}>
-        <circleGeometry args={[3.12, 96]} />
-        <meshStandardMaterial color={battleV2Assets.table.color} roughness={0.92} metalness={0} />
+      <mesh castShadow receiveShadow position={[0, -0.045, 0]} scale={[2.08, 0.07, 1.02]}>
+        <cylinderGeometry args={[3.34, 3.46, 0.18, 128]} />
+        <meshStandardMaterial color="#4c2d13" roughness={0.72} metalness={0.03} />
       </mesh>
-      <mesh receiveShadow position={[0, 0.182, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.82, 0.85, 1]}>
-        <ringGeometry args={[2.92, 3.02, 128]} />
-        <meshBasicMaterial color="#d1a354" transparent opacity={0.36} depthWrite={false} />
+      <mesh receiveShadow position={[0, 0.08, 0]} scale={[2.01, 0.04, 0.96]}>
+        <cylinderGeometry args={[3.28, 3.32, 0.08, 128]} />
+        <meshStandardMaterial color={battleV2Assets.tableRim.color} roughness={0.62} metalness={0.05} />
       </mesh>
-      <mesh receiveShadow position={[0, 0.105, 0]} scale={[1.82, 0.035, 0.9]}>
-        <cylinderGeometry args={[3.18, 3.18, 0.08, 96]} />
-        <TextureMaterial slot={battleV2Assets.table} />
+      <mesh receiveShadow position={[0, 0.185, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.92, 0.86, 1]}>
+        <circleGeometry args={[3.08, 128]} />
+        <meshStandardMaterial color={battleV2Assets.table.color} roughness={0.98} metalness={0} />
       </mesh>
-      <mesh receiveShadow position={[0, -0.2, 0]} scale={[2.08, 0.035, 1.08]}>
-        <cylinderGeometry args={[3.5, 3.7, 0.08, 96]} />
-        <meshStandardMaterial color="#11120f" roughness={0.9} metalness={0} />
+      <mesh receiveShadow position={[0, 0.192, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.83, 0.8, 1]}>
+        <ringGeometry args={[2.82, 2.91, 160]} />
+        <meshBasicMaterial color="#d6b96d" transparent opacity={0.34} depthWrite={false} />
+      </mesh>
+      <mesh receiveShadow position={[0, 0.195, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.54, 0.66, 1]}>
+        <ringGeometry args={[2.76, 2.78, 160]} />
+        <meshBasicMaterial color="#f4d78f" transparent opacity={0.16} depthWrite={false} />
+      </mesh>
+      <mesh receiveShadow position={[0, 0.198, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.9, 0.86, 1]}>
+        <circleGeometry args={[3.02, 128]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.025} depthWrite={false} />
       </mesh>
     </group>
   );
@@ -890,43 +1038,41 @@ function PlayerName3D({
   active: boolean;
   compact?: boolean;
 }) {
-  const activeSize: [number, number] = compact ? [1.28, 0.38] : [1.74, 0.5];
-  const panelSize: [number, number] = compact ? [1.12, 0.26] : [1.5, 0.32];
-  const fontSize = compact ? 0.105 : 0.13;
+  const activeSize: [number, number] = compact ? [1.32, 0.36] : [1.72, 0.46];
+  const panelSize: [number, number] = compact ? [1.16, 0.24] : [1.5, 0.3];
+  const fontSize = compact ? 0.095 : 0.12;
 
   return (
     <group position={pose.position} rotation={pose.rotation} scale={pose.scale}>
       {active ? (
-        <mesh renderOrder={42} position={[0, 0.032, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={activeSize} />
-          <meshBasicMaterial
-            color="#f1c84b"
-            transparent
-            opacity={0.86}
-            depthTest={false}
-            depthWrite={false}
-          />
-        </mesh>
-      ) : null}
-      <mesh renderOrder={43} position={[0, 0.038, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={panelSize} />
-        <meshStandardMaterial
-          color={active ? '#f4d66d' : '#152119'}
-          emissive={active ? '#d7a71f' : '#000000'}
-          emissiveIntensity={active ? 0.28 : 0}
+        <FlatRoundedPanel
+          width={activeSize[0]}
+          height={activeSize[1]}
+          radius={0.075}
+          color="#e9c957"
+          opacity={0.86}
+          y={0.03}
+          renderOrder={42}
           depthTest={false}
-          depthWrite={false}
-          roughness={0.7}
-          metalness={0.01}
         />
-      </mesh>
+      ) : null}
+      <FlatRoundedPanel
+        width={panelSize[0]}
+        height={panelSize[1]}
+        radius={0.055}
+        color={active ? '#fff1bd' : '#f4ead0'}
+        opacity={active ? 0.98 : 0.88}
+        y={0.04}
+        renderOrder={43}
+        depthTest={false}
+      />
       <Suspense fallback={null}>
         <Text
           renderOrder={44}
           position={[0, 0.07, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
           fontSize={fontSize}
-          color={active ? '#11130c' : '#e7dcc6'}
+          color="#1e1a13"
           anchorX="center"
           anchorY="middle"
           material-depthTest={false}
@@ -1061,15 +1207,15 @@ function BattleSceneContents({
   return (
     <>
       <CameraRig />
-      <ambientLight intensity={0.38} />
+      <ambientLight intensity={0.5} />
       <directionalLight
         castShadow
-        position={[2.8, 5.4, 4.2]}
-        intensity={2.1}
+        position={[2.6, 5.8, 4.4]}
+        intensity={1.85}
         shadow-mapSize-width={1536}
         shadow-mapSize-height={1536}
       />
-      <pointLight position={[-2, 2.5, 3]} intensity={0.85} color="#ffe5b3" />
+      <pointLight position={[-2.2, 2.8, 3.2]} intensity={0.62} color="#ffe0ae" />
       <group
         rotation={sceneConfig.rotation}
         position={sceneConfig.position}
@@ -1105,15 +1251,15 @@ function BattleSceneContents({
             const isSelf = logicalIndex === safeViewerIndex;
             const opponentHandPosition = isSelf
               ? seat.position
-              : withY(offsetFromTableCenter(seat.position, -0.42), tableCardY);
+              : withY(offsetFromTableCenter(seat.position, -0.3), tableCardY);
             const opponentNameDistance =
-              seat.labelAnchor === 'left' || seat.labelAnchor === 'right' ? 0.54 : 0.82;
+              seat.labelAnchor === 'left' || seat.labelAnchor === 'right' ? -0.95 : 0.82;
             const namePose: CardPose = {
               position: isSelf
-                ? [seat.position[0], seat.position[1] + 0.04, seat.position[2] + 0.9]
-                : offsetFromTableCenter(seat.position, opponentNameDistance, 0.1),
+                ? [seat.position[0], seat.position[1] + 0.1, seat.position[2] + 1.02]
+                : offsetFromTableCenter(seat.position, opponentNameDistance, 0.18),
               rotation: screenFacingRotation,
-              scale: isSelf ? 1.02 : 0.82,
+              scale: isSelf ? 1.02 : 0.78,
             };
 
             return (

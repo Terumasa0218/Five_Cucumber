@@ -15,25 +15,25 @@ export type BattleV2AssetConfig = {
 
 export const battleV2Assets: BattleV2AssetConfig = {
   backgroundImageUrl: null,
-  backgroundColor: '#151916',
+  backgroundColor: '#111611',
   table: {
-    color: '#1f6b43',
+    color: '#097440',
     textureUrl: null,
   },
   tableRim: {
-    color: '#7d5a24',
+    color: '#6f441d',
     textureUrl: null,
   },
   cardFace: {
-    color: '#f5ead0',
+    color: '#fff5da',
     textureUrl: null,
   },
   cardBack: {
-    color: '#214d34',
+    color: '#17452f',
     textureUrl: null,
   },
   cardSide: {
-    color: '#d2ba7a',
+    color: '#eadfbd',
     textureUrl: null,
   },
 };
