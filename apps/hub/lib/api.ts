@@ -1,6 +1,17 @@
 export type ApiParseMode = 'json' | 'text' | 'auto' | 'none';
 
-export type ApiRequestInit = RequestInit & { json?: unknown; parseAs?: ApiParseMode };
+export type ClientAuthRequestFailure = {
+  reason: 'missing-client-token';
+  code?: string;
+  message?: string;
+  detail?: unknown;
+};
+
+export type ApiRequestInit = RequestInit & {
+  json?: unknown;
+  parseAs?: ApiParseMode;
+  authRequired?: boolean;
+};
 
 export interface ApiResponse<T> {
   data: T;
@@ -21,6 +32,18 @@ export class ApiRequestError<T = unknown> extends Error {
   }
 }
 
+export class ApiClientAuthError extends Error {
+  constructor(
+    message: string,
+    public readonly failure: ClientAuthRequestFailure,
+    public readonly method: string,
+    public readonly url: string
+  ) {
+    super(message);
+    this.name = 'ApiClientAuthError';
+  }
+}
+
 export function apiUrl(path: string): string {
   if (!path) return '/api/ping';
   if (path.startsWith('http://') || path.startsWith('https://')) {
@@ -31,10 +54,44 @@ export function apiUrl(path: string): string {
   return path;
 }
 
+function isProtectedApiPath(url: string): boolean {
+  return url.startsWith('/api/friend/');
+}
+
+function summarizeClientAuthError(error: unknown): ClientAuthRequestFailure {
+  const record = error && typeof error === 'object' ? (error as Record<string, unknown>) : {};
+  const detail = record.detail;
+  const detailRecord = detail && typeof detail === 'object' ? (detail as Record<string, unknown>) : {};
+  const code =
+    typeof detailRecord.code === 'string'
+      ? detailRecord.code
+      : typeof record.code === 'string'
+        ? record.code
+        : undefined;
+  const message =
+    typeof detailRecord.message === 'string'
+      ? detailRecord.message
+      : error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : undefined;
+
+  return {
+    reason: 'missing-client-token',
+    code,
+    message,
+    detail,
+  };
+}
+
 export async function apiRequest<T = unknown>(path: string, init: ApiRequestInit = {}): Promise<ApiResponse<T>> {
-  const { json, parseAs = 'json', cache, ...rest } = init;
+  const { json, parseAs = 'json', cache, authRequired, ...rest } = init;
   const url = apiUrl(path);
+  const method = rest.method ?? 'GET';
+  const requiresAuth = authRequired ?? isProtectedApiPath(url);
   const headers = new Headers(rest.headers);
+  let clientAuthError: unknown = null;
   if (typeof window !== 'undefined' && !headers.has('Authorization')) {
     try {
       const { getClientAuthToken } = await import('@/lib/clientAuth');
@@ -42,9 +99,18 @@ export async function apiRequest<T = unknown>(path: string, init: ApiRequestInit
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
-    } catch {
-      // 認証情報が取得できない場合は未認証として処理
+    } catch (error) {
+      clientAuthError = error;
     }
+  }
+  if (requiresAuth && typeof window !== 'undefined' && !headers.has('Authorization')) {
+    const failure = summarizeClientAuthError(clientAuthError);
+    throw new ApiClientAuthError(
+      `[API ${method} ${url}] Firebase client authentication failed`,
+      failure,
+      method,
+      url
+    );
   }
   if (json !== undefined) {
     headers.set('Content-Type', 'application/json');
@@ -55,7 +121,6 @@ export async function apiRequest<T = unknown>(path: string, init: ApiRequestInit
     body: json !== undefined ? JSON.stringify(json) : rest.body,
     cache: cache ?? 'no-store',
   });
-  const method = rest.method ?? 'GET';
 
   const parseJson = async () => response.clone().json().catch(() => undefined);
   const parseText = async () => response.clone().text().catch(() => '');

@@ -1,3 +1,5 @@
+import { ApiClientAuthError } from '@/lib/api';
+
 type AuthFailurePayload = {
   reason?: string;
   detail?: unknown;
@@ -43,4 +45,38 @@ export function friendAuthFailureMessage(status: number, payload?: AuthFailurePa
   }
 
   return null;
+}
+
+export function friendClientAuthFailureMessage(error: unknown): string | null {
+  if (!(error instanceof ApiClientAuthError)) return null;
+
+  const code = error.failure.code;
+  const detail = error.failure.detail as
+    | {
+        reason?: string;
+        firebaseClient?: {
+          missingKeys?: string[];
+        };
+      }
+    | undefined;
+  const missingKeys = detail?.firebaseClient?.missingKeys ?? [];
+
+  if (detail?.reason === 'missing-client-config' || missingKeys.length > 0) {
+    return `VercelのFirebase Client設定が不足しています。${missingKeys.join(' / ')} を設定して再デプロイしてください。`;
+  }
+
+  if (code === 'auth/operation-not-allowed') {
+    return 'Firebase Authentication の Anonymous 認証が無効です。Firebase Consoleで「匿名」を有効にしてください。';
+  }
+
+  if (code === 'auth/unauthorized-domain') {
+    return 'Firebase Authentication の承認済みドメインに five-cucumber-hub.vercel.app が登録されていません。Firebase Consoleで追加してください。';
+  }
+
+  if (code === 'auth/invalid-api-key') {
+    return 'Firebase Client の API key が正しくありません。Vercelの NEXT_PUBLIC_FIREBASE_API_KEY を確認してください。';
+  }
+
+  const suffix = code ? ` (${code})` : error.failure.message ? ` (${error.failure.message})` : '';
+  return `ブラウザ側のFirebase匿名ログインに失敗しました${suffix}`;
 }

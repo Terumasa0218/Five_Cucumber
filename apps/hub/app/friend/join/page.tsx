@@ -1,7 +1,7 @@
 'use client';
 
 import { apiJson, ApiRequestError } from "@/lib/api";
-import { friendAuthFailureMessage } from "@/lib/friendApiErrors";
+import { friendAuthFailureMessage, friendClientAuthFailureMessage } from "@/lib/friendApiErrors";
 import { normalizeRoomId } from "@/lib/friend-room";
 import { getNickname } from "@/lib/profile";
 import { getRoom, joinRoom, upsertLocalRoom } from "@/lib/roomSystemUnified";
@@ -44,6 +44,9 @@ export default function FriendJoinPage() {
   };
 
   const backendFailureMessage = (err: unknown) => {
+    const clientAuthMessage = friendClientAuthFailureMessage(err);
+    if (clientAuthMessage) return clientAuthMessage;
+
     if (err instanceof ApiRequestError) {
       const body = err.response.data as (RoomResponse & { error?: string }) | undefined;
       const authMessage = friendAuthFailureMessage(err.response.status, body);

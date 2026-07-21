@@ -22,7 +22,7 @@ import {
   type Euler3,
   type Vec3,
 } from '@/lib/battle-v2/layout';
-import { friendAuthFailureMessage } from '@/lib/friendApiErrors';
+import { friendAuthFailureMessage, friendClientAuthFailureMessage } from '@/lib/friendApiErrors';
 import { normalizeRoomId } from '@/lib/friend-room';
 import {
   GameConfig,
@@ -170,6 +170,9 @@ function FriendPlayContent() {
   };
 
   const getOnlineFailureMessage = (error: unknown, fallback: string): string => {
+    const clientAuthMessage = friendClientAuthFailureMessage(error);
+    if (clientAuthMessage) return clientAuthMessage;
+
     if (error instanceof ApiRequestError) {
       const authMessage = friendAuthFailureMessage(
         error.response.status,

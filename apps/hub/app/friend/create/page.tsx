@@ -2,7 +2,7 @@
 
 import { RoomSettingsForm } from "@/components/ui";
 import { apiJson, ApiRequestError } from "@/lib/api";
-import { friendAuthFailureMessage } from "@/lib/friendApiErrors";
+import { friendAuthFailureMessage, friendClientAuthFailureMessage } from "@/lib/friendApiErrors";
 import { getNickname } from "@/lib/profile";
 import { createRoom, getRoom, upsertLocalRoom } from "@/lib/roomSystemUnified";
 import { USE_SERVER_SYNC } from "@/lib/serverSync";
@@ -82,6 +82,9 @@ export default function FriendCreatePage() {
   };
 
   const backendFailureMessage = (err: unknown) => {
+    const clientAuthMessage = friendClientAuthFailureMessage(err);
+    if (clientAuthMessage) return clientAuthMessage;
+
     if (err instanceof ApiRequestError) {
       const body = err.response.data as (RoomResponse & { error?: string }) | undefined;
       const authMessage = friendAuthFailureMessage(err.response.status, body);

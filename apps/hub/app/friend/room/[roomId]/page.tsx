@@ -2,7 +2,7 @@
 
 import { FriendRoomLayout, PlayerSeatGrid, RoomActionBar, RoomSummaryCard } from "@/components/ui";
 import { apiJson, apiRequest, ApiRequestError } from "@/lib/api";
-import { friendAuthFailureMessage } from "@/lib/friendApiErrors";
+import { friendAuthFailureMessage, friendClientAuthFailureMessage } from "@/lib/friendApiErrors";
 import { getNickname } from "@/lib/profile";
 import { normalizeRoomId } from "@/lib/friend-room";
 import { getRoom as getLocalRoom } from "@/lib/roomSystemUnified";
@@ -96,8 +96,11 @@ export default function RoomWaitingPage() {
             }
           } catch (err) {
             debugWarn('Room fetch error:', err);
+            const clientAuthMessage = friendClientAuthFailureMessage(err);
             if (err instanceof DOMException && err.name === 'AbortError') {
               setError('リクエストがタイムアウトしました。ネットワーク状況を確認してください。');
+            } else if (clientAuthMessage) {
+              setError(clientAuthMessage);
             } else if (
               err instanceof ApiRequestError &&
               [401, 404, 503].includes(err.response.status)
@@ -274,7 +277,7 @@ export default function RoomWaitingPage() {
       router.push(`/friend/play/${roomId}`);
     } catch (err) {
       debugWarn('Start game error:', err);
-      setError('ゲーム開始に失敗しました。認証、共有ストア、または参加者状態を確認してください。');
+      setError(friendClientAuthFailureMessage(err) ?? 'ゲーム開始に失敗しました。認証、共有ストア、または参加者状態を確認してください。');
     }
   };
 
