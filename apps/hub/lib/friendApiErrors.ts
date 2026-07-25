@@ -40,6 +40,14 @@ export function friendAuthFailureMessage(status: number, payload?: AuthFailurePa
     return 'Firebase認証トークンの検証に失敗しました。Firebase Client設定とFirebase Admin設定が同じプロジェクトを向いているか確認してください。';
   }
 
+  if (reason === 'no-shared-store') {
+    return 'フレンド対戦の共有ストア設定が不足しています。VercelのRedis/KV環境変数を設定して再デプロイしてください。';
+  }
+
+  if (reason === 'kv-failed') {
+    return 'フレンド対戦の共有ストアへ接続できません。VercelのRedis/KV URLまたはトークンが現在有効か確認してください。';
+  }
+
   if (status === 401 || status === 503) {
     return 'フレンド対戦の認証設定を確認してください。Firebase Client / Firebase Admin のどちらかが不足している可能性があります。';
   }

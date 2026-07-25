@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiClientAuthError } from '../api';
-import { friendClientAuthFailureMessage } from '../friendApiErrors';
+import { friendAuthFailureMessage, friendClientAuthFailureMessage } from '../friendApiErrors';
 
 function authError(code?: string, detail?: unknown) {
   return new ApiClientAuthError(
@@ -40,5 +40,19 @@ describe('friend client auth failure messages', () => {
 
     expect(message).toContain('NEXT_PUBLIC_FIREBASE_API_KEY');
     expect(message).toContain('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN');
+  });
+});
+
+describe('friend server failure messages', () => {
+  it('explains missing shared store config', () => {
+    expect(friendAuthFailureMessage(503, { reason: 'no-shared-store' })).toContain(
+      '共有ストア設定が不足',
+    );
+  });
+
+  it('explains shared store connection failures', () => {
+    expect(friendAuthFailureMessage(503, { reason: 'kv-failed' })).toContain(
+      '共有ストアへ接続できません',
+    );
   });
 });
