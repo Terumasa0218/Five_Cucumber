@@ -10,18 +10,12 @@ import {
   SeededRng,
 } from '@/lib/game-core';
 import {
-  getRoomGameSnapshot,
-  saveRoomGameSnapshot
-} from '@/lib/roomsStore';
-import {
   getRoomGameSnapshotRedis,
   saveRoomGameSnapshotRedis
 } from '@/lib/roomsRedis';
 import type { RoomGameSnapshot, RoomResolvedTrickSnapshot } from '@/types/room';
 import { HAS_SHARED_STORE } from '@/lib/serverSync';
 import { isRedisAvailable } from '@/lib/redis';
-
-const HAS_FIRESTORE = Boolean(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID && process.env.NEXT_PUBLIC_FIREBASE_API_KEY);
 
 export type GameSnapshot = RoomGameSnapshot;
 
@@ -54,18 +48,6 @@ async function loadSnapshot(roomId: string): Promise<GameSnapshot | null> {
   const local = memoryStore.get(roomId);
   if (local) return local;
 
-  if (HAS_FIRESTORE) {
-    try {
-      const snap = await getRoomGameSnapshot(roomId);
-      if (snap) {
-        memoryStore.set(roomId, snap);
-        return snap;
-      }
-    } catch (error) {
-      console.warn('[FriendGameStore] Failed to load snapshot from Firestore:', error);
-    }
-  }
-
   if (isRedisAvailable()) {
     try {
       const snap = await getRoomGameSnapshotRedis(roomId);
@@ -91,16 +73,8 @@ async function persistSnapshot(roomId: string, snapshot: GameSnapshot): Promise<
 
   let persisted = false;
 
-  if (HAS_FIRESTORE) {
-    try {
-      await saveRoomGameSnapshot(roomId, snapshot);
-      persisted = true;
-    } catch (error) {
-      console.warn('[FriendGameStore] Failed to persist snapshot to Firestore:', error);
-    }
-  }
-
-  // 共有ストアが利用可能であれば、必ず Redis/KV への保存を試みる
+  // フレンド対戦の権威状態はルーム情報と同じ Redis/KV に保存する。
+  // Firebase は匿名認証/Admin検証に使い、Firestore は要求しない。
   try {
     await saveRoomGameSnapshotRedis(roomId, snapshot);
     persisted = true;
