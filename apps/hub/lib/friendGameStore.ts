@@ -1,8 +1,6 @@
 import {
   applyMove,
   determineTrickWinner,
-  endTrick,
-  finalRound,
   GameConfig,
   GameState,
   Move,
@@ -37,6 +35,52 @@ export function createResolvedTrickSnapshot(
     cards,
     winner: determineTrickWinner(cards),
     completedAt,
+  };
+}
+
+export function applyFinalShowdownMove(
+  state: GameState,
+  config: GameConfig,
+  rng: SeededRng,
+  triggerMove: Move,
+  completedAt = Date.now()
+): { state: GameState; moves: Move[]; resolvedTrick: RoomResolvedTrickSnapshot } | null {
+  if (!state.isFinalTrick || state.phase !== 'AwaitMove') return null;
+  if (triggerMove.player !== state.currentPlayer || triggerMove.isDiscard) return null;
+
+  let nextState = state;
+  const moves: Move[] = [];
+  const baseTimestamp = triggerMove.timestamp || completedAt;
+
+  for (let offset = 0; offset < config.players; offset++) {
+    const player = (state.currentPlayer + offset) % config.players;
+    const hand = nextState.players[player]?.hand ?? [];
+    const card = player === triggerMove.player ? triggerMove.card : hand[0];
+    if (typeof card !== 'number') return null;
+
+    const move: Move = {
+      player,
+      card,
+      timestamp: player === triggerMove.player ? baseTimestamp : baseTimestamp + offset,
+      isDiscard: false,
+    };
+    const result = applyMove(nextState, move, config, rng);
+    if (!result.success) return null;
+
+    moves.push(move);
+    nextState = result.newState;
+  }
+
+  return {
+    state: nextState,
+    moves,
+    resolvedTrick: {
+      round: state.currentRound,
+      trick: state.currentTrick,
+      cards: moves,
+      winner: determineTrickWinner(moves),
+      completedAt,
+    },
   };
 }
 
@@ -119,20 +163,15 @@ export async function applyServerMove(roomId: string, move: Move): Promise<GameS
   // なければ初期化（初回のみ）
   const rngState = snap.rngState;
   const rng = rngState ? SeededRng.fromState(rngState) : new SeededRng(snap.config.seed ?? Date.now());
-  const result = applyMove(snap.state, move, snap.config, rng);
-  if (!result.success) return snap; // ignore illegal moves but keep existing state
   const updatedAt = Date.now();
-  const resolvedTrick = createResolvedTrickSnapshot(snap.state, snap.config, move, updatedAt);
 
-  let newState = result.newState;
-  if (newState.phase === 'ResolvingTrick') {
-    const trickResult = endTrick(newState, snap.config, rng);
-    if (trickResult.success) newState = trickResult.newState;
-    if (newState.phase === 'RoundEnd') {
-      const finalResult = finalRound(newState, snap.config, rng);
-      if (finalResult.success) newState = finalResult.newState;
-    }
-  }
+  const finalShowdown = applyFinalShowdownMove(snap.state, snap.config, rng, move, updatedAt);
+  const result = finalShowdown ? null : applyMove(snap.state, move, snap.config, rng);
+  if (!finalShowdown && result && !result.success) return snap; // ignore illegal moves but keep existing state
+  const resolvedTrick =
+    finalShowdown?.resolvedTrick ?? createResolvedTrickSnapshot(snap.state, snap.config, move, updatedAt);
+
+  const newState = finalShowdown?.state ?? result!.newState;
 
   const updated: GameSnapshot = {
     state: newState,
@@ -140,7 +179,7 @@ export async function applyServerMove(roomId: string, move: Move): Promise<GameS
     version: snap.version + 1,
     updatedAt,
     rngState: rng.getState(),
-    lastMove: move,
+    lastMove: finalShowdown ? undefined : move,
     resolvedTrick,
   };
   await persistSnapshot(roomId, updated);

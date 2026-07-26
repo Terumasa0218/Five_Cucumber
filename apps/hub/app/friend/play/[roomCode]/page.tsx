@@ -144,6 +144,7 @@ function FriendPlayContent() {
   const [battleV2MovingCard, setBattleV2MovingCard] = useState<BattleV2MovingCard | null>(null);
   const [battleV2HiddenMoveKey, setBattleV2HiddenMoveKey] = useState<string | null>(null);
   const [trickWinner, setTrickWinner] = useState<number | null>(null);
+  const [isShowdownMode, setIsShowdownMode] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [roomConfig, setRoomConfig] = useState<Room | null>(null);
   const useServer = USE_SERVER_SYNC;
@@ -280,6 +281,7 @@ function FriendPlayContent() {
       const resolvedTrickKey = resolvedTrick
         ? `${resolvedTrick.round}-${resolvedTrick.trick}-${resolvedTrick.completedAt}`
         : null;
+      const isFinalResolvedTrick = resolvedTrick?.trick === snapshot.config.initialCards;
       const shouldShowResolvedTrick =
         resolvedTrick &&
         resolvedTrickKey !== lastResolvedTrickKeyRef.current &&
@@ -290,12 +292,14 @@ function FriendPlayContent() {
         clearResolvedTrickTimer();
         setTableTrickCards(resolvedTrick.cards);
         setTrickWinner(resolvedTrick.winner >= 0 ? resolvedTrick.winner : null);
+        setIsShowdownMode(Boolean(isFinalResolvedTrick));
 
         resolvedTrickTimeoutRef.current = setTimeout(() => {
           resolvedTrickTimeoutRef.current = null;
           const currentState = gameRef.current?.state ?? snapshot.state;
           setTableTrickCards(currentState.trickCards);
           setTrickWinner(null);
+          setIsShowdownMode(false);
         }, 1700);
         return;
       }
@@ -303,6 +307,7 @@ function FriendPlayContent() {
       if (!resolvedTrickTimeoutRef.current && !battleV2MovingCardRef.current) {
         setTableTrickCards(snapshot.state.trickCards);
         setTrickWinner(null);
+        setIsShowdownMode(false);
       }
     },
     [
@@ -518,6 +523,7 @@ function FriendPlayContent() {
   // カードクリック処理
   const handleCardClick = async (card: number) => {
     if (!gameRef.current || !gameState || isSubmitting || isCardLocked) return;
+    if (isShowdownMode) return;
     if (gameState.currentPlayer !== mySeatIndex || gameState.phase !== 'AwaitMove') return;
 
     const legalMoves = getLegalMoves(gameState, mySeatIndex);
@@ -578,13 +584,14 @@ function FriendPlayContent() {
 
   // タイムアウト処理
   const handleTimeout = useCallback(() => {
+    if (isShowdownMode) return;
     if (!gameState || gameOver || gameState.currentPlayer !== mySeatIndex) return;
     const legalMoves = getLegalMoves(gameState, mySeatIndex);
     if (legalMoves.length > 0) {
       const randomIndex = Math.floor(Math.random() * legalMoves.length);
       handleCardClick(legalMoves[randomIndex]);
     }
-  }, [gameState, gameOver, mySeatIndex]);
+  }, [gameState, gameOver, isShowdownMode, mySeatIndex]);
 
   const handleBackToHome = () => {
     if (pollRef.current) {
@@ -654,7 +661,10 @@ function FriendPlayContent() {
     idx === mySeatIndex ? 'あなた' : (seat?.nickname ?? `P${idx + 1}`),
   ) ?? gameState.players.map((_, idx) => (idx === mySeatIndex ? 'あなた' : `P${idx + 1}`));
   const isMyTurn =
-    !gameOver && gameState.currentPlayer === mySeatIndex && gameState.phase === 'AwaitMove';
+    !gameOver &&
+    !isShowdownMode &&
+    gameState.currentPlayer === mySeatIndex &&
+    gameState.phase === 'AwaitMove';
   const battleV2LegalMoves =
     isMyTurn && !isSubmitting && !isCardLocked ? getLegalMoves(gameState, mySeatIndex) : [];
   const battleV2Timer = (
@@ -686,6 +696,7 @@ function FriendPlayContent() {
             movingCard={battleV2MovingCard}
             hiddenPlayedMoveKey={battleV2HiddenMoveKey}
             legalMoves={battleV2LegalMoves}
+            showdownMode={isShowdownMode}
             trickWinner={trickWinner}
             onMoveComplete={() => {
               updateBattleV2MovingCard(null);
