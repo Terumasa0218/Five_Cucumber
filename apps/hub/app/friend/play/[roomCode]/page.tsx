@@ -187,7 +187,11 @@ function FriendPlayContent() {
   type FriendGameResponse = { ok: true; snapshot: GameSnapshot } | { ok: false; reason: string };
   type UpdateStatusResponse = { ok: boolean; reason?: string };
 
-  const resolvePlayerIndex = (seats: RoomSeat[], nickname: string | null): number => {
+  const resolvePlayerIndex = (seats: RoomSeat[], nickname: string | null, uid?: string | null): number => {
+    if (uid) {
+      const uidIndex = seats.findIndex((seat) => seat?.uid === uid);
+      if (uidIndex >= 0) return uidIndex;
+    }
     if (!nickname) return -1;
     return seats.findIndex((seat) => seat?.nickname === nickname);
   };
@@ -323,6 +327,15 @@ function FriendPlayContent() {
   const fetchRoomConfig = async (): Promise<{ room: Room; playerIndex: number } | null> => {
     try {
       const nickname = getNickname();
+      let authUid: string | null = null;
+      if (useServer) {
+        try {
+          const { getClientAuthUid } = await import('@/lib/clientAuth');
+          authUid = await getClientAuthUid();
+        } catch {
+          authUid = null;
+        }
+      }
 
       if (!useServer) {
         const localRoom = getLocalRoom(roomCode);
@@ -338,7 +351,7 @@ function FriendPlayContent() {
       if (!data.ok || !data.room) throw new Error('Invalid room data');
 
       setRoomConfig(data.room);
-      const playerIndex = resolvePlayerIndex(data.room.seats, nickname);
+      const playerIndex = resolvePlayerIndex(data.room.seats, nickname, authUid);
       if (playerIndex < 0) throw new Error('Player not found in room');
       setMySeatIndex(playerIndex);
       return { room: data.room, playerIndex };
@@ -402,7 +415,7 @@ function FriendPlayContent() {
         }
       }
 
-      const isPlayerInRoom = room.seats.some((seat) => seat?.nickname === nickname);
+      const isPlayerInRoom = myIndex >= 0 && room.seats[myIndex] !== null;
       if (!isPlayerInRoom) {
         router.push(`/friend/room/${roomCode}`);
         return;
@@ -653,6 +666,11 @@ function FriendPlayContent() {
             </div>
           </div>
         </BattleLayout>
+        {toast && (
+          <div className="toast" role="status" aria-live="polite">
+            {toast}
+          </div>
+        )}
       </>
     );
   }

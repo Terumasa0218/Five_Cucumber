@@ -43,7 +43,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const { room, status } = await withLock(`friend-room:${roomId}`, async () => {
       const room = await kvGetJSON<Room>(keyOf(roomId));
-      const result = joinRoomSnapshot(room, nicknameInput);
+      const result = joinRoomSnapshot(room, nicknameInput, auth.auth.uid);
       if (!result.ok) {
         return { status: result.reason };
       }
@@ -61,12 +61,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (status === 'full') {
       return NextResponse.json({ ok: false, reason: 'full' }, { status: 409, headers: noStore });
     }
+    if (status === 'duplicate-nickname') {
+      return NextResponse.json({ ok: false, reason: 'duplicate-nickname' }, { status: 409, headers: noStore });
+    }
     if (!room) {
       return NextResponse.json({ ok: false, reason: 'bad-request' }, { status: 400, headers: noStore });
     }
 
     try {
-      const members = room.seats.filter(isOccupiedSeat).map((seat) => seat.nickname);
+      const members = room.seats.filter(isOccupiedSeat).map((seat) => seat.uid ?? seat.nickname);
       await realtime.publishToMany(roomId, members, 'room_updated', () => ({ room, event: 'player_joined', joinedPlayer: nicknameInput }));
     } catch {}
 

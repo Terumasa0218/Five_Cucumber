@@ -67,6 +67,33 @@ describe('friend-room helpers', () => {
     expect(secondJoin.seatIndex).toBe(1);
   });
 
+  it('uidありのルームでは同じuidを再入室扱いにし、同名の別uidは拒否する', () => {
+    const room = createFriendRoom({
+      id: '123456',
+      nickname: 'host',
+      uid: 'uid-host',
+      roomSize: 3,
+      turnSeconds: 15,
+      maxCucumbers: 5,
+    });
+
+    const firstJoin = joinRoomSnapshot(room, 'guest', 'uid-guest');
+    expect(firstJoin.ok).toBe(true);
+    if (!firstJoin.ok) throw new Error('unexpected join failure');
+    expect(firstJoin.room.seats[1]).toEqual({ nickname: 'guest', uid: 'uid-guest' });
+
+    const rejoin = joinRoomSnapshot(firstJoin.room, 'guest', 'uid-guest');
+    expect(rejoin.ok).toBe(true);
+    if (!rejoin.ok) throw new Error('unexpected rejoin failure');
+    expect(rejoin.alreadyJoined).toBe(true);
+    expect(rejoin.seatIndex).toBe(1);
+
+    expect(joinRoomSnapshot(firstJoin.room, 'guest', 'uid-other')).toEqual({
+      ok: false,
+      reason: 'duplicate-nickname',
+    });
+  });
+
   it('満室の新規参加を拒否する', () => {
     const room = createFriendRoom({
       id: '123456',

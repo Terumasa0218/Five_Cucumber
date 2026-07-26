@@ -5,7 +5,9 @@ import type { Room, RoomStatus } from '@/types/room';
 import { kvGetJSON, kvSaveJSON, roomTTL } from '@/lib/kv';
 import { getAuthFailureBody, getAuthFailureStatus, verifyAuthDetailed } from '@/lib/auth';
 import { withLock } from '@/lib/lock';
-import { canStartRoom, normalizeNickname, normalizeRoomId } from '@/lib/friend-room';
+import { canStartRoom, getSeatIndex, normalizeNickname, normalizeRoomId } from '@/lib/friend-room';
+import { realtime } from '@/lib/realtime';
+import type { RoomSeat } from '@/types/room';
 
 const keyOf = (id: string) => `friend:room:${id}`;
 
@@ -17,6 +19,8 @@ type StatusPayload = { roomId?: unknown; status?: unknown; nickname?: unknown };
 
 const isRoomStatus = (value: string): value is RoomStatus =>
   value === 'waiting' || value === 'playing' || value === 'closed';
+
+const isOccupiedSeat = (seat: RoomSeat): seat is Exclude<RoomSeat, null> => seat !== null;
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const auth = await verifyAuthDetailed(req);
@@ -31,20 +35,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return json({ ok: false, reason: 'bad-request' }, 400);
     }
 
-    return await withLock(`room:${roomId}`, async () => {
+    return await withLock(`friend-room:${roomId}`, async () => {
       const room = await kvGetJSON<Room>(keyOf(roomId));
       if (!room) {
         return json({ ok: false, reason: 'not-found' }, 404);
       }
 
       if (statusInput === 'playing') {
-        const startCheck = canStartRoom(room, nickname);
+        const startCheck = canStartRoom(room, nickname, auth.auth.uid);
         if (!startCheck.ok) {
           return json({ ok: false, reason: startCheck.reason }, startCheck.reason === 'host-only' ? 403 : 409);
         }
       }
 
-      if (statusInput === 'closed' && !room.seats.some((seat) => seat?.nickname === nickname)) {
+      if (statusInput === 'closed' && getSeatIndex(room, nickname, auth.auth.uid) < 0) {
         return json({ ok: false, reason: 'not-member' }, 403);
       }
 
@@ -60,6 +64,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       room.status = statusInput;
       await kvSaveJSON(keyOf(roomId), room, roomTTL);
+      try {
+        const members = room.seats.filter(isOccupiedSeat).map((seat) => seat.uid ?? seat.nickname);
+        await realtime.publishToMany(roomId, members, 'room_updated', () => ({ room, event: 'status_changed' }));
+      } catch {}
 
       return json({ ok: true }, 200);
     }, { ttlMs: 5000, retry: 2, retryDelayMs: 100 });

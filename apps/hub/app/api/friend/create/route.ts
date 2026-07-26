@@ -160,6 +160,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const room: Room = createFriendRoom({
       id,
       nickname: trimmedNickname,
+      uid: auth.auth.uid,
       ...settings,
     });
 

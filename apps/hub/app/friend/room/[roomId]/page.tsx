@@ -158,7 +158,7 @@ export default function RoomWaitingPage() {
                 import('@/lib/realtime-client'),
               ]);
               const authUid = await getClientAuthUid();
-              const channelName = `room-${roomId}-user-${currentNickname}`;
+              const channelName = `room-${roomId}-user-${authUid}`;
               debugLog(`[RoomPage] Initializing Ably client for room: ${roomId}, user: ${currentNickname}, authUid: ${authUid}, mobile: ${isMobile}`);
 
               const ablyClient = makeClient(authUid, channelName);
@@ -189,8 +189,16 @@ export default function RoomWaitingPage() {
                 debugLog('[RoomPage] Updating room state with new data:', updatedRoom);
                 setRoom(updatedRoom);
 
-                const isParticipating = updatedRoom.seats.some((seat: Room['seats'][number]) => seat?.nickname === currentNickname);
+                const isParticipating = updatedRoom.seats.some(
+                  (seat: Room['seats'][number]) =>
+                    seat?.uid === authUid || (!seat?.uid && seat?.nickname === currentNickname)
+                );
                 setIsInRoom(isParticipating);
+
+                if (isParticipating && updatedRoom.status === 'playing') {
+                  router.push(`/friend/play/${roomId}`);
+                  return;
+                }
 
                 if (event === 'player_joined' && joinedPlayer) {
                   debugLog(`[RoomPage] Player ${joinedPlayer} joined the room`);

@@ -25,7 +25,8 @@ async function checkUserInRoom(roomId: string, authUid: string, participant: str
 
   return room.seats.some((seat) => {
     if (!seat) return false;
-    return seat.nickname === authUid || seat.nickname === participant;
+    if (seat.uid) return seat.uid === authUid && participant === authUid;
+    return seat.nickname === participant;
   });
 }
 

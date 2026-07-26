@@ -2,7 +2,7 @@
 
 import type { GameConfig, GameState, Move, RngState } from '@/lib/game-core';
 
-export type RoomSeat = { nickname: string } | null;
+export type RoomSeat = { nickname: string; uid?: string } | null;
 
 export type RoomStatus = 'waiting' | 'playing' | 'closed';
 

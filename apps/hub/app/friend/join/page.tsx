@@ -29,6 +29,8 @@ export default function FriendJoinPage() {
           : 'この端末にローカルルームが見つかりません。別端末の友達と遊ぶにはサーバー同期設定が必要です。';
       case 'full':
         return 'この部屋はすでに定員です';
+      case 'duplicate-nickname':
+        return '同じ名前の参加者がすでにいます。プロフィール設定で別の名前に変更してください。';
       case 'locked':
       case 'busy':
         return '対戦中のため入室できません';

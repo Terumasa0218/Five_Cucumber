@@ -41,7 +41,7 @@ export async function GET(
     if (roomId.length !== 6 || !nickname) return json({ ok: false, reason: 'bad-request' }, 400);
     const room = await kvGetJSON<Room>(`friend:room:${roomId}`);
     if (!room) return json({ ok: false, reason: 'room-not-found' }, 404);
-    if (getSeatIndex(room, nickname) < 0) return json({ ok: false, reason: 'not-member' }, 403);
+    if (getSeatIndex(room, nickname, auth.auth.uid) < 0) return json({ ok: false, reason: 'not-member' }, 403);
     const snap = await getGame(roomId);
     if (!snap) return json({ ok: false, reason: 'not-found' }, 404);
     return json({ ok: true, snapshot: snap }, 200);
@@ -79,7 +79,7 @@ export async function POST(
 
     const room = await kvGetJSON<Room>(`friend:room:${roomId}`);
     if (!room) return json({ ok: false, reason: 'room-not-found' }, 404);
-    const actorSeatIndex = getSeatIndex(room, nickname);
+    const actorSeatIndex = getSeatIndex(room, nickname, auth.auth.uid);
     if (actorSeatIndex < 0) return json({ ok: false, reason: 'not-member' }, 403);
     
     if (requestBody.type === 'init') {
@@ -87,17 +87,21 @@ export async function POST(
       if (!state || !config || typeof state !== 'object' || typeof config !== 'object') {
         return json({ ok: false, reason: 'bad-request' }, 400);
       }
-      if (!isRoomHost(room, nickname)) {
+      if (!isRoomHost(room, nickname, auth.auth.uid)) {
         return json({ ok: false, reason: 'host-only' }, 403);
       }
       if (room.status !== 'playing' || countJoinedPlayers(room) !== room.size) {
         return json({ ok: false, reason: 'room-not-ready' }, 409);
       }
-      const snap = await initGame(roomId, {
-        state: state as GameState,
-        config: config as GameConfig,
-        rngState: rngState as RngState | undefined,
-      });
+      const snap = await withLock(
+        `game:${roomId}`,
+        () => initGame(roomId, {
+          state: state as GameState,
+          config: config as GameConfig,
+          rngState: rngState as RngState | undefined,
+        }),
+        { ttlMs: 5000, retry: 2, retryDelayMs: 100 },
+      );
       return json({ ok: true, snapshot: snap }, 200);
     }
     
