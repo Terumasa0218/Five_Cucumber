@@ -28,9 +28,11 @@ The server checks room membership before game actions.
 - Only the host seat can start a waiting room.
 - Starting requires all seats to be filled.
 - Only the host can initialize the game snapshot.
-- A move is accepted only when the submitted nickname matches the move player's seat.
+- A move is accepted only when the authenticated user matches the move player's seat.
 
-These checks currently use the room nickname/seat model already present in the app. Firebase auth still gates server API access, but seat authorization for this MVP is based on room membership.
+Firebase Auth gates server API access. Seat authorization now prefers the Firebase Auth
+`uid` stored on the room seat. Nickname matching remains only as a compatibility fallback
+for older uid-less room snapshots.
 
 ## Required Environment
 
@@ -47,3 +49,8 @@ Real friend matches require:
 - `ABLY_API_KEY` only when realtime room update events are desired.
 
 Without these, the app should show a clear backend requirement message instead of starting a broken match.
+
+## Verification
+
+Use `docs/online-match-checklist.md` for the current manual and automated
+confirmation checklist before treating friend matches as stable.

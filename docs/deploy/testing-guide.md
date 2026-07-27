@@ -50,6 +50,8 @@ Production:
 
 When server sync is disabled or backend variables are missing, local review mode may create rooms only in the same browser storage. Real multi-device friend matches require Firebase authentication plus the shared store.
 
+For deeper online-match hardening, use `docs/online-match-checklist.md`.
+
 ### Legacy Route Compatibility
 
 1. Open `/play/cucumber5?mode=cpu&players=2&difficulty=easy`.
